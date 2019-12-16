@@ -1,0 +1,323 @@
+---
+title: "GMM_FDR"
+output: html_notebook
+date: 11/11/19
+---
+
+
+## Initialize x and p-values
+
+```{r}
+options(scipen = 999)
+library("adaptMT")
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+library(splines)
+library(ggthemr)
+library(tidyr)
+setwd("/Users/Patrick/Documents/Berkeley/Statistics Research/adaptMT")
+ggthemr('fresh')
+```
+# Generate Data
+```{r}
+data <- generate_data(1000,1,10)
+known <- data$known
+unknown <- data$unknown
+x <- known$x
+spline_x <- known$spline_x
+p_values <- known$p_values
+z <- known$z
+```
+```{r}
+data.frame(x,p_values)%>%ggplot(aes(x,p_values))+geom_point(alpha=0.5)
+```
+## Exponential Family functions for Gaussian
+```{r}
+# EM Procedure
+
+alpha_m=0.05
+lambda=0.4
+zeta=0.1
+
+masking <- function(p_i,mask){#,alpha_m,lambda,zeta){
+  mask <- mask &((p_i<alpha_m) | (p_i>lambda & p_i<lambda+alpha_m/zeta))
+  masked_p_i <- (1-mask)*p_i+mask*(p_i*(p_i<alpha_m)+(p_i>=alpha_m)*(alpha_m+zeta*(lambda-p_i)))
+  return(data.frame(mask,p_i,masked_p_i))
+}
+
+inverse_masking <- function(mask,masked_p_i){#,alpha_m,lambda,zeta){
+  small <- masked_p_i
+  big <- (1-mask)*masked_p_i+mask*(-1/zeta*masked_p_i+alpha_m/zeta+lambda)
+  return(data.frame(mask,small,big))
+}
+
+# Density of p-value given theta
+f <- function(mask,masked_p_i,theta_i,family){
+  small_big_data <- inverse_masking(mask,masked_p_i)
+  small_z_i = -qnorm(small_big_data$small)
+  big_z_i = -qnorm(small_big_data$big)
+  prob <- dnorm(small_z_i,mean=theta_i)+dnorm(big_z_i,mean=theta_i)*zeta
+  norm_prob <- prob*(mask)+prob*(1-mask)/(1+zeta)
+  return(norm_prob)
+}
+
+plot_range = seq(0,1,0.0101)
+masked <- masking(plot_range,TRUE)
+plot(plot_range,f(masked$mask, masked$masked_p_i,0,family),type="l",xlab = "p-value",ylab="Density given theta=0")
+beta_seq = data.frame()
+```
+
+
+```{r}
+masked_data <- masking(p_i=p_values,TRUE)
+inverse_data <- inverse_masking(masked_data$mask,masked_data$masked_p_i)
+```
+
+```{r}
+
+
+
+data <- all_data
+prev_beta <- true_beta
+prev_mu <- true_mu
+prev_tau <- true_tau
+
+
+
+
+all_data$mask <- TRUE
+masked_data <- masking(all_data$p_values,all_data$mask)
+all_data$masked_p_value <- masked_data$masked_p_i
+all_data$mask <- masked_data$mask
+all_data$mask = FALSE
+#all_data$masked_p_value = all_data$mask*(1-all_data$p_values)+(1-all_data$mask)*all_data$p_values
+
+exact_expectation_gamma <- expectation_gamma(true_beta,true_mu,true_tau,all_data,x,family)
+
+ggplot(data.frame(exact_expectation_gamma,all_data$gamma),aes(x=exact_expectation_gamma,y=all_data.gamma))+geom_point(alpha=0.5)
+
+```
+
+
+```{r}
+# Sample many thetas
+# Calculate values for each beta
+# Select optimal beta
+
+beta_init <- beta_guess
+curr_mu <- true_mu
+curr_tau <- true_tau
+data = all_data
+
+
+all_data$mask <- FALSE
+all_data$masked_p_value <- all_data$p_values
+temp <- plot_convergence(all_data,x,orig_x,true_beta = true_beta,num_iterations=30,family=family,title="Unmasked",true_mu=true_mu,true_tau=true_tau)
+```
+
+```{r}
+all_data$mask <- TRUE
+#all_data$mask = all_data$p_values<0.3 | all_data$p_values>0.7
+masked_data <- masking(all_data$p_values,all_data$mask)
+all_data$masked_p_value <- masked_data$masked_p_i
+all_data$mask <- masked_data$mask
+plot_convergence(all_data,x,orig_x,true_beta = true_beta,num_iterations=10,family=family,title="Masked")
+print(paste0("Percent Masked: ",sum(all_data$mask)/nrow(all_data)))
+```
+
+
+```{r}
+decision <- function(mask, masked_p_i, beta, x_i, num_thetas = 20,family) {
+  inverted = inverse_masking(mask,masked_p_i)
+  small = inverted$small
+  big = inverted$big
+  if(family == "Gaussian"){
+    all_noise = rnorm(num_thetas)
+  }else if(family=="Cauchy"){
+    all_noise = rcauchy(num_thetas)
+  }else if(family=="Uniform"){
+    all_noise = runif(num_thetas)-1/2
+  }else{
+    print("Family not found")
+  }
+  small_z_i = -qnorm(small)
+  big_z_i = -qnorm(big)
+  prob_small = 0
+  prob_big = 0
+  for (noise in all_noise) {
+    if(family == "Gaussian"){
+      prob_small = prob_small + dnorm(small_z_i, mean = noise + x_i %*% beta)
+      prob_big = prob_big + dnorm(big_z_i, mean = noise + x_i %*% beta)
+    }else if(family=="Cauchy"){
+      prob_small = prob_small + dcauchy(small_z_i, location = noise + x_i %*% beta)
+      prob_big = prob_big + dcauchy(big_z_i, location = noise + x_i %*% beta)
+    }else if(family=="Uniform"){
+      prob_small = prob_small + dunif(small_z_i, min = noise + x_i %*% beta-1/2)
+      prob_big = prob_big + dunif(big_z_i, min = noise + x_i %*% beta-1/2,max = noise + x_i %*% beta+1/2)
+    }
+  }
+  prob_small = prob_small
+  prob_big = prob_big
+  big_odds = prob_big / prob_small
+  return(big_odds)
+}
+#data <- all_data
+fdr <- function(data,x,beta_guess,num_iter,family,calc_actual_FDP=FALSE) {
+
+  x_names <- paste("X",1:ncol(x),sep="")
+  fdr_log <- data.frame()
+  curr_beta = beta_guess
+  A_t = filter(data, p_values >= 0.55)
+  R_t = filter(data, p_values < 0.45)
+  size_A_t = dim(A_t)[1]
+  size_R_t = dim(R_t)[1]
+  data$mask = TRUE
+  masked_data <- masking(data$p_values,data$mask)
+  data$masked_p_value <- masked_data$masked_p_i
+  data$mask <- masked_data$mask
+  
+  fdphat <- (size_A_t + 1) / max(size_R_t, 1)
+  print(paste0("alpha 0.5"," FDPhat: ",round(fdphat, 3)," A_t: ",size_A_t," size_R_t: ",size_R_t))
+  # Update beta
+  #out <-composite_null(data,x,beta_0 = curr_beta,num_thetas = num_theta,iterations = num_iter)
+  #curr_beta <- out$best_beta
+  fdphat <- 1
+  count = 0
+  min_fdp <- 1
+  for (t in seq(0.9, 0.01, -0.01)) {
+    diff = FALSE
+    
+    
+    while (min_fdp > t) {
+      if (count %% 20 == 0){
+         #browser()
+        out <-composite_null(data,x,beta_0 = curr_beta,iterations = num_iter,family=family)
+        curr_beta <- out$best_beta
+        
+      }
+      count = count + 1
+      if (size_R_t == 0) {
+        break
+      }
+      data$big_odds = decision(data$mask,data$masked_p_value,curr_beta,x,num_thetas = 20,family)
+      data$big_odds = data$big_odds * data$mask + (1 - data$mask) * 0
+      curr_beta = max(data$big_odds)
+      data$mask = as.logical(data$mask * (data$big_odds < curr_beta - 1e-2))
+      masked_data <- masking(data$p_values,data$mask)
+      data$masked_p_value <- masked_data$masked_p_i
+      data$mask <- masked_data$mask
+      A_t = filter(data, p_values > lambda & data$mask)
+      R_t = filter(data, p_values < alpha_m & data$mask)
+      size_A_t = dim(A_t)[1]
+      size_R_t = dim(R_t)[1]
+      fdphat <- (size_A_t + 1) / max(size_R_t, 1)
+      #print(paste(size_A_t,size_R_t,fdphat,sep=" "))
+      if (fdphat < min_fdp) {
+        diff = TRUE
+        min_fdp = min(min_fdp, fdphat)
+      }
+    }
+    
+    print(paste0("alpha: ",t," FDPhat: ",round(fdphat, 3)," A_t: ",size_A_t,
+                 " size_R_t: ",size_R_t," curr_beta: ",round(curr_beta, 3)," minfdp ",min_fdp))
+    #out <-composite_null(data,x,beta_0 = curr_beta,num_thetas = 100,iterations = 10)
+    #curr_beta <- out$best_beta
+      if(calc_actual_FDP){
+        actual_fdp <- sum(R_t$theta < 0) / max(sum(R_t$theta > 0), 1)
+        curr_row <- c(size_A_t,size_R_t,min_fdp,actual_fdp,curr_beta,curr_beta)
+      }else{
+        curr_row <-c(size_A_t,size_R_t,min_fdp,curr_beta,curr_beta)
+        
+      }
+   # print(curr_row)
+    fdr_log <- rbind(fdr_log, curr_row)
+  }
+  if(calc_actual_FDP){
+    colnames(fdr_log) <-c("Accepted","Rejected","FDPHat","Actual_FDP",x_names,"Beta")
+  }else{
+    colnames(fdr_log) <-c("Accepted","Rejected","FDPHat",x_names,"Beta")
+  }
+  fdr_log$Type <- "Composite Null"
+  return(fdr_log)
+}
+```
+
+```{r}
+fdr_log <- fdr(all_data,x,beta_guess,10,family=family)
+ggplot(fdr_log,aes(x=FDPHat,y=Rejected))+geom_line()
+```
+```{r}
+adapt_x <- all_data["orig_x"]#data.frame(orig_x)
+colnames(adapt_x) <- c("x")
+pvals <- all_data$p_values
+# Define the exponential family for AdaPT (Section 4)
+dist <- beta_family()
+
+# Run adapt_glm
+library("splines")
+formulas <- paste0("ns(x, df = ", 5:10, ")")
+res <- adapt_glm(x = adapt_x, pvals = pvals, pi_formulas = formulas,
+                 mu_formulas = formulas, dist = dist, nfits = 10)
+
+# Plot the threshold curve and the level curves of local FDR
+plot_1d_thresh(res, x,pvals,alpha = 0.1, "P-Value Thresholds")
+plot_1d_lfdr(res, x,pvals,alpha = 0.1, "Level Curves of Local FDR Estimates")
+adapt_fdr_log <- data.frame(res$nrejs,res$alphas,"AdaPT")
+colnames(adapt_fdr_log) <- c("Rejected","FDPHat","Type")
+```
+```{r}
+full_log <- rbind(fdr_log[c("Rejected","FDPHat","Type")],adapt_fdr_log)
+ggthemr('fresh')
+ggplot(data=full_log,aes(x=FDPHat,y=Rejected,fill=Type,color=Type))+geom_line(show.legend=TRUE) +labs(title = "Rejections over FDP for Gaussian")+xlab("FDP")+ylab("Number of Rejections")+xlim(0,0.9)+ylim(0,1000)
+
+```
+
+```{r}
+full_log <- rbind(fdr_log[c("Rejected","FDPHat","Type")],adapt_fdr_log)
+ggthemr('fresh')
+ggplot(data=full_log,aes(x=FDPHat,y=Rejected,fill=Type,color=Type))+geom_line(show.legend=TRUE) +labs(title = "Rejections over FDP for Estrogen")+xlab("FDP")+ylab("Number of Rejections")+xlim(0,0.9)+ylim(0,13000)
+
+```
+
+
+```{r}
+library("adaptMT")
+data(estrogen)
+p_values <- as.numeric(estrogen$pvals)
+x <-  as.numeric(estrogen$ord_high)
+x <- (x-mean(x))/sd(x)
+x <- ns(x,df=num_df)
+x <- matrix(x,ncol=num_df)
+all_data <- data.frame(p_values)
+
+fdr_log <- fdr(all_data,x,beta_guess,10,family="Gaussian")
+ggplot(fdr_log,aes(x=FDPHat,y=Rejected))+geom_line()
+
+```
+
+```{r}
+data(estrogen)
+pvals <- as.numeric(estrogen$pvals)
+x <- data.frame(x = as.numeric(estrogen$ord_high))
+
+library("splines")
+formulas <- paste0("ns(x, df = ", 6:10, ")")
+
+# Define the exponential family for AdaPT (Section 4)
+dist <- beta_family()
+
+res <- adapt_glm(x = x, pvals = pvals, pi_formulas = formulas,
+                 mu_formulas = formulas, dist = dist, nfits = 10)
+
+
+
+# Plot the threshold curve and the level curves of local FDR
+plot_1d_thresh(res, x,pvals,alpha = 0.1, "P-Value Thresholds")
+plot_1d_lfdr(res, x,pvals,alpha = 0.1, "Level Curves of Local FDR Estimates")
+adapt_fdr_log <- data.frame(res$nrejs,res$alphas,"AdaPT")
+colnames(adapt_fdr_log) <- c("Rejected","FDPHat","Type")
+```
+
+
+
