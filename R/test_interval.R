@@ -16,7 +16,9 @@ data <- generate_data(5000,1,num_df)
 known <- data$known
 unknown <- data$unknown
 print(paste("True params, mu:",unknown$mu," var:",unknown$var))
-print(paste("Percent of Null:",round(sum(abs(unknown$theta)<1)/length(unknown$theta)*100,2)))
+num_null <- sum(abs(unknown$theta)<1)
+print(paste("Percent of Null:",round(num_null/length(unknown$theta)*100,2)))
+print(paste("Number of Null:",num_null))
 x <- known$x
 #spline_x <- known$spline_x
 z <- known$z
@@ -54,7 +56,8 @@ print(paste0("Total Time for GMM Adapt: ",elapsed))
 gmm_log <- output$fdr_log
 est_params <- output$est_params
 rejections <- output$rejections
-print(ggplot(gmm_log,aes(x=FDPHat,y=Rejected))+geom_line())
+print(ggplot(gmm_log,aes(x=FDPHat,y=Rejected))+geom_line()+title("Rejections vs. FDPHat"))
+ggsave(paste0("Images/AdaPTGMM_Rejections.png"),width=20,height=15,dpi=200,units="cm")
 
 
 # Adapt GLM

@@ -56,14 +56,15 @@ fit_parameters <- function(data,est_params,params,beta_seq=data.frame(),mu_seq=d
     w_ia <- calculate_w(data,est_params,params)
 
     if(params$testing_interval){
-      for(iter in seq(10)){
+      for(iter in seq(5)){
 
-        print(paste(est_params$mu,est_params$var))
+
         gradients <- calculate_gradients(data, est_params,params,w_ia)
-        est_params$mu <- est_params$mu-0.5*gradients$mu
-        est_params$var <- est_params$var-0.5*gradients$var
+        # We use gradient ascent since we want to maximize the log likelihood
+        est_params$mu <- est_params$mu + 0.5 * gradients$mu
+        est_params$var <- max(est_params$var + 0.5 * gradients$var,0.1)
+        #print(paste(est_params$mu,est_params$var))
       }
-      browser()
     }else{
       est_params$mu <- weighted_mean(w_ia$w_ia,w_ia$z)
       est_params$var <- weighted_mean(w_ia$w_ia,(w_ia$z-est_params$mu)^2)
@@ -180,7 +181,6 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
 # w_{i,big}, w_{i,small} (k assumed to be one)
 calculate_w <- function(data,est_params,params){
 
-
   prob <- calculate_probabilities(data,est_params,params)
 
 
@@ -191,14 +191,14 @@ calculate_w <- function(data,est_params,params){
   big_z = data$big_z
 
   # P[p_small|gamma=1]
-  prob_small_1 <- gaussian_pdf(small_z,mu,var)/gaussian_pdf(small_z,0,1)
+  #prob_small_1 <- gaussian_pdf(small_z,mu,var)/gaussian_pdf(small_z,0,1)
   # P[p_big|gamma=1]
-  prob_big_1 <- gaussian_pdf(big_z,mu,var)/gaussian_pdf(big_z,0,1)
+  #prob_big_1 <- gaussian_pdf(big_z,mu,var)/gaussian_pdf(big_z,0,1)
 
   # P[z_small|gamma = 0]
-  prob_small_0 <- 1#gaussian_pdf(small_z,0,1)
+  #prob_small_0 <- 1#gaussian_pdf(small_z,0,1)
   # P[z_big|gamma = 0]
-  prob_big_0 <- 1#gaussian_pdf(big_z,0,1)
+  #prob_big_0 <- 1#gaussian_pdf(big_z,0,1)
 
   prob_class_1 <- prob$expit_prob
   prob_class_0 <- 1-prob_class_1
@@ -207,17 +207,17 @@ calculate_w <- function(data,est_params,params){
   names <- c("w_ia","z","a")
 
   # w_{i,small}
-  numerator <- prob_class_1*prob_small_1
+  #numerator <- prob_class_1*prob_small_1
 
-  numerator <- prob$expit_prob * prob$small_prob_alt
+  numerator <- prob_class_1 * prob$small_prob_alt
 
   #denominator <- prob_class_1*(prob_small_1+prob_big_1/params$zeta)+prob_class_0*(prob_small_0+prob_big_0/params$zeta)
-  denominator <- prob_class_1 * (prob$small_prob_alt+prob$big_prob_alt) + prob_class_0 * (prob$small_prob_null+prob$big_prob_null)
+  denominator <- prob_class_1 * (prob$small_prob_alt + prob$big_prob_alt) + prob_class_0 * (prob$small_prob_null + prob$big_prob_null)
   w_small <- data.frame(numerator/denominator,small_z,"small")#rep("small",nrow(data$full_x)))
   colnames(w_small) <- names
 
   # w_{i,big}
-  numerator <- prob_class_1*prob_big_1/params$zeta
+  numerator <- prob_class_1*prob$big_prob_alt#/params$zeta
   w_big <- data.frame(numerator/denominator,big_z,"big")#,nrow(data$full_x)))
 
   colnames(w_big) <- names
@@ -227,18 +227,22 @@ calculate_w <- function(data,est_params,params){
 
 calculate_gradients <- function(data,est_params,params,w_ia){
   gradients <- list()
-  temp_term <- exp(4*est_params$mu * w_ia$z)
+  mu <- est_params$mu
+  var <- est_params$var
+  z <- w_ia$z
+  #temp_term <- exp(4*est_params$mu * w_ia$z)
 
+  coth_term <- coth(mu*z/var)
+  gradients$mu <- mean(w_ia$w_ia / var* (z*coth_term-mu))
+  #mean(2*w_ia$w_ia*(-est_params$mu+w_ia$z*(temp_term+1)/(temp_term-1)))
 
-  gradients$mu <- mean(w_ia$w_ia*(-2*est_params$mu+2*w_ia$z*(temp_term+1)/(temp_term-1)))
-
-  pdf_1 <- gaussian_pdf(w_ia$z,est_params$mu,est_params$var)
-  pdf_2 <- gaussian_pdf(-w_ia$z,est_params$mu,est_params$var)
-  gradients$var <- mean(w_ia$w_ia*(
-    (w_ia$z-est_params$mu)^2*pdf_1-(w_ia$z+est_params$mu)^2*pdf_2
-    - 1)
-    /
-      (2*est_params$var))
+  #pdf_1 <- gaussian_pdf(w_ia$z,est_params$mu,est_params$var)
+  #pdf_2 <- gaussian_pdf(-w_ia$z,est_params$mu,est_params$var)
+  #gradients$var <- mean(w_ia$w_ia/(2*est_params$var)*
+  #  ( (w_ia$z-est_params$mu)^2*pdf_1-(w_ia$z+est_params$mu)^2*pdf_2/(pdf_1-pdf_2)/(est_params$var) - 1)
+  #  )
+  gradients$var <- mean(w_ia$w_ia/(2*var^2)*
+                          (mu^2-2*mu*w_ia$w_ia*coth_term-var+z^2))
   return(gradients)
 }
 

@@ -51,20 +51,18 @@ calculate_probabilities <- function(data,est_params,params){
   beta <- est_params$beta
   expit_prob <- expit(data$full_x %*% beta)
 
-  small_prob_null <- ifelse(params$testing_interval,
-                            change_of_density(small_z, radius, 0, 1),
-                            1)
-  big_prob_null <- ifelse(params$testing_interval,
-                          change_of_density(big_z, radius, 0, 1),
-                          1) / params$zeta
+  if(params$testing_interval){
+    small_prob_null <- change_of_density(small_z, radius, 0, 1)
+    big_prob_null <- change_of_density(big_z, radius, 0, 1) / params$zeta
+    small_prob_alt <- change_of_density(small_z, radius, mu, var)
+    big_prob_alt <- change_of_density(big_z, radius, mu, var) / params$zeta
+  } else {
+    small_prob_null <- 1
+    big_prob_null <- 1 / params$zeta
+    small_prob_alt <- gaussian_pdf(small_z, mu, var) /gaussian_pdf(small_z, 0, 1)
+    big_prob_alt <- gaussian_pdf(big_z, mu, var) / gaussian_pdf(big_z, 0, 1) / params$zeta
+  }
 
-  small_prob_alt <- ifelse(rep(params$testing_interval,num_hypo),
-                           change_of_density(small_z, radius, mu, var),
-                           gaussian_pdf(small_z, mu, var) /gaussian_pdf(small_z, 0, 1))
-
-  big_prob_alt <- ifelse(rep(params$testing_interval,num_hypo),
-                         change_of_density(big_z, radius, mu, var),
-                         gaussian_pdf(big_z, mu, var) / gaussian_pdf(big_z, 0, 1)) / params$zeta
   prob <- list()
   prob$small_prob_null <- small_prob_null
   prob$big_prob_null <- big_prob_null

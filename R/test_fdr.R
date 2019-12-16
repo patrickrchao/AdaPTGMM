@@ -21,6 +21,7 @@
 # #z <- known$z
 #
 # model <- create_model(x,p_values,num_df,iterations=25,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE)
+# #model <- create_model(x,p_values,num_df,iterations=25,alpha_m = 0.5,zeta = 1,lambda=0.5,tent=TRUE)
 # data <- model$data
 # params <- model$params
 #
@@ -30,7 +31,7 @@
 # data <- inverse_masking(data,params)
 # #plot_x_p_value_masking(data,params)
 #
-# plot_masking_function(data,params)
+# plot_masking_function(data,params,"AdaPTGMM_Masking_Function")
 #
 # print(paste("Percent of data masked:",round(sum(data$mask)/length(data$mask)*100,2)))
 #

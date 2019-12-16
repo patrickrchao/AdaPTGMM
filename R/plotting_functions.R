@@ -1,4 +1,4 @@
-plot_masking_function <- function(data,params){
+plot_masking_function <- function(data,params,title="Masking_Function"){
   plot(data$p_values,data$masked_p_i)
   ggthemr('fresh')
   breakpoints <- c(0,params$alpha_m,params$lambda,params$lambda + params$alpha_m/params$zeta,1)
@@ -23,6 +23,7 @@ plot_masking_function <- function(data,params){
     output <- output + geom_segment(aes(x = breakpoints[3],xend =breakpoints[4], y=breakpoints[1],yend=breakpoints[2]),size=1.5)
   }
   print(output)
+  ggsave(paste0("Images/",gsub(" ","_",title),".png"),width=20,height=15,dpi=200,units="cm")
 }
 
 plot_x_p_value_masking <- function(data,params){

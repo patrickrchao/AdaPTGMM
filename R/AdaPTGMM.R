@@ -20,14 +20,10 @@ AdaPTGMM <- function(data,est_params,params,calc_actual_FDP=FALSE,unknown=FALSE)
   min_fdp <- 1
   rejections <- data.frame()
   for (t in seq(0.9, 0.01, -0.01)) {
-    diff = FALSE
-
 
     while (min_fdp > t) {
-      if (count %% 20 == 0){
-        #browser()
+      if (count %% 10 == 0){
         out <- fit_parameters(data,est_params,params)
-        #browser()
         est_params$beta <- out$best_beta
         est_params$var <- out$best_var
         est_params$mu <- out$best_mu
@@ -36,11 +32,13 @@ AdaPTGMM <- function(data,est_params,params,calc_actual_FDP=FALSE,unknown=FALSE)
       if (size_R_t == 0) {
         break
       }
+
       big_odds = decision(data,est_params,params)
       big_odds = big_odds * data$mask
       max_odds = max(big_odds)
 
-      data$mask = as.logical(data$mask * (big_odds < max_odds- 1e-3))
+      data$mask = as.logical(data$mask * (big_odds < quantile(big_odds,.99)))
+      #data$mask = as.logical(data$mask * (big_odds < max_odds- 1e-2))
       data <- masking(data,params)
       data <- inverse_masking(data,params)
 
@@ -51,7 +49,6 @@ AdaPTGMM <- function(data,est_params,params,calc_actual_FDP=FALSE,unknown=FALSE)
       size_R_t = sum(R_t)
       fdphat <- (size_A_t + 1) / max(size_R_t, 1)*params$zeta
       if (fdphat < min_fdp) {
-
         min_fdp = min(min_fdp, fdphat)
       }
     }
