@@ -1,27 +1,15 @@
 library(glmnet)
 expectation_gamma<- function(data,est_params,params){
 
-  mu <- est_params$mu
-  var <- est_params$var
-  beta <- est_params$beta
-  small_z = data$small_z
-  big_z = data$big_z
-  expit_prob <- expit(data$full_x %*% beta)
-
-  if(sum(data$mask)>0){
-    #browser()
-  }
-  numerator <- expit_prob*(gaussian_pdf(small_z,mu,var)/gaussian_pdf(small_z,0,1)+
-                             1/params$zeta*gaussian_pdf(big_z,mu,var)/gaussian_pdf(big_z,0,1))
-  denominator <- numerator + (1-expit_prob)*(1+1/params$zeta)
-
-  #numerator <- expit_prob*(gaussian_pdf(small_z,mu,var)+params$zeta*gaussian_pdf(big_z,mu,var))
-  #denominator <- numerator + (1-expit_prob)*(gaussian_pdf(small_z,0,1)+params$zeta*gaussian_pdf(big_z,0,1))
+  prob <- calculate_probabilities(data,est_params,params)
+  numerator <- prob$expit_prob * (prob$small_prob_alt + prob$big_prob_alt)
+  denominator <- numerator + (1-prob$expit_prob) * (prob$small_prob_null + prob$big_prob_null)
   expected_gamma <- numerator/denominator
   return(expected_gamma)
 }
 
 fit_beta <- function(x,gammas){
+
   logistic_glm_data <- data.frame(x,gammas)
   x_names <- paste("X",0:(ncol(x)-1),sep="")
   colnames(logistic_glm_data) <- c(x_names,"gammas")
@@ -33,17 +21,17 @@ fit_beta <- function(x,gammas){
   return(beta)
 }
 
-fit_beta_ridge <- function(x,gammas){
-
-  lambdas <- 10^seq(-8, -9, by = -.7)
-
-  glm_beta <- cv.glmnet(x[,-1], cbind(gammas,1), alpha = 0, family="binomial",lambda = lambdas,intercept=TRUE)
-
-  #glm_beta <- suppressWarnings(glm(formula,data=logistic_glm_data,family=binomial()))
-  beta <- as.matrix(coef(glm_beta))
-  row.names(beta)[1] <- "X0"
-  return(beta)
-}
+# fit_beta_ridge <- function(x,gammas){
+#
+#   lambdas <- 10^seq(-8, -9, by = -.7)
+#
+#   glm_beta <- cv.glmnet(x[,-1], cbind(gammas,1), alpha = 0, family="binomial",lambda = lambdas,intercept=TRUE)
+#
+#   #glm_beta <- suppressWarnings(glm(formula,data=logistic_glm_data,family=binomial()))
+#   beta <- as.matrix(coef(glm_beta))
+#   row.names(beta)[1] <- "X0"
+#   return(beta)
+# }
 
 fit_parameters <- function(data,est_params,params,beta_seq=data.frame(),mu_seq=data.frame(),var_seq=data.frame()){
 
@@ -67,9 +55,19 @@ fit_parameters <- function(data,est_params,params,beta_seq=data.frame(),mu_seq=d
 
     w_ia <- calculate_w(data,est_params,params)
 
-    est_params$mu <- weighted_mean(w_ia$w_ia,w_ia$z)
-    est_params$var <- weighted_mean(w_ia$w_ia,(w_ia$z-est_params$mu)^2)
+    if(params$testing_interval){
+      for(iter in seq(10)){
 
+        print(paste(est_params$mu,est_params$var))
+        gradients <- calculate_gradients(data, est_params,params,w_ia)
+        est_params$mu <- est_params$mu-0.5*gradients$mu
+        est_params$var <- est_params$var-0.5*gradients$var
+      }
+      browser()
+    }else{
+      est_params$mu <- weighted_mean(w_ia$w_ia,w_ia$z)
+      est_params$var <- weighted_mean(w_ia$w_ia,(w_ia$z-est_params$mu)^2)
+    }
     est_params$beta <- curr_beta
     beta_seq <- rbind(beta_seq,c(est_params$beta,i,trial))
     mu_seq <- rbind(mu_seq,c(est_params$mu,i,trial))
@@ -177,17 +175,24 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
   return(beta_seq)
 }
 
-
+# this function returns dataframe
+# one dimensional case only contains
+# w_{i,big}, w_{i,small} (k assumed to be one)
 calculate_w <- function(data,est_params,params){
+
+
+  prob <- calculate_probabilities(data,est_params,params)
+
+
   mu <- est_params$mu
   var <- est_params$var
   beta <- est_params$beta
   small_z = data$small_z
   big_z = data$big_z
 
-  # P[z_small|gamma=1]
+  # P[p_small|gamma=1]
   prob_small_1 <- gaussian_pdf(small_z,mu,var)/gaussian_pdf(small_z,0,1)
-  # P[z_big|gamma=1]
+  # P[p_big|gamma=1]
   prob_big_1 <- gaussian_pdf(big_z,mu,var)/gaussian_pdf(big_z,0,1)
 
   # P[z_small|gamma = 0]
@@ -195,7 +200,7 @@ calculate_w <- function(data,est_params,params){
   # P[z_big|gamma = 0]
   prob_big_0 <- 1#gaussian_pdf(big_z,0,1)
 
-  prob_class_1 <- expit(data$full_x%*%beta)
+  prob_class_1 <- prob$expit_prob
   prob_class_0 <- 1-prob_class_1
   output <- data.frame()
 
@@ -203,7 +208,11 @@ calculate_w <- function(data,est_params,params){
 
   # w_{i,small}
   numerator <- prob_class_1*prob_small_1
-  denominator <- prob_class_1*(prob_small_1+prob_big_1/params$zeta)+prob_class_0*(prob_small_0+prob_big_0/params$zeta)
+
+  numerator <- prob$expit_prob * prob$small_prob_alt
+
+  #denominator <- prob_class_1*(prob_small_1+prob_big_1/params$zeta)+prob_class_0*(prob_small_0+prob_big_0/params$zeta)
+  denominator <- prob_class_1 * (prob$small_prob_alt+prob$big_prob_alt) + prob_class_0 * (prob$small_prob_null+prob$big_prob_null)
   w_small <- data.frame(numerator/denominator,small_z,"small")#rep("small",nrow(data$full_x)))
   colnames(w_small) <- names
 
@@ -214,5 +223,22 @@ calculate_w <- function(data,est_params,params){
   colnames(w_big) <- names
   output <- rbind(w_small,w_big)
   return(output)
+}
+
+calculate_gradients <- function(data,est_params,params,w_ia){
+  gradients <- list()
+  temp_term <- exp(4*est_params$mu * w_ia$z)
+
+
+  gradients$mu <- mean(w_ia$w_ia*(-2*est_params$mu+2*w_ia$z*(temp_term+1)/(temp_term-1)))
+
+  pdf_1 <- gaussian_pdf(w_ia$z,est_params$mu,est_params$var)
+  pdf_2 <- gaussian_pdf(-w_ia$z,est_params$mu,est_params$var)
+  gradients$var <- mean(w_ia$w_ia*(
+    (w_ia$z-est_params$mu)^2*pdf_1-(w_ia$z+est_params$mu)^2*pdf_2
+    - 1)
+    /
+      (2*est_params$var))
+  return(gradients)
 }
 

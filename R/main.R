@@ -42,7 +42,7 @@ create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4
     z_to_p <- function(centered_z,radius) pnorm(centered_z+radius,lower.tail=FALSE)+pnorm(-centered_z+radius)
     z_to_p_rad <- function(centered_z) z_to_p(centered_z,radius)
     p_to_z_inv <- inverse(z_to_p_rad,lower = 0)
-    p_to_z <- function(centered_z) mapply(p_to_z_inv,centered_z)
+    p_to_z <- function(centered_z) unlist(mapply(p_to_z_inv,centered_z))
     #row.names(intervals) <- seq(1,length(x))
   #}else if(nrows(intervals)==length(z) && ncols(intervals) == 2 && all(intervals[,1]<intervals[,2])){
   #  intervals["z"] = z
@@ -50,13 +50,12 @@ create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4
     print(paste0("Intervals is an invalid vector. Terminating now."))
     stop()
   }
-  browser()
   params <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
                  interval_radius = radius,testing_interval=TRUE,z_to_p=z_to_p_rad,p_to_z=p_to_z)
   if(spline){
     full_x <- generate_spline(x,num_df)
   }
-  data <- list(x = x, z=centered_z, full_x=full_x,p_values=calculate_p_values(z,TRUE,intervals),mask=TRUE)
+  data <- list(x = x, z=centered_z, full_x=full_x,p_values=params$z_to_p(centered_z),mask=TRUE)
   model <- structure(list(params=params,data=data),class="model")
   return(model)
 }

@@ -1,16 +1,10 @@
-# Returns ratio (odds) of the masked p_value belin
-decision <- function(data,est_params,params) {
-
-  mu <- est_params$mu
-  var <- est_params$var
-  beta <- est_params$beta
-  small_z = data$small_z
-  big_z = data$big_z
-  expit_prob <- expit(data$full_x %*% beta)
-  small_prob <- expit_prob*(gaussian_pdf(small_z,mu,var)/
-                             gaussian_pdf(small_z,0,1))+ (1-expit_prob)*1
-
-  big_prob <- expit_prob*(gaussian_pdf(big_z,mu,var)/
-                              gaussian_pdf(big_z,0,1)/params$zeta)+ (1-expit_prob)/params$zeta
-  return(big_prob/small_prob)
+# Returns ratio (odds) of the masked p_value belonging to the big value and the small value
+# For example, the probability of the p_value being 0.9 to 0.1 (if using symmetric masking)
+decision <- function(data, est_params, params) {
+  prob <- calculate_probabilities(data,est_params,params)
+  small_prob <- prob$expit_prob * (prob$small_prob_alt) + (1 - prob$expit_prob) * prob$small_prob_null
+  big_prob <- prob$expit_prob * (prob$big_prob_alt) + (1 - prob$expit_prob) * prob$big_prob_null
+  return(big_prob / small_prob)
 }
+
+
