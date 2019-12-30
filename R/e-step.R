@@ -1,4 +1,5 @@
 library(glmnet)
+library(pracma)
 expectation_gamma<- function(data,est_params,params){
 
   prob <- calculate_probabilities(data,est_params,params)

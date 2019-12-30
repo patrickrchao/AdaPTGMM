@@ -69,7 +69,7 @@ dist <- beta_family()
 
 # Run adapt_glm
 library("splines")
-formulas <- paste0("ns(x, df = ", 5:10, ")")
+formulas <- paste0("ns(x, df = ", 10, ")")
 
 start_time <- Sys.time()
 res <- adapt_glm(x = adapt_x, pvals = pvals, pi_formulas = formulas,
@@ -86,30 +86,30 @@ colnames(adapt_fdr_log) <- c("Rejected","FDPHat","Type")
 
 
 
+#
+# adapt_mask_model <- create_model(x,p_values,num_df,iterations=25,alpha_m = 0.5,zeta = 1,lambda=0.5,tent=TRUE)
+# data <- adapt_mask_model$data
+# params <- adapt_mask_model$params
+# data$mask <- TRUE
+# data <- masking(data,params)
+# data <- inverse_masking(data,params)
+# #plot_x_p_value_masking(data,params)
+#
+# plot_masking_function(data,params)
+#
+#
+# beta_guess <- rep(0,num_df)
+# mu_guess <- 2
+# var_guess <- 1
+# est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
+#
+#
+# output <- AdaPTGMM(data,est_params,params,calc_actual_FDP = TRUE,unknown)
+# adapt_mask_gmm_log <- output$fdr_log
+# adapt_mask_gmm_log$Type <- "AdaPTGMM AdaPT Mask"
+# #plot_fitting(data,params,unknown,title="Masked")
 
-adapt_mask_model <- create_model(x,p_values,num_df,iterations=25,alpha_m = 0.5,zeta = 1,lambda=0.5,tent=TRUE)
-data <- adapt_mask_model$data
-params <- adapt_mask_model$params
-data$mask <- TRUE
-data <- masking(data,params)
-data <- inverse_masking(data,params)
-#plot_x_p_value_masking(data,params)
-
-plot_masking_function(data,params)
-
-
-beta_guess <- rep(0,num_df)
-mu_guess <- 2
-var_guess <- 1
-est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
-
-
-output <- AdaPTGMM(data,est_params,params,calc_actual_FDP = TRUE,unknown)
-adapt_mask_gmm_log <- output$fdr_log
-adapt_mask_gmm_log$Type <- "AdaPTGMM AdaPT Mask"
-#plot_fitting(data,params,unknown,title="Masked")
-
-full_log <- rbind(gmm_log[c("Rejected","FDPHat","Type")],adapt_fdr_log,adapt_mask_gmm_log[c("Rejected","FDPHat","Type")])
+full_log <- rbind(gmm_log[c("Rejected","FDPHat","Type")],adapt_fdr_log)#,adapt_mask_gmm_log[c("Rejected","FDPHat","Type")])
 ggthemr('fresh')
 print(full_log %>% filter(FDPHat<0.301)%>%ggplot(aes(x=FDPHat,y=Rejected,fill=Type,color=Type))+geom_line(show.legend=TRUE) +
         labs(title = "Rejections over FDP Hat for Gaussian")+
