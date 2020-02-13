@@ -1,12 +1,12 @@
 # alpha_m=0.05,zeta=0.1,lambda=0.4,
 create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,spline=TRUE,iterations=20,tent=FALSE){
   check_equal_length(x,p_values)
-
+  p_values <- pmax(10^(-8),pmin(p_values,1-10^(-8)))
   z_to_p <- function(z) 1-pnorm(z)
   p_to_z <- function(p) -qnorm(p)
 
   params <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
-                 testing_interval=FALSE,p_to_z =p_to_z,z_to_p=z_to_p)
+                 testing_interval=FALSE,p_to_z=p_to_z,z_to_p=z_to_p,all_a=c("s","b"))
   if(spline){
     full_x <- generate_spline(x,num_df)
   }
@@ -51,7 +51,7 @@ create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4
     stop()
   }
   params <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
-                 interval_radius = radius,testing_interval=TRUE,z_to_p=z_to_p_rad,p_to_z=p_to_z)
+                 interval_radius = radius,testing_interval=TRUE,z_to_p=z_to_p_rad,p_to_z=p_to_z,all_a=c("s","b","neg_s","neg_b"))
   if(spline){
     full_x <- generate_spline(x,num_df)
   }

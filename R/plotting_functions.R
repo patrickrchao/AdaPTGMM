@@ -1,5 +1,5 @@
 plot_masking_function <- function(data,params,title="Masking_Function"){
-  plot(data$p_values,data$masked_p_i)
+  #plot(data$p_values,data$masked_p_i)
   ggthemr('fresh')
   breakpoints <- c(0,params$alpha_m,params$lambda,params$lambda + params$alpha_m/params$zeta,1)
   output <- ggplot() +
@@ -49,3 +49,5 @@ helper_fdr_curve_top <- function(x,params,shift,range){
  shifted = scaled + params$lambda
  return(shifted)
 }
+
+

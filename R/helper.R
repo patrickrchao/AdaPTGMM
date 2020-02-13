@@ -1,5 +1,5 @@
 library(splines)
-
+library(stringr)
 expit <- function(x){
   return(exp(x)/(1+exp(x)))
 }
@@ -7,6 +7,7 @@ expit <- function(x){
 weighted_mean <- function(weights,values){
   total_weight <- sum(weights)
   if(total_weight==0 || sum(weights<0)>0){
+    browser()
     print("Warning! Invalid weights found")
     return(0)
   }
@@ -14,7 +15,9 @@ weighted_mean <- function(weights,values){
 }
 
 gaussian_pdf <- function(x,mean,var){
-  return(dnorm(x,mean,sqrt(var)))
+  pdf <- dnorm(x,mean,sqrt(var))
+  pdf[is.na(pdf)] <- 10^(-8)
+  return(pdf)
 }
 
 generate_spline <- function(x,num_df){
@@ -35,11 +38,11 @@ inverse = function (f, lower = 0, upper = 100) {
 }
 
 change_of_density <- function(z, radius, mean, var) {
-  return((gaussian_pdf(z, mean, var) + gaussian_pdf(-z, mean, var)) /
-           (gaussian_pdf(-z +radius,0,1) - gaussian_pdf(z + radius,0,1)))
+  return(gaussian_pdf(z, mean, var)  /
+           (gaussian_pdf(-abs(z) +radius,0,1) - gaussian_pdf(abs(z) + radius,0,1)))
 }
 
-calculate_probabilities <- function(data,est_params,params){
+calculate_conditional_probabilities <- function(data,est_params,params){
 
   num_hypo <- length(data$small_z)
   mu <- est_params$mu
@@ -50,24 +53,49 @@ calculate_probabilities <- function(data,est_params,params){
 
   beta <- est_params$beta
   expit_prob <- expit(data$full_x %*% beta)
-
+  prob <- data.frame(matrix(NA, nrow=length(small_z), ncol=1))
   if(params$testing_interval){
-    small_prob_null <- change_of_density(small_z, radius, 0, 1)
-    big_prob_null <- change_of_density(big_z, radius, 0, 1) / params$zeta
-    small_prob_alt <- change_of_density(small_z, radius, mu, var)
-    big_prob_alt <- change_of_density(big_z, radius, mu, var) / params$zeta
+    # Iterate over s,b,-s,-b
+    for(a in params$all_a){
+      for(class in c(0,1)){
+        name <- paste0(a,"_",class)
+        sign <- 1
+
+        if(str_detect(a,"neg")){
+          sign <- -1
+        }
+
+        if(str_detect(a,"s")){
+          prob[,name] <- change_of_density(sign*small_z, radius, mu*class, var*class+(1-class))
+        }else{
+          prob[,name] <- change_of_density(sign*big_z,   radius, mu*class, var*class+(1-class))/params$zeta
+        }
+
+      }
+    }
   } else {
-    small_prob_null <- 1
-    big_prob_null <- 1 / params$zeta
-    small_prob_alt <- gaussian_pdf(small_z, mu, var) /gaussian_pdf(small_z, 0, 1)
-    big_prob_alt <- gaussian_pdf(big_z, mu, var) / gaussian_pdf(big_z, 0, 1) / params$zeta
+    prob[,"s_0"] <- rep(1,length(small_z))
+    prob[,"b_0"] <- rep(1,length(small_z)) / params$zeta
+    for(a in params$all_a){
+      for(class in c(1)){
+        name <- paste0(a,"_",class)
+        if(str_detect(a,"s")){
+          prob[,name] <- gaussian_pdf(small_z, mu, var) / gaussian_pdf(small_z, 0, 1)
+        }else{
+          prob[,name] <- gaussian_pdf(big_z, mu, var) / gaussian_pdf(big_z, 0, 1)/params$zeta
+        }
+
+      }
+
+    }
   }
 
-  prob <- list()
-  prob$small_prob_null <- small_prob_null
-  prob$big_prob_null <- big_prob_null
-  prob$small_prob_alt <- small_prob_alt
-  prob$big_prob_alt <- big_prob_alt
+
+  prob <- prob[-c(1)]
+  # prob$small_prob_null <- small_prob_null
+  # prob$big_prob_null <- big_prob_null
+  # prob$small_prob_alt <- small_prob_alt
+  # prob$big_prob_alt <- big_prob_alt
   prob$expit_prob <- expit_prob
   return(prob)
 }

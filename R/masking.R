@@ -15,6 +15,7 @@ masking <- function(data,params){#,alpha_m,lambda,zeta){
   else{
     masked_p_i <- p_i*((1-mask)| (p_i<alpha_m)) +mask*(p_i>=alpha_m)*(zeta*(p_i-lambda))
   }
+
   data$masked_p_i <- masked_p_i
   data$mask <- mask
   return(data)
@@ -28,7 +29,7 @@ inverse_masking <- function(data,params){
   zeta <- params$zeta
   small <- masked_p_i
   if(params$tent){
-    big <- ifelse(mask,(-1/zeta*(masked_p_i-alpha_m)+lambda),(1-mask))
+    big <- ifelse(mask,lambda+(alpha_m-masked_p_i)/zeta,masked_p_i)
   }else{
     big <- ifelse(mask,(masked_p_i)/zeta+lambda,masked_p_i)
   }
@@ -37,11 +38,12 @@ inverse_masking <- function(data,params){
  # small_z <-  ifelse(mask,-qnorm(small),data$z)
 #  big_z <-  ifelse(mask,-qnorm(big),data$z)
 
-
   data$small <- small
   data$big <- big
   data$small_z <- small_z
   data$big_z <- big_z
   return(data)
 }
+
+
 
