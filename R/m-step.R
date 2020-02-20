@@ -20,15 +20,15 @@ update_parameters <- function(data,est_params,params){
   w_ia <- calculate_w(data,est_params,params)
 
   if(params$testing_interval){
-    est_params$mu <- weighted_mean(w_ia$w_ia,w_ia$z)
+    #est_params$mu <- weighted_mean(w_ia$w_ia,w_ia$z)
     for(iter in seq(5)){
 
 
-      gradients <- calculate_gradients(data, est_params,params,w_ia)
+      #gradients <- calculate_gradients(data, est_params,params,w_ia)
 
       # est_params$mu <- est_params$mu + 0.1 * gradients$mu
       #print(paste0("Iter: ",iter," Gradient: ",round(gradients$var/gradients$var_second,5)))
-      est_params$var <- max(est_params$var - 0.5 * gradients$var/gradients$var_second,0.1)
+      #est_params$var <- max(est_params$var - 0.5 * gradients$var/gradients$var_second,0.1)
       #print(paste(est_params$mu,est_params$var))
 
     }

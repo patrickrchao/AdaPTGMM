@@ -28,6 +28,7 @@ inverse_masking <- function(data,params){
   lambda <- params$lambda
   zeta <- params$zeta
   small <- masked_p_i
+  big <- masked_p_i
   if(params$tent){
     big <- ifelse(mask,lambda+(alpha_m-masked_p_i)/zeta,masked_p_i)
   }else{

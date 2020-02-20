@@ -55,10 +55,10 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
   for(i in seq(num_trials)){
     beta_guess = sample(-1:1,params$num_df,replace=TRUE)#+true_beta
     beta_guess[1] = sample(-4:-1,1)
-    mu_guess = sample(2:5,size=1) #true_mu#
-    var_guess = sample(1:3,size=1) #true_var
-    #mu_guess = true_mu#
-    #var_guess = true_var
+    #mu_guess = sample(2:5,size=1) #true_mu#
+    #var_guess = sample(1:3,size=1) #true_var
+    mu_guess = true_mu#
+    var_guess = true_var
     est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
     out = fit_parameters(data,est_params,params,beta_seq,mu_seq,var_seq)
     beta_seq = out$beta_seq
