@@ -37,21 +37,8 @@ calculate_w <- function(data,est_params,params){
 
   prob <- calculate_conditional_probabilities(data,est_params,params)
 
-  mu <- est_params$mu
-  var <- est_params$var
-  beta <- est_params$beta
   small_z = data$small_z
   big_z = data$big_z
-
-  # P[p_small|gamma=1]
-  #prob_small_1 <- gaussian_pdf(small_z,mu,var)/gaussian_pdf(small_z,0,1)
-  # P[p_big|gamma=1]
-  #prob_big_1 <- gaussian_pdf(big_z,mu,var)/gaussian_pdf(big_z,0,1)
-
-  # P[z_small|gamma = 0]
-  #prob_small_0 <- 1#gaussian_pdf(small_z,0,1)
-  # P[z_big|gamma = 0]
-  #prob_big_0 <- 1#gaussian_pdf(big_z,0,1)
 
   prob_class_1 <- prob$expit_prob
   prob_class_0 <- 1-prob_class_1
@@ -65,7 +52,6 @@ calculate_w <- function(data,est_params,params){
       prob_class_0 * (prob$s_0 + prob$b_0 + prob$neg_s_0 + prob$neg_b_0)
 
     # w_{i,s}
-    #numerator <- prob_class_1*prob_small_1
     numerator <- prob_class_1 * prob$s_1
     w_s <- data.frame(numerator/denominator,small_z,"s")
     colnames(w_s) <- names
@@ -92,32 +78,16 @@ calculate_w <- function(data,est_params,params){
     denominator <- prob_class_1 * (prob$s_1 + prob$b_1) +
       prob_class_0 * (prob$s_0 + prob$b_0)
 
-    # w_{i,s}
-    #numerator <- prob_class_1*prob_small_1
+    # w_{i,1,s}
     numerator <- prob_class_1 * prob$s_1
     w_s <- data.frame(numerator/denominator,small_z,"s")
     colnames(w_s) <- names
 
-    # w_{i,b}
+    # w_{i,1,b}
     numerator <- prob_class_1 * prob$b_1
     w_b <- data.frame(numerator/denominator,big_z,"b")
     colnames(w_b) <- names
 
-    # # w_{i,small}
-    # #numerator <- prob_class_1*prob_small_1
-    #
-    # numerator <- prob_class_1 * prob$small_prob_alt
-    #
-    # #denominator <- prob_class_1*(prob_small_1+prob_big_1/params$zeta)+prob_class_0*(prob_small_0+prob_big_0/params$zeta)
-    # denominator <- prob_class_1 * (prob$small_prob_alt + prob$big_prob_alt) + prob_class_0 * (prob$small_prob_null + prob$big_prob_null)
-    # w_small <- data.frame(numerator/denominator,small_z,"small")#rep("small",nrow(data$full_x)))
-    # colnames(w_small) <- names
-    #
-    # # w_{i,big}
-    # numerator <- prob_class_1*prob$big_prob_alt#/params$zeta
-    # w_big <- data.frame(numerator/denominator,big_z,"big")#,nrow(data$full_x)))
-    #
-    # colnames(w_big) <- names
     output <- rbind(w_s,w_b)
   }
 

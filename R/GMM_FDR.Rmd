@@ -164,7 +164,7 @@ decision <- function(mask, masked_p_i, beta, x_i, num_thetas = 20,family) {
 }
 #data <- all_data
 fdr <- function(data,x,beta_guess,num_iter,family,calc_actual_FDP=FALSE) {
-
+  
   x_names <- paste("X",1:ncol(x),sep="")
   fdr_log <- data.frame()
   curr_beta = beta_guess

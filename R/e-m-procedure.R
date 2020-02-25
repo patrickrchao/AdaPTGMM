@@ -6,26 +6,27 @@ fit_parameters <- function(data,est_params,params,beta_seq=data.frame(),mu_seq=d
   }else{
     trial = 0
   }
-  x_names <- paste("X",0:(ncol(data$full_x)-1),sep="")
+  beta_names <- coefficient_names("Beta",ncol(data$full_x))
+  mu_names <- coefficient_names("Mu",params$num_classes)
+  var_names <- coefficient_names("Var",params$num_classes)
 
-  n_dim = length(est_params$beta)
   beta_seq <- rbind(beta_seq,c(est_params$beta,0,trial))
-  mu_seq <- rbind(mu_seq,c(est_params$mu,0,trial))
-  var_seq <- rbind(var_seq,c(est_params$var,0,trial))
-
+  mu_seq <-   rbind(mu_seq,  c(est_params$mu,  0,trial))
+  var_seq <-  rbind(var_seq, c(est_params$var, 0,trial))
+  # can speed this up
   for(i in seq(params$iterations)){
 
     est_params <- update_parameters(data,est_params,params)
 
     beta_seq <- rbind(beta_seq,c(est_params$beta,i,trial))
-    mu_seq <- rbind(mu_seq,c(est_params$mu,i,trial))
-    var_seq <- rbind(var_seq,c(est_params$var,i,trial))
+    mu_seq <-   rbind(mu_seq,  c(est_params$mu,  i,trial))
+    var_seq <-  rbind(var_seq, c(est_params$var, i,trial))
 
   }
 
-  colnames(beta_seq) <- c(x_names,"Iteration","Trial")
-  colnames(mu_seq) <- c("Mu","Iteration","Trial")
-  colnames(var_seq) <- c("Var","Iteration","Trial")
+  colnames(beta_seq) <- c(beta_names,"Iteration","Trial")
+  colnames(mu_seq) <- c(mu_names,"Iteration","Trial")
+  colnames(var_seq) <- c(var_names,"Iteration","Trial")
   out <- list()
   out$best_beta = est_params$beta
   out$beta_seq = beta_seq
@@ -50,15 +51,16 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
   mu_seq = data.frame()
   var_seq = data.frame()
 
-  #all_data$mask = all_data$p_values<0.2 | all_data$p_values>0.8
-  #all_data$masked_p_value = all_data$mask*(1-all_data$p_values)+(1-all_data$mask)*all_data$p_values
   for(i in seq(num_trials)){
     beta_guess = sample(-1:1,params$num_df,replace=TRUE)#+true_beta
     beta_guess[1] = sample(-4:-1,1)
-    #mu_guess = sample(2:5,size=1) #true_mu#
-    #var_guess = sample(1:3,size=1) #true_var
-    mu_guess = true_mu#
-    var_guess = true_var
+    #mu_guess = sample(2:5,size=1)
+    #var_guess = sample(1:3,size=1)
+    mu_guess <-  c(0,sample(3:5,size=params$num_classes-1,replace=FALSE))
+    var_guess <-  c(1,sample(3:8,size=params$num_classes-1,replace=TRUE))
+    #mu_guess = true_mu#
+    #var_guess = true_var
+
     est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
     out = fit_parameters(data,est_params,params,beta_seq,mu_seq,var_seq)
     beta_seq = out$beta_seq
@@ -69,55 +71,10 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
   beta_seq$Trial <- as.factor(beta_seq$Trial)
   mu_seq$Trial <- as.factor(mu_seq$Trial)
   var_seq$Trial <- as.factor(var_seq$Trial)
-  x_names <- x_col_names(ncol(data$full_x))
 
-  if(length(unknown)>0){
-    true_beta_df <- data.frame(t(true_beta))
-    colnames(true_beta_df) <- x_names
-    true_beta_df <- gather(true_beta_df,key="coord",value="Value",x_names)
-    true_beta_df$coord_new <- factor(true_beta_df$coord,levels=x_names)
-  }
-
-
-  # Beta convergence plot
-  plot_beta_seq <- beta_seq %>% gather(key="coord",value="Value",x_names)
-  plot_beta_seq$coord_new <- factor(plot_beta_seq$coord,levels=x_names)
-  curr_title <-  paste0(title," Beta Coefficient Convergence")
-  if(is.numeric(true_beta)){
-    print(plot_beta_seq %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+
-            theme(legend.position = "none")+facet_wrap(~coord_new)+
-            geom_hline(data=true_beta_df,aes(yintercept = Value),linetype="dotted",size=1,color="black")+
-            ggtitle(curr_title)+
-            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20)))
-  }else{
-    print(plot_beta_seq %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+theme(legend.position = "none")+facet_wrap(~coord_new)+ggtitle(curr_title)+
-            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20)))
-
-  }
-  ggsave(paste0("Images/",gsub(" ","_",curr_title),".png"),width=20,height=15,dpi=200,units="cm")
-  beta_seq$Trial <- as.numeric(beta_seq$Trial)
-
-  # Mu convergence plot
-
-  plot_mu_seq <- mu_seq %>% gather(key="coord",value="Value","Mu")
-  curr_title <-  paste0(title," Mu Convergence")
-  if(length(unknown)>0){
-    print(plot_mu_seq %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+theme(legend.position = "none")+geom_hline(yintercept = true_mu,linetype="dotted",size=1,color="black")+ggtitle(curr_title)+
-            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20)))
-  }else{
-    print(plot_beta_seq %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+theme(legend.position = "none")+facet_wrap(~coord_new)+ggtitle(curr_title)+
-            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20)))
-  }
-  ggsave(paste0("Images/",gsub(" ","_",curr_title),".png"),width=20,height=15,dpi=200,units="cm")
-  # var convergence plot
-  plot_var_seq <- var_seq %>% gather(key="coord",value="Value","Var")
-  curr_title <-  paste0(title," Variance Convergence")
-  if(is.numeric(true_var)){
-    print(plot_var_seq %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+theme(legend.position = "none")+geom_hline(yintercept = true_var,linetype="dotted",size=1,color="black")+ggtitle(curr_title)+
-            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20)))
-  }
-  ggsave(paste0("Images/",gsub(" ","_",curr_title),".png"),width=20,height=15,dpi=200,units="cm")
-  #ggsave(paste0("Images/",curr_title,".png"),width=20,height=15,dpi=800,units="cm")
+  plot_variable_convergence(beta_seq,paste(title,"Beta Coefficient Convergence"),true_beta)
+  plot_variable_convergence(mu_seq,paste(title,"Mu Coefficient Convergence"),true_mu,ignore_first_coef = TRUE)
+  plot_variable_convergence(var_seq,paste(title,"Var Coefficient Convergence"),true_var,ignore_first_coef = TRUE)
 
   actual <- expit(data$full_x%*% true_beta)
   final_betas <-filter(beta_seq,Iteration ==params$iterations)[,c(-(ncol(beta_seq)-1),-ncol(beta_seq))]
@@ -131,11 +88,52 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
           theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20))
   )
   ggsave(paste0("Images/",gsub(" ","_",curr_title),".png"),width=20,height=15,dpi=200,units="cm")
-  #browser()
+
   output <- list()
   output$beta_seq <- beta_seq
   output$mu_seq <- mu_seq
   output$var_seq <- var_seq
   return(beta_seq)
 }
+
+plot_variable_convergence <- function(df,title,true_value,ignore_first_coef = FALSE){
+
+  if (ignore_first_coef){
+    df <- df[-1]
+    if(is.numeric(true_value) || is.data.frame(true_value)){
+      true_value <- true_value[-1]
+    }
+  }
+  col_names <- colnames(df)[1:(length(colnames(df))-2)]
+  plot_df <- df %>% gather(key="coord",value="Value",col_names)
+  if(length(col_names)>1){
+    plot_df$coord <- factor(plot_df$coord,levels=col_names)
+  }
+  #curr_title <-  paste0(title," Beta Coefficient Convergence")
+  if(is.numeric(true_value) || is.data.frame(true_value)){
+    true_value_df<- data.frame(t(true_value))
+    colnames(true_value_df) <- col_names
+    true_value_df <- gather(true_value_df,key="coord",value="Value",col_names)
+    true_value_df$coord <- factor(true_value_df$coord,levels=col_names)
+
+    plot_obj <- plot_df %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+
+            theme(legend.position = "none")+facet_wrap(~coord)+ggtitle(title)+
+            geom_hline(data=true_value_df,aes(yintercept = Value),linetype="dotted",size=1,color="black")+
+            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20))
+  }else{
+    plot_obj <- plot_df %>% ggplot(aes(x=Iteration,y=Value,color=Trial))+geom_line()+theme(legend.position = "none")+facet_wrap(~coord)+ggtitle(title)+
+            theme(axis.text=element_text(size=15),axis.title=element_text(size=16),plot.title = element_text(size=20))
+
+  }
+  if (length(col_names)==1){
+    plot_obj <- plot_obj +
+      theme(
+        strip.text.y = element_blank(),
+        strip.text.x = element_blank()
+      )
+  }
+  print(plot_obj)
+  ggsave(paste0("Images/",gsub(" ","_",title),".png"),width=20,height=15,dpi=200,units="cm")
+}
+
 

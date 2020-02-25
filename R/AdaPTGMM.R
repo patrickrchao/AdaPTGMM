@@ -3,7 +3,6 @@ AdaPTGMM <- function(data,est_params,params,calc_actual_FDP=FALSE,unknown=FALSE)
   data <- masking(data,params)
   data <- inverse_masking(data,params)
 
-  x_names <- colnames(data$full_x)
   fdr_log <- data.frame()
 
   A_t = data$mask & data$p_values>params$lambda

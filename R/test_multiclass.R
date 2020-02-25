@@ -10,18 +10,18 @@
 #           })
 #
 # num_df = 10
-#
-# data <- generate_data(5000,num_df)
+# num_classes = 6
+# data <- generate_data(5000,num_df,num_classes = num_classes)
 # known <- data$known
 # unknown <- data$unknown
-# print(paste("True params, mu:",unknown$mu," var:",unknown$var))
+# print(paste("True params, mu: [",paste(unknown$mu, collapse = " "),"] var: [",paste(unknown$var, collapse=" "),"]",sep=""))
 # print(paste("Percent of Null:",round(sum(unknown$theta<=0)/length(unknown$theta)*100,2)))
 # x <- known$x
 # #spline_x <- known$spline_x
 # p_values <- known$p_values
 # #z <- known$z
 #
-# model <- create_model(x,p_values,num_df,iterations=50,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE)
+# model <- create_model(x,p_values,num_df,iterations=50,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE,num_classes=num_classes)
 # #model <- create_model(x,p_values,num_df,iterations=25,alpha_m = 0.5,zeta = 1,lambda=0.5,tent=TRUE)
 # data <- model$data
 # params <- model$params
@@ -39,9 +39,9 @@
 # temp <- plot_fitting(data,params,unknown,title="Masked")
 #
 #
-# beta_guess <- rep(0,num_df)
-# mu_guess <- c(0,2)
-# var_guess <- c(1,1)
+# beta_guess <- matrix(rep(0,(num_classes+1)*(num_df)),ncol=(num_classes+1))
+# mu_guess <- rep(2,num_classes)
+# var_guess <- rep(1,num_classes)
 # est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
 #
 # start_time <- Sys.time()

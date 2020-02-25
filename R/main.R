@@ -1,12 +1,12 @@
 # alpha_m=0.05,zeta=0.1,lambda=0.4,
-create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,spline=TRUE,iterations=20,tent=FALSE){
+create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,spline=TRUE,iterations=20,tent=FALSE,num_classes = 2){
   check_equal_length(x,p_values)
-  p_values <- pmax(10^(-8),pmin(p_values,1-10^(-8)))
+  p_values <- pmax(10^(-12),pmin(p_values,1-10^(-12)))
   z_to_p <- function(z) 1-pnorm(z)
   p_to_z <- function(p) -qnorm(p)
 
   params <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
-                 testing_interval=FALSE,p_to_z=p_to_z,z_to_p=z_to_p,all_a=c("s","b"))
+                 testing_interval=FALSE,p_to_z=p_to_z,z_to_p=z_to_p,all_a=c("s","b"),num_classes = num_classes)
   if(spline){
     full_x <- generate_spline(x,num_df)
   }
@@ -17,7 +17,7 @@ create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,s
 
 
 create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,spline=TRUE,iterations=20,tent=FALSE,
-                         intervals = c(-1,1)){
+                         intervals = c(-1,1),num_classes = 2){
 
   check_equal_length(x,z)
 
@@ -51,7 +51,8 @@ create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4
     stop()
   }
   params <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
-                 interval_radius = radius,testing_interval=TRUE,z_to_p=z_to_p_rad,p_to_z=p_to_z,all_a=c("s","b","neg_s","neg_b"))
+                 interval_radius = radius,testing_interval=TRUE,z_to_p=z_to_p_rad,p_to_z=p_to_z,
+                 all_a=c("s","b","neg_s","neg_b"),num_classes = num_classes)
   if(spline){
     full_x <- generate_spline(x,num_df)
   }
