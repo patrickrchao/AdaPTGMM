@@ -108,30 +108,29 @@ calculate_conditional_probabilities <- function(data,est_params,params){
   prob$expit_prob <- expit_prob
   return(prob)
 }
-# z_to_p_values <- function(z,testing_interval,intervals){
-#   if(!testing_interval){
-#     p_values <- -qnorm(z)
-#   }else{
-#     interval_center = (intervals[,"left_end"]+intervals[,"right_end"])/2
-#     radius = intervals[,"right_end"]-interval_center
-#     centered_z = abs(z-interval_center)
-#
-#     p_values = pnorm(centered_z+radius,lower.tail=FALSE)+pnorm(-centered_z+radius)
-#
-#   }
-#   return(p_values)
-# }
-#
-# p_values_to_z <- function(z,testing_interval,intervals){
-#   if(!testing_interval){
-#     z <- -qnorm(z)
-#   }else{
-#     interval_center = (intervals[,"left_end"]+intervals[,"right_end"])/2
-#     radius = intervals[,"right_end"]-interval_center
-#     centered_z = abs(z-interval_center)
-#
-#     p_values = pnorm(centered_z+radius,lower.tail=FALSE)+pnorm(-centered_z+radius)
-#
-#   }
-#   return(p_values)
-# }
+
+likelihood <- function(data,est_params,params,optimal_param=FALSE,w_ika=FALSE){
+
+  if(!is.numeric(w_ika)){
+    w_ika <- calculate_w(data,est_params,params)
+  }
+  temp <- w_ika %>% select("i","numerator") %>% group_by(i)%>%summarize(mean = mean(numerator))
+  likelihood <- mean((log(temp))$mean)
+
+
+  # w_ika$mean <- est_params$mu[(w_ika$k)+1]
+  # w_ika$var  <- est_params$var[(w_ika$k)+1]
+  # #w_ika$class_prob <- prob_classes[(w_ika$k)+1]
+  # w_ika$density <- apply(w_ika[c("z","mean","var")], 1, change_of_density_df)
+  # likelihood <- mean(w_ika$w_ia*w_ika$density)
+  if(optimal_param){
+    print(paste0("Likelihood with True Parameters: ",likelihood))
+  }else{
+    print(paste0("Calculated Likelihood: ",likelihood))
+  }
+  return(likelihood)
+  # #,z="z", mean = "mean", var="var")
+  # #apply(w_ika$z, 1, change_of_density,radius = params$interval_radius, mean = w_ika$mean, var=w_ika$var)
+  #
+  # w_ia <- filter(w_ika,a=="s",k==1)%>% select("w_ia")
+}

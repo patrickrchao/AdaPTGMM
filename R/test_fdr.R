@@ -21,7 +21,7 @@
 # p_values <- known$p_values
 # #z <- known$z
 #
-# model <- create_model(x,p_values,num_df,iterations=50,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE)
+# model <- create_model(x,p_values,num_df,iterations=100,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE)
 # #model <- create_model(x,p_values,num_df,iterations=25,alpha_m = 0.5,zeta = 1,lambda=0.5,tent=TRUE)
 # data <- model$data
 # params <- model$params
@@ -35,7 +35,7 @@
 # plot_masking_function(data,params,"AdaPTGMM_Masking_Function")
 #
 # print(paste("Percent of data masked:",round(sum(data$mask)/length(data$mask)*100,2)))
-#
+# likelihood(data,unknown,params,optimal_param=TRUE)
 # temp <- plot_fitting(data,params,unknown,title="Masked")
 #
 #
@@ -94,8 +94,8 @@
 #
 #
 # beta_guess <- rep(0,num_df)
-# mu_guess <- 2
-# var_guess <- 1
+# mu_guess <- c(0,2)
+# var_guess <- c(1,1)
 # est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
 #
 #
