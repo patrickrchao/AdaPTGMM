@@ -12,7 +12,7 @@ options(error =
 
 num_df = 10
 
-data <- generate_data(10000,num_df)
+data <- generate_data(5000,num_df)
 known <- data$known
 unknown <- data$unknown
 print(paste("True params, mu: [",paste(unknown$mu, collapse = " "),"] var: [",paste(unknown$var, collapse=" "),"]",sep=""))
@@ -24,7 +24,7 @@ x <- known$x
 z <- known$z
 #z <- known$z
 
-model <- create_model_interval(x,z,num_df,iterations=25,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE,
+model <- create_model_interval(x,z,num_df,iterations=100,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE,
                       intervals=c(-1,1))
 data <- model$data
 params <- model$params
@@ -40,7 +40,8 @@ plot_masking_function(data,params)
 
 print(paste("Percent of data masked:",round(sum(data$mask)/length(data$mask)*100,2)))
 
-#plot_fitting(data,params,unknown,title="Masked")
+likelihood(data,unknown,params,optimal_param=TRUE)
+plot_fitting(data,params,unknown,title="Masked")
 
 #
 beta_guess <- rep(0,num_df)

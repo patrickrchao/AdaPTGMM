@@ -30,7 +30,7 @@ generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,ta
   if(as.logical(tau)){
     true_tau <- tau
   }else{
-    true_tau <-  c(1,sample(1:3,size=num_classes-1,replace=TRUE))
+    true_tau <-  c(0,sample(1:3,size=num_classes-1,replace=TRUE))
   }
 
   x <- sort(runif(num_samples)-0.5)

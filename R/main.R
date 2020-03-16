@@ -4,7 +4,6 @@ create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,s
   p_values <- pmax(10^(-12),pmin(p_values,1-10^(-12)))
   z_to_p <- function(z) 1-pnorm(z)
   p_to_z <- function(p) -qnorm(p)
-
   params <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
                  testing_interval=FALSE,p_to_z=p_to_z,z_to_p=z_to_p,all_a=c("s","b"),num_classes = num_classes)
   if(spline){

@@ -41,9 +41,14 @@ inverse = function (f, lower = 0, upper = 200) {
   function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^0.5)[1]
 }
 
-change_of_density <- function(z, radius, mean, var) {
+change_of_density <- function(z, radius=1, mean, var) {
   return(dnorm(z,mean,sqrt(var))/
            (dnorm(-abs(z)+radius,0,1)-dnorm(abs(z)+radius,0,1)))
+}
+
+change_of_density_df <- function(df,radius=1) {
+  return(dnorm(df["z"],df["mean"],sqrt(df[["var"]]))/
+           (dnorm(-abs(df["z"])+radius,0,1)-dnorm(abs(df["z"])+radius,0,1)))
 }
 
 calculate_conditional_probabilities <- function(data,est_params,params){

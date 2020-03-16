@@ -21,7 +21,6 @@ fit_parameters <- function(data,est_params,params,beta_seq=data.frame(),mu_seq=d
     beta_seq <- rbind(beta_seq,c(est_params$beta,i,trial))
     mu_seq <-   rbind(mu_seq,  c(est_params$mu,  i,trial))
     var_seq <-  rbind(var_seq, c(est_params$var, i,trial))
-
   }
 
   colnames(beta_seq) <- c(beta_names,"Iteration","Trial")
@@ -52,20 +51,28 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
   var_seq = data.frame()
 
   for(i in seq(num_trials)){
-    beta_guess = sample(-1:1,params$num_df,replace=TRUE)#+true_beta
+    print("New Iteration")
+
+    beta_guess = sample(-3:3,params$num_df,replace=TRUE)#+true_beta
     beta_guess[1] = sample(-4:-1,1)
     #mu_guess = sample(2:5,size=1)
     #var_guess = sample(1:3,size=1)
-    mu_guess <-  c(0,sample(3:5,size=params$num_classes-1,replace=FALSE))
-    var_guess <-  c(1,sample(3:8,size=params$num_classes-1,replace=TRUE))
+    mu_guess <-  c(0,sample(3:6,size=params$num_classes-1,replace=FALSE))
+    var_guess <-  c(1,sample(4:10,size=params$num_classes-1,replace=TRUE))
     #mu_guess = true_mu#
     #var_guess = true_var
 
     est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
+    print("Initial Likelihood")
+    likelihood(data,est_params,params)
     out = fit_parameters(data,est_params,params,beta_seq,mu_seq,var_seq)
     beta_seq = out$beta_seq
     mu_seq = out$mu_seq
     var_seq = out$var_seq
+    est_params <- list(beta=out$best_beta,mu=out$best_mu,var=out$best_var)
+    #print(paste(est_params$mu[2],est_params$var[2]))
+    #print(paste0(est_params$beta,collapse=" "))
+    likelihood(data,est_params,params)
   }
 
   beta_seq$Trial <- as.factor(beta_seq$Trial)
@@ -136,4 +143,28 @@ plot_variable_convergence <- function(df,title,true_value,ignore_first_coef = FA
   ggsave(paste0("Images/",gsub(" ","_",title),".png"),width=20,height=15,dpi=200,units="cm")
 }
 
+likelihood <- function(data,est_params,params,optimal_param=FALSE,w_ika=FALSE){
 
+  if(!is.numeric(w_ika)){
+    w_ika <- calculate_w(data,est_params,params)
+  }
+  temp <- w_ika %>% select("i","numerator") %>% group_by(i)%>%summarize(mean = mean(numerator))
+  likelihood <- mean((log(temp))$mean)
+
+
+  # w_ika$mean <- est_params$mu[(w_ika$k)+1]
+  # w_ika$var  <- est_params$var[(w_ika$k)+1]
+  # #w_ika$class_prob <- prob_classes[(w_ika$k)+1]
+  # w_ika$density <- apply(w_ika[c("z","mean","var")], 1, change_of_density_df)
+  # likelihood <- mean(w_ika$w_ia*w_ika$density)
+  if(optimal_param){
+    print(paste0("Likelihood with True Parameters: ",likelihood))
+  }else{
+    print(paste0("Calculated Likelihood: ",likelihood))
+  }
+  return(likelihood)
+  # #,z="z", mean = "mean", var="var")
+  # #apply(w_ika$z, 1, change_of_density,radius = params$interval_radius, mean = w_ika$mean, var=w_ika$var)
+  #
+  # w_ia <- filter(w_ika,a=="s",k==1)%>% select("w_ia")
+}
