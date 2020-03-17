@@ -53,16 +53,25 @@ plot_fitting<- function(data,params,unknown=TRUE,num_trials=8,title){
   for(i in seq(num_trials)){
     print("New Iteration")
 
-    beta_guess = sample(-3:3,params$num_df,replace=TRUE)#+true_beta
-    beta_guess[1] = sample(-4:-1,1)
-    #mu_guess = sample(2:5,size=1)
-    #var_guess = sample(1:3,size=1)
-    mu_guess <-  c(0,sample(3:6,size=params$num_classes-1,replace=FALSE))
-    var_guess <-  c(1,sample(4:10,size=params$num_classes-1,replace=TRUE))
+    #beta_guess  #sample(-3:3,params$num_df,replace=TRUE)#+true_beta
+    # beta_guess  <-  matrix(sample(-2:2,(params$num_classes*params$num_df),replace=TRUE),ncol=params$num_classes)
+    # if(params$num_classes > 2){
+    #   beta_guess[,1] <- 0#*(num_classes)
+    #   beta_guess[1,1] <- 3
+    # }else{
+    #   beta_guess[1] = sample(-4:-1,1)
+    # }
+    #
+    # #mu_guess = sample(2:5,size=1)
+    # #var_guess = sample(1:3,size=1)
+    # mu_guess <-  c(0,sample(3:8,size=params$num_classes-1,replace=FALSE))
+    # var_guess <-  c(1,sample(4:10,size=params$num_classes-1,replace=TRUE))
+    est_params <- initialize_estimates(params$num_classes,params$num_df)
+
     #mu_guess = true_mu#
     #var_guess = true_var
 
-    est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
+
     print("Initial Likelihood")
     likelihood(data,est_params,params)
     out = fit_parameters(data,est_params,params,beta_seq,mu_seq,var_seq)

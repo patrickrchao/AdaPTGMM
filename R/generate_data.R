@@ -4,33 +4,23 @@ generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,ta
   #browser()
   stopifnot(num_classes >= 2)
 
-
+  estimates <- initialize_estimates(num_classes,num_df)
   if(as.logical(beta)){
     true_beta <- beta
   }else{
-    # Need to increment by 1 to account for gamma = 0 case
-    if(num_classes > 2 ){
-      true_beta <-  matrix(sample(-2:2,(num_classes)*(num_df),replace=TRUE),ncol=num_classes)
-      true_beta[,1] <- 0#*(num_classes)
-      true_beta[1,1] <- 3
-    }else{
-      true_beta <-  matrix(sample(-2:2,num_df,replace=TRUE),ncol=1)
-      true_beta[1] <- -2
-    }
-
+    true_beta <- estimates$beta
   }
-
 
   if(as.logical(mu)){
     true_mu <- mu
   }else{
-    true_mu <-  c(0,sample(3:5,size=num_classes-1,replace=FALSE))
+    true_mu <-  estimates$mu
   }
 
   if(as.logical(tau)){
     true_tau <- tau
   }else{
-    true_tau <-  c(0,sample(1:3,size=num_classes-1,replace=TRUE))
+    true_tau <-  estimates$tau
   }
 
   x <- sort(runif(num_samples)-0.5)

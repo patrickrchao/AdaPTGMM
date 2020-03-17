@@ -4,6 +4,7 @@ fit_beta <- function(x,gammas,est_params){
   #if(sum(gammas>1)>0 || sum(gammas<0)>0||  sum(is.na(gammas))>0){
   #browser()
   #}
+
   logistic_glm_data <- data.frame(x,gammas)
   beta_names <- coefficient_names("Beta",ncol(x))
   colnames(logistic_glm_data) <- c(beta_names,"gammas")
@@ -22,33 +23,34 @@ fit_beta <- function(x,gammas,est_params){
 update_parameters <- function(data,est_params,params){
   gammas <- expectation_gamma(data,est_params,params)
   curr_beta <- fit_beta(data$full_x,gammas,est_params)
-  w_ia_full <- calculate_w(data,est_params,params)
-  w_ia <- w_ia_full %>% filter(k==1)
-  new_mu <- weighted_mean(w_ia$w_ika,w_ia$z)
+  output <- calculate_w(data,est_params,params)
+  w_ia <- output$w_ika %>% filter(k==1)
+  new_mu <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
+
+  est_params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-est_params$mu)^2)
   est_params$mu[2] <- new_mu
- # new_var <- weighted_mean(w_ia$w_ika,(w_ia$z-est_params$mu)^2)
   #print(paste(round(est_params$var[2],5),round(new_var,5)))
   #est_params$var[2] <- new_var
 
-  if(params$testing_interval){
-
-    for(iter in seq(3)){
-
-      #w_ia_full <- calculate_w(data,est_params,params)
-      #w_ia <- w_ia_full %>% filter(k==1)
-      gradients <- calculate_gradients(data, est_params,params,w_ia)
-      #print(paste0("Iter: ",iter," Update: ",round(gradients$var,5)))
-      est_params$var[2] <- max(est_params$var - 0.1/sqrt(iter)* pmin(pmax(gradients$var,-2),2),0.1)
-      #print(paste(est_params$mu,est_params$var))
-
-    }
-  }else{
-    est_params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-est_params$mu)^2)
-
-  }
+  # if(params$testing_interval){
+  #
+  #   for(iter in seq(3)){
+  #
+  #     #w_ia_full <- calculate_w(data,est_params,params)
+  #     #w_ia <- w_ia_full %>% filter(k==1)
+  #     gradients <- calculate_gradients(data, est_params,params,w_ia)
+  #     #print(paste0("Iter: ",iter," Update: ",round(gradients$var,5)))
+  #     est_params$var[2] <- max(est_params$var - 0.1/sqrt(iter)* pmin(pmax(gradients$var,-2),2),0.1)
+  #     #print(paste(est_params$mu,est_params$var))
+  #
+  #   }
+  # }else{
+  #   est_params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-est_params$mu)^2)
+  #
+  # }
   #print(paste(round(est_params$var[2],5),round(new_var,5)))
   est_params$beta <- curr_beta
-  #likelihood(data,est_params,params,w_ika=w_ia_full)
+  likelihood(data,est_params,params,w_ika=output)
   return(est_params)
 }
 

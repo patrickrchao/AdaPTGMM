@@ -10,7 +10,7 @@
 #           })
 #
 # num_df = 10
-# num_classes = 6
+# num_classes = 4
 # data <- generate_data(5000,num_df,num_classes = num_classes)
 # known <- data$known
 # unknown <- data$unknown

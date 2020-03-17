@@ -5,7 +5,7 @@ expit <- function(x){
   return(exp(x)/(1+exp(x)))
 }
 
-weighted_mean <- function(weights,values){
+weighted_mean <- function(weights,values,w_ia){
   total_weight <- sum(weights)
   if(sum(is.na(weights))>0){
     browser()
@@ -61,7 +61,16 @@ calculate_conditional_probabilities <- function(data,est_params,params){
   radius <- params$interval_radius
 
   beta <- est_params$beta
-  expit_prob <- expit(data$full_x %*% beta)
+  if(params$num_classes > 2 ){
+    class_prob <- exp(data$full_x %*% beta)
+    class_prob <- class_prob/rowSums(class_prob)
+    colnames(class_prob) <- paste0("class_prob_",0:(params$num_classes-1))
+  }else{
+    class_prob <- data.frame("class_prob_0"=1-1/(1+exp(-1*(data$full_x %*% beta))),
+                             "class_prob_1"=1/(1+exp(-1*(data$full_x %*% beta))))
+  }
+
+
   prob <- data.frame(matrix(NA, nrow=length(small_z), ncol=1))
   if(params$testing_interval){
     # Iterate over s,b,-s,-b
@@ -105,7 +114,8 @@ calculate_conditional_probabilities <- function(data,est_params,params){
   # prob$big_prob_null <- big_prob_null
   # prob$small_prob_alt <- small_prob_alt
   # prob$big_prob_alt <- big_prob_alt
-  prob$expit_prob <- expit_prob
+
+  prob <- cbind(prob,class_prob)
   return(prob)
 }
 
@@ -113,9 +123,12 @@ likelihood <- function(data,est_params,params,optimal_param=FALSE,w_ika=FALSE){
 
   if(!is.numeric(w_ika)){
     w_ika <- calculate_w(data,est_params,params)
+
   }
-  temp <- w_ika %>% select("i","numerator") %>% group_by(i)%>%summarize(mean = mean(numerator))
-  likelihood <- mean((log(temp))$mean)
+  denominator <- w_ika$denominator
+  likelihood <- sum(log(denominator))
+  #temp <- w_ika %>% select("i","numerator") %>% group_by(i)%>%summarize(mean = mean(numerator))
+  #likelihood <- mean((log(temp))$mean)
 
 
   # w_ika$mean <- est_params$mu[(w_ika$k)+1]
@@ -133,4 +146,20 @@ likelihood <- function(data,est_params,params,optimal_param=FALSE,w_ika=FALSE){
   # #apply(w_ika$z, 1, change_of_density,radius = params$interval_radius, mean = w_ika$mean, var=w_ika$var)
   #
   # w_ia <- filter(w_ika,a=="s",k==1)%>% select("w_ia")
+}
+
+initialize_estimates <- function(num_classes,num_df){
+  if(num_classes > 2 ){
+    beta <-  matrix(sample(-2:2,(num_df*num_classes),replace=TRUE),ncol=num_classes)
+    beta[,1] <- 0#*(num_classes)
+    beta[1,1] <- 3
+  }else{
+    beta <-  matrix(sample(-2:2,num_df,replace=TRUE),ncol=1)
+    beta[1] <- -2
+  }
+  mu <-  c(0,sample(2:8,size=num_classes-1,replace=FALSE))
+  tau <-  c(0,sample(1:5,size=num_classes-1,replace=TRUE))
+  var <- tau^2+1
+  estimates <- list(beta=beta,mu=mu,var=var,tau=tau)
+  return(estimates)
 }
