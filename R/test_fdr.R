@@ -35,8 +35,10 @@ data <- inverse_masking(data,params)
 plot_masking_function(data,params,"AdaPTGMM_Masking_Function")
 
 print(paste("Percent of data masked:",round(sum(data$mask)/length(data$mask)*100,2)))
+
 likelihood(data,unknown,params,optimal_param=TRUE)
 temp <- plot_fitting(data,params,unknown,title="Masked")
+
 
 
 beta_guess <- rep(0,num_df)
