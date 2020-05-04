@@ -262,7 +262,7 @@ res <- adapt_glm(x = adapt_x, pvals = pvals, pi_formulas = formulas,
 
 # Plot the threshold curve and the level curves of local FDR
 plot_1d_thresh(res, x,pvals,alpha = 0.1, "P-Value Thresholds")
-plot_1d_lfdr(res, x,pvals,alpha = 0.1, "Level Curves of Local FDR Estimates")
+plot_1d_lfdr(res, x,pvals,alpha = 0.1, "Level Curves of Local FDR params")
 adapt_fdr_log <- data.frame(res$nrejs,res$alphas,"AdaPT")
 colnames(adapt_fdr_log) <- c("Rejected","FDPHat","Type")
 ```
@@ -314,7 +314,7 @@ res <- adapt_glm(x = x, pvals = pvals, pi_formulas = formulas,
 
 # Plot the threshold curve and the level curves of local FDR
 plot_1d_thresh(res, x,pvals,alpha = 0.1, "P-Value Thresholds")
-plot_1d_lfdr(res, x,pvals,alpha = 0.1, "Level Curves of Local FDR Estimates")
+plot_1d_lfdr(res, x,pvals,alpha = 0.1, "Level Curves of Local FDR params")
 adapt_fdr_log <- data.frame(res$nrejs,res$alphas,"AdaPT")
 colnames(adapt_fdr_log) <- c("Rejected","FDPHat","Type")
 ```

@@ -1,73 +1,124 @@
 library(glmnet)
+library(nnet)
 # Fits the logistic glm beta based on the gammas as labels and x as inputs
-fit_beta <- function(x,gammas,est_params){
+fit_beta <- function(x,gammas,params){
   #if(sum(gammas>1)>0 || sum(gammas<0)>0||  sum(is.na(gammas))>0){
   #browser()
   #}
+  #print(colSums(gammas))
 
-  logistic_glm_data <- data.frame(x,gammas)
-  beta_names <- coefficient_names("Beta",ncol(x))
-  colnames(logistic_glm_data) <- c(beta_names,"gammas")
-  # -1 to ignore intercept
+  # num_classes <- ncol(gammas)
+  # colnames(gammas) <- 0:(ncol(gammas)-1)
+  # spread_gammas <- gather(gammas,class,weight)
+  # gamma_class <- spread_gammas$class
+  # gamma_weight <- spread_gammas$weight
+  # logistic_glm_data <- data.frame(x,gamma_class,gamma_weight)
+  # beta_names <- coefficient_names("Beta",ncol(x))
+  # colnames(logistic_glm_data) <- c(beta_names,"gammas","weight")
+  # formula <- paste("gammas ~ ",paste0(colnames(logistic_glm_data)[c(1:ncol(x))],collapse=" + ")," -1",sep="")
+  # beta_model <- multinom(formula,logistic_glm_data,weight = weight,trace=FALSE)
+  # beta <- as.matrix(coef(beta_model))
+  # if (num_classes > 2){
+  #   beta <- t(beta)
+  # }
 
-  formula <- paste("gammas ~ ",paste0(colnames(logistic_glm_data)[c(1:ncol(x))],collapse=" + ")," -1",sep="")
-  #glm_beta <- suppressWarnings(glm(formula,data=logistic_glm_data,family=binomial()))
+    #print(dim(params$beta))
+  #print(paste("Correct",num_df,num_classes-1))
+  #}
 
-  glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=matrix(c(1-gammas,gammas),ncol=2),family="binomial",lambda=0.00001,intercept=TRUE))
-  #beta <- glm_beta$coefficients
+ # browser()
+ # glmnet.control(pmin=0)
+ #
+ glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="multinomial",lambda=0.001,alpha=0,intercept=TRUE))
+ beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+ row.names(beta)[1] <- "Beta0"
+ colnames(beta) <- 0:(ncol(gammas)-1)
 
-  beta <- c(glm_beta$a0,as.vector(glm_beta$beta))
+ # #glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="binomial",lambda=0.00001,intercept=TRUE))
+ # beta <- glm_beta$coefficients
+ #
+ # # beta <- c(glm_beta$a0,as.vector(glm_beta$beta))
+ #
+ #
+ # #beta <- as.data.frame(lapply(coef(glm_beta),as.matrix))
+ #
+ # browser()
+  # beta <- data.frame(t(beta))
+  # beta$class <- rownames(beta)
+
   return(beta)
 }
 
-update_parameters <- function(data,est_params,params){
-  gammas <- expectation_gamma(data,est_params,params)
-  curr_beta <- fit_beta(data$full_x,gammas,est_params)
-  output <- calculate_w(data,est_params,params)
-  w_ia <- output$w_ika %>% filter(k==1)
-  new_mu <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
+update_parameters <- function(data,params,args){
 
-  est_params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-est_params$mu)^2)
-  est_params$mu[2] <- new_mu
-  #print(paste(round(est_params$var[2],5),round(new_var,5)))
-  #est_params$var[2] <- new_var
+  gammas <- expectation_gamma(data,params,args)
+  curr_beta <- fit_beta(data$full_x,gammas,params)
+  output <- calculate_w(data,params,args)
 
-  # if(params$testing_interval){
+  for (class in 1:(args$num_classes-1)){
+    w_ia <- output$w_ika %>% filter(k==class)
+
+    params$mu[class+1] <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
+    new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0)
+    if(new_var < 1e-10){
+      browser()
+    }
+    params$var[class+1] <- new_var
+  }
+  #print(params$var)
+  #params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2,w_ia)
+  #gradients <- calculate_gradients(data, params,args,w_ia)
+
+  # new_mu <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
+  #
+  # params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-new_mu)^2,w_ia)
+  # #params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2,w_ia)
+  # params$mu[2] <- new_mu
+  # gradients <- calculate_gradients(data, params,args,w_ia)
+  #print(paste("Mu grad",gradients$mu))
+  #print(paste("Var grad",gradients$var))
+  #print(paste(round(params$var[2],5),round(new_var,5)))
+  #params$var[2] <- new_var
+
+  # if(args$testing_interval){
   #
   #   for(iter in seq(3)){
   #
-  #     #w_ia_full <- calculate_w(data,est_params,params)
+  #     #w_ia_full <- calculate_w(data,params,args)
   #     #w_ia <- w_ia_full %>% filter(k==1)
-  #     gradients <- calculate_gradients(data, est_params,params,w_ia)
+  #     gradients <- calculate_gradients(data, params,args,w_ia)
   #     #print(paste0("Iter: ",iter," Update: ",round(gradients$var,5)))
-  #     est_params$var[2] <- max(est_params$var - 0.1/sqrt(iter)* pmin(pmax(gradients$var,-2),2),0.1)
-  #     #print(paste(est_params$mu,est_params$var))
+  #     params$var[2] <- max(params$var - 0.1/sqrt(iter)* pmin(pmax(gradients$var,-2),2),0.1)
+  #     #print(paste(params$mu,params$var))
   #
   #   }
   # }else{
-  #   est_params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-est_params$mu)^2)
+  #   params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2)
   #
   # }
-  #print(paste(round(est_params$var[2],5),round(new_var,5)))
-  est_params$beta <- curr_beta
-  likelihood(data,est_params,params,w_ika=output)
-  return(est_params)
+  #print(paste(round(params$var[2],5),round(new_var,5)))
+
+  params$beta <- curr_beta
+  #params <- sort_args(params)
+  #likelihood(data,params,args,w_ika=output)
+  return(params)
 }
 
 
 
 
-
-
-calculate_gradients <- function(data,est_params,params,w_ia){
-  gradients <- list()
-  mu <- est_params$mu[2]
-  var <- est_params$var[2]
-  z <- w_ia$z
-  #browser()
-  gradients$var <- sum(w_ia$w_ika*(1/var - (z-mu)^2/(var^2)))
-  gradients$var_second <- sum(w_ia$w_ika*(-1/(var^2) +2*(z-mu)^2/(var^3)))
-  #print(paste("gradient",gradients$var,"second",gradients$var_second))
-  return(gradients)
-}
+#
+#
+# calculate_gradients <- function(data,params,args,w_ia){
+#   gradients <- list()
+#   mu <- params$mu[2]
+#   var <- params$var[2]
+#   z <- w_ia$z
+#   #browser()
+#   gradients$mu  <- sum(w_ia$w_ika * (z-mu)/var)
+#   gradients$var <- sum(w_ia$w_ika * (1/var - (z-mu)^2/(var^2)))
+#   gradients$var_second <- sum(w_ia$w_ika*(-1/(var^2) +2*(z-mu)^2/(var^3)))
+#   #print(paste("gradient",gradients$var,"second",gradients$var_second))
+#   return(gradients)
+# }
 

@@ -20,13 +20,18 @@ weighted_mean <- function(weights,values,w_ia){
 
 gaussian_pdf <- function(x,mean,var){
   pdf <- dnorm(x,mean,sqrt(var))
-  pdf[is.na(pdf)] <- 10^(-8)
+  #pdf[is.na(pdf)] <- 10^(-8)
   return(pdf)
 }
 
 generate_spline <- function(x,num_df){
-  spline_x <- ns(x,df=num_df-1)
-  spline_x <- cbind(rep(1,length(x)),spline_x)
+  if(num_df > 1){
+    spline_x <- ns(x,df=num_df-1)
+    spline_x <- cbind(rep(1,length(x)),spline_x)
+  }else{
+    spline_x <- matrix(rep(1,length(x)))
+  }
+
   beta_names <- coefficient_names("Beta",ncol(spline_x))
   colnames(spline_x) <- beta_names
   return(spline_x)
@@ -46,120 +51,164 @@ change_of_density <- function(z, radius=1, mean, var) {
            (dnorm(-abs(z)+radius,0,1)-dnorm(abs(z)+radius,0,1)))
 }
 
-change_of_density_df <- function(df,radius=1) {
-  return(dnorm(df["z"],df["mean"],sqrt(df[["var"]]))/
-           (dnorm(-abs(df["z"])+radius,0,1)-dnorm(abs(df["z"])+radius,0,1)))
-}
+probability_from_spline <- function(x, betas,num_classes){
 
-calculate_conditional_probabilities <- function(data,est_params,params){
+  if(!(is.numeric(betas))| !(is.numeric(x))){
+    browser()
+  }
+  if(ncol(betas) == num_classes ){
 
-  num_hypo <- length(data$small_z)
-  mu <- est_params$mu
-  var <- est_params$var
-  small_z = data$small_z
-  big_z = data$big_z
-  radius <- params$interval_radius
-
-  beta <- est_params$beta
-  if(params$num_classes > 2 ){
-    class_prob <- exp(data$full_x %*% beta)
+    # x is n by num_df
+    # betas is num_df by (num_classes-1)
+    class_prob <- exp(x %*% betas)
     class_prob <- class_prob/rowSums(class_prob)
-    colnames(class_prob) <- paste0("class_prob_",0:(params$num_classes-1))
+
+  }else if(ncol(betas) == num_classes - 1){
+    #If using last column as reference column
+    class_prob <- data.frame(matrix(ncol = num_classes, nrow = nrow(x)))
+    exp_value <- exp(x %*% betas)
+    row_sum <- rowSums(exp_value)
+
+    class_prob[,1] <- 1/(1+row_sum)
+    class_prob[,2:(num_classes)] <- exp_value/(1+row_sum)
+
   }else{
-    class_prob <- data.frame("class_prob_0"=1-1/(1+exp(-1*(data$full_x %*% beta))),
-                             "class_prob_1"=1/(1+exp(-1*(data$full_x %*% beta))))
+    browser()
+    print("INVALID SOMETHING WENT WRONG")
   }
 
+  return(class_prob)
+}
+
+
+# This calculates the probability of a_i and masked p_i given class
+calculate_conditional_probabilities <- function(data,params,args){
+
+  mask <- data$mask
+  num_hypo <- length(data$small_z)
+  mu <- params$mu
+  var <- params$var
+  small_z = data$small_z
+  big_z = data$big_z
+  z <- data$z
+  radius <- args$interval_radius
+
+  beta <- params$beta
+
+  class_prob <- probability_from_spline( data$full_x, beta, args$num_classes)
+  colnames(class_prob) <- paste0("class_prob_",0:(num_classes-1))
 
   prob <- data.frame(matrix(NA, nrow=length(small_z), ncol=1))
-  if(params$testing_interval){
+  if(args$testing_interval){
     # Iterate over s,b,-s,-b
-    for(a in params$all_a){
-      for(class in 0:(params$num_classes-1)){
+    for(class in 0:(args$num_classes-1)){
+      for(a in args$all_a){
+
         name <- paste0(a,"_",class)
         sign <- 1
-
         if(str_detect(a,"neg")){
           sign <- -1
         }
-
         if(str_detect(a,"s")){
-          prob[,name] <- change_of_density(sign*small_z, radius, mu[class+1], var[class+1])
-        }else{
-          prob[,name] <- change_of_density(sign*big_z,   radius, mu[class+1], var[class+1])/params$zeta
-        }
+          prob[mask,name] <- change_of_density(sign*small_z[mask], radius, mu[class+1], var[class+1])
+          if(!str_detect(a,"neg")){
 
+            prob[!mask,name] <- change_of_density(z[!mask], radius, mu[class+1], var[class+1])
+          }else{
+            prob[!mask,name] <- 0
+          }
+        }else{
+          prob[mask,name] <- change_of_density(sign*big_z[mask], radius, mu[class+1], var[class+1])/args$zeta
+          prob[!mask,name] <- 0
+        }
       }
     }
+
+    prob[!mask ,"neg_b_0"] <- 0
   } else {
-    prob[,"s_0"] <- rep(1,length(small_z))
-    prob[,"b_0"] <- rep(1,length(small_z)) / params$zeta
-    for(a in params$all_a){
-      for(class in 1:(params$num_classes-1)){
+    prob[,"s_0"] <- 1
+    prob[,"b_0"] <- mask * 1 / args$zeta
+    for(class in 1:(args$num_classes-1)){
+      for(a in args$all_a){
         name <- paste0(a,"_",class)
         if(str_detect(a,"s")){
-          prob[,name] <- gaussian_pdf(small_z, mu[class+1], var[class+1]) / gaussian_pdf(small_z, 0, 1)
+          prob[mask,name] <- gaussian_pdf(small_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(small_z[mask], 0, 1)
+          prob[!mask,name] <- gaussian_pdf(z[!mask], mu[class+1], var[class+1]) / gaussian_pdf(z[!mask], 0, 1)
         }else{
-          prob[,name] <- gaussian_pdf(big_z, mu[class+1], var[class+1]) / gaussian_pdf(big_z, 0, 1)/params$zeta
+          prob[mask,name] <- gaussian_pdf(big_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(big_z[mask], 0, 1)/args$zeta
+          prob[!mask,name] <- 0
         }
 
       }
-
     }
+
   }
 
 
   prob <- prob[-c(1)]
-  # prob$small_prob_null <- small_prob_null
-  # prob$big_prob_null <- big_prob_null
-  # prob$small_prob_alt <- small_prob_alt
-  # prob$big_prob_alt <- big_prob_alt
 
+  # for(class in 0:(args$num_classes-1)){
+  #   class_columns <- str_detect(colnames(prob),toString(class))
+  #   prob[,class_columns] <- prob[,class_columns] / rowSums(prob[,class_columns])
+  # }
   prob <- cbind(prob,class_prob)
+
+
   return(prob)
 }
 
-likelihood <- function(data,est_params,params,optimal_param=FALSE,w_ika=FALSE){
-
+likelihood <- function(model,optimal_param=FALSE,w_ika=FALSE){
+  data <- model$data
+  params <- model$params
+  args <- model$args
+  full_x <-
   if(!is.numeric(w_ika)){
-    w_ika <- calculate_w(data,est_params,params)
+    w_ika <- calculate_w(data,params,args)
 
   }
   denominator <- w_ika$denominator
   likelihood <- sum(log(denominator))
-  #temp <- w_ika %>% select("i","numerator") %>% group_by(i)%>%summarize(mean = mean(numerator))
-  #likelihood <- mean((log(temp))$mean)
 
-
-  # w_ika$mean <- est_params$mu[(w_ika$k)+1]
-  # w_ika$var  <- est_params$var[(w_ika$k)+1]
-  # #w_ika$class_prob <- prob_classes[(w_ika$k)+1]
-  # w_ika$density <- apply(w_ika[c("z","mean","var")], 1, change_of_density_df)
-  # likelihood <- mean(w_ika$w_ia*w_ika$density)
   if(optimal_param){
     print(paste0("Likelihood with True Parameters: ",likelihood))
   }else{
     print(paste0("Calculated Likelihood: ",likelihood))
   }
   return(likelihood)
-  # #,z="z", mean = "mean", var="var")
-  # #apply(w_ika$z, 1, change_of_density,radius = params$interval_radius, mean = w_ika$mean, var=w_ika$var)
-  #
-  # w_ia <- filter(w_ika,a=="s",k==1)%>% select("w_ia")
+
 }
 
-initialize_estimates <- function(num_classes,num_df){
-  if(num_classes > 2 ){
-    beta <-  matrix(sample(-2:2,(num_df*num_classes),replace=TRUE),ncol=num_classes)
-    beta[,1] <- 0#*(num_classes)
-    beta[1,1] <- 3
+initialize_params <- function(num_classes,num_df,interval=FALSE){
+  #if(num_classes > 2 ){
+  beta <-  matrix(sample(-2:2,(num_df*num_classes),replace=TRUE),ncol=num_classes)
+  beta[,1] <- 0#*(num_classes)
+  beta[1,1] <- 2.5
+  # }else{
+  #   beta <-  matrix(sample(-2:2,num_df,replace=TRUE),ncol=1)
+  #   beta[1] <- -2
+  # }
+  if (interval){
+    mu <-  c(0,sample(-6:6,size=num_classes-1,replace=TRUE))
   }else{
-    beta <-  matrix(sample(-2:2,num_df,replace=TRUE),ncol=1)
-    beta[1] <- -2
+    mu <-  c(0,sample(2:6,size=num_classes-1,replace=TRUE))
   }
-  mu <-  c(0,sample(2:8,size=num_classes-1,replace=FALSE))
-  tau <-  c(0,sample(1:5,size=num_classes-1,replace=TRUE))
+
+  tau <-  c(0,sample(1:1,size=num_classes-1,replace=TRUE))
   var <- tau^2+1
-  estimates <- list(beta=beta,mu=mu,var=var,tau=tau)
-  return(estimates)
+  params <- list(beta=beta,mu=mu,var=var,tau=tau)
+ # params <- sort_args(params)
+  return(params)
+}
+
+sort_args <- function(args){
+  if(length(args$mu) > 2){
+    mu_order <- order(args$mu,decreasing = FALSE)
+    args$mu <- args$mu[mu_order]
+    args$var <- args$var[mu_order]
+    args$beta <- args$beta[,mu_order]
+    if("tau"%in% args){
+      args$tau <- args$tau[mu_order]
+    }
+  }
+  return(args)
 }

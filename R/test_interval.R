@@ -10,12 +10,12 @@
 #             if(!interactive()) quit('no', status = 1, runLast = FALSE)
 #           })
 #
-# num_df = 10
+# num_df = 6
 #
 # data <- generate_data(5000,num_df)
 # known <- data$known
 # unknown <- data$unknown
-# print(paste("True params, mu: [",paste(unknown$mu, collapse = " "),"] var: [",paste(unknown$var, collapse=" "),"]",sep=""))
+# print(paste("True args, mu: [",paste(unknown$mu, collapse = " "),"] var: [",paste(unknown$var, collapse=" "),"]",sep=""))
 # num_null <- sum(abs(unknown$theta)<1)
 # print(paste("Percent of Null:",round(num_null/length(unknown$theta)*100,2)))
 # print(paste("Number of Null:",num_null))
@@ -24,38 +24,38 @@
 # z <- known$z
 # #z <- known$z
 #
-# model <- create_model_interval(x,z,num_df,iterations=100,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE,
+# model <- create_model_interval(x,z,num_df,iterations=50,alpha_m = 0.05,zeta = 1,lambda=0.4,tent=FALSE,
 #                       intervals=c(-1,1))
 # data <- model$data
-# params <- model$params
+# args <- model$args
 # x <- data$x
 # z <- data$z
 #
 # data$mask <- TRUE
-# data <- masking(data,params)
-# data <- inverse_masking(data,params)
-# #plot_x_p_value_masking(data,params)
+# data <- masking(data,args)
+# data <- inverse_masking(data,args)
+# #plot_x_p_value_masking(data,args)
 #
-# plot_masking_function(data,params)
+# plot_masking_function(data,args)
 #
 # print(paste("Percent of data masked:",round(sum(data$mask)/length(data$mask)*100,2)))
 #
-# likelihood(data,unknown,params,optimal_param=TRUE)
-# plot_fitting(data,params,unknown,title="Masked")
+# likelihood(data,unknown,args,optimal_param=TRUE)
+# plot_fitting(data,args,unknown,title="Masked")
 #
 # #
 # beta_guess <- rep(0,num_df)
 # mu_guess <- c(0,2)
 # var_guess <- c(1,1)
-# est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
+# params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
 #
 # start_time <- Sys.time()
-# output <- AdaPTGMM(data,est_params,params,calc_actual_FDP = TRUE,unknown)
+# output <- AdaPTGMM(data,params,args,calc_actual_FDP = TRUE,unknown)
 # end_time = Sys.time()
 # elapsed = end_time - start_time
 # print(paste0("Total Time for GMM Adapt: ",elapsed))
 # gmm_log <- output$fdr_log
-# est_params <- output$est_params
+# params <- output$params
 # rejections <- output$rejections
 #
 # print(gmm_log%>% ggplot(aes(x=FDPHat,y=Rejected))+geom_line()+ggtitle("Rejections vs. FDPHat"))
@@ -91,24 +91,24 @@
 # # AdaPTGMM with AdaPT Mask
 # adapt_mask_model <- create_model(x,pvals,num_df,iterations=25,alpha_m = 0.5,zeta = 1,lambda=0.5,tent=TRUE)
 # data <- adapt_mask_model$data
-# params <- adapt_mask_model$params
+# args <- adapt_mask_model$args
 # data$mask <- TRUE
-# data <- masking(data,params)
-# data <- inverse_masking(data,params)
-# #plot_x_p_value_masking(data,params)
+# data <- masking(data,args)
+# data <- inverse_masking(data,args)
+# #plot_x_p_value_masking(data,args)
 #
-# plot_masking_function(data,params)
+# plot_masking_function(data,args)
 #
 #
 # beta_guess <- rep(0,num_df)
 # mu_guess <- c(0,2)
 # var_guess <- c(1,1)
-# est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
+# params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
 #
-# output <- AdaPTGMM(data,est_params,params,calc_actual_FDP = TRUE,unknown)
+# output <- AdaPTGMM(data,params,args,calc_actual_FDP = TRUE,unknown)
 # adapt_mask_gmm_log <- output$fdr_log
 # adapt_mask_gmm_log$Type <- "AdaPTGMM AdaPT Mask"
-# #plot_fitting(data,params,unknown,title="Masked")
+# #plot_fitting(data,args,unknown,title="Masked")
 #
 # full_log <- rbind(gmm_log[c("Rejected","FDPHat","Type")],adapt_fdr_log,adapt_mask_gmm_log[c("Rejected","FDPHat","Type")])
 # ggthemr('fresh')

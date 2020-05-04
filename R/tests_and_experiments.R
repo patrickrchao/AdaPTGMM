@@ -20,7 +20,7 @@
 # data <- generate_data(num_samples = 5000, num_dim = 1,num_df = num_df)
 # known <- data$known
 # unknown <- data$unknown
-# print(paste("True params, mu:",unknown$mu," var:",unknown$var))
+# print(paste("True args, mu:",unknown$mu," var:",unknown$var))
 # num_null <- sum(abs(unknown$theta)<1)
 # print(paste("Percent of Null:",round(num_null/length(unknown$theta)*100,2)))
 # print(paste("Number of Null:",num_null))
@@ -32,15 +32,15 @@
 # model <- create_model_interval(x,z,num_df,iterations=200,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE,
 #                                intervals=c(-1,1))
 # data <- model$data
-# params <- model$params
+# args <- model$args
 # x <- data$x
 # z <- data$z
 #
 # data$mask <- TRUE
-# data <- masking(data,params)
-# data <- inverse_masking(data,params)
+# data <- masking(data,args)
+# data <- inverse_masking(data,args)
 #
-# plot_fitting(data,params,unknown,title="Masked")
+# plot_fitting(data,args,unknown,title="Masked")
 #
 #
 # # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -77,22 +77,22 @@
 # #   model <- create_model_interval(x,z,num_df,iterations=200,alpha_m = 0.05,zeta = 0.1,lambda=0.4,tent=FALSE,
 # #                                  intervals=c(-1,1))
 # #   data <- model$data
-# #   params <- model$params
+# #   args <- model$args
 # #   x <- data$x
 # #   z <- data$z
 # #
 # #   data$mask <- TRUE
-# #   data <- masking(data,params)
-# #   data <- inverse_masking(data,params)
+# #   data <- masking(data,args)
+# #   data <- inverse_masking(data,args)
 # #
-# #   beta_guess = sample(0:0,params$num_df,replace=TRUE)#+true_beta
+# #   beta_guess = sample(0:0,args$num_df,replace=TRUE)#+true_beta
 # #   mu_guess = sample(2,size=1) #true_mu#
 # #   var_guess = sample(2,size=1) #true_var
 # #   #mu_guess = true_mu#
 # #   #var_guess = true_var
 # #
-# #   est_params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
-# #   out = fit_parameters(data,est_params,params,beta_seq,mu_seq,var_seq)
+# #   params <- list(beta=beta_guess,mu=mu_guess,var=var_guess)
+# #   out = fit_parameters(data,params,args,beta_seq,mu_seq,var_seq)
 # #   beta_seq = out$beta_seq
 # #   mu_seq = out$mu_seq
 # #   var_seq = out$var_seq
@@ -150,7 +150,7 @@
 # # #ggsave(paste0("Images/",curr_title,".png"),width=20,height=15,dpi=800,units="cm")
 # #
 # # actual <- expit(data$full_x%*% true_beta)
-# # final_betas <-filter(beta_seq,Iteration ==params$iterations)[,c(-(ncol(beta_seq)-1),-ncol(beta_seq))]
+# # final_betas <-filter(beta_seq,Iteration ==args$iterations)[,c(-(ncol(beta_seq)-1),-ncol(beta_seq))]
 # # predictions <- expit(data$full_x %*% t(data.matrix(final_betas)))
 # # plot_splines <-data.frame(data$x,predictions,actual) %>% gather(key="Trial",value="gamma_mean",-data.x,-actual)
 # #
