@@ -51,6 +51,12 @@ change_of_density <- function(z, radius=1, mean, var) {
            (dnorm(-abs(z)+radius,0,1)-dnorm(abs(z)+radius,0,1)))
 }
 
+change_of_density_one_sided <- function(z, mean, var) {
+  return(exp(z^2/2-(z-mean)^2/(2*var))/sqrt(var))
+  #return(dnorm(z,mean,sqrt(var))/
+   #        (dnorm(-abs(z)+radius,0,1)-dnorm(abs(z)+radius,0,1)))
+}
+
 probability_from_spline <- function(x, betas,num_classes){
 
   if(!(is.numeric(betas))| !(is.numeric(x))){
@@ -64,7 +70,7 @@ probability_from_spline <- function(x, betas,num_classes){
     class_prob <- class_prob/rowSums(class_prob)
 
   }else if(ncol(betas) == num_classes - 1){
-    #If using last column as reference column
+    #Assuming using last column as reference column
     class_prob <- data.frame(matrix(ncol = num_classes, nrow = nrow(x)))
     exp_value <- exp(x %*% betas)
     row_sum <- rowSums(exp_value)
@@ -132,10 +138,13 @@ calculate_conditional_probabilities <- function(data,params,args){
       for(a in args$all_a){
         name <- paste0(a,"_",class)
         if(str_detect(a,"s")){
-          prob[mask,name] <- gaussian_pdf(small_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(small_z[mask], 0, 1)
-          prob[!mask,name] <- gaussian_pdf(z[!mask], mu[class+1], var[class+1]) / gaussian_pdf(z[!mask], 0, 1)
+          prob[mask,name] <- change_of_density_one_sided(small_z[mask], mu[class+1], var[class+1])
+          prob[!mask,name] <- change_of_density_one_sided(z[!mask], mu[class+1], var[class+1])
+          #prob[mask,name] <- gaussian_pdf(small_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(small_z[mask], 0, 1)
+          #prob[!mask,name] <- gaussian_pdf(z[!mask], mu[class+1], var[class+1]) / gaussian_pdf(z[!mask], 0, 1)
         }else{
-          prob[mask,name] <- gaussian_pdf(big_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(big_z[mask], 0, 1)/args$zeta
+          prob[mask,name] <- change_of_density_one_sided(big_z[mask], mu[class+1], var[class+1])
+          #prob[mask,name] <- gaussian_pdf(big_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(big_z[mask], 0, 1)/args$zeta
           prob[!mask,name] <- 0
         }
 
@@ -143,7 +152,6 @@ calculate_conditional_probabilities <- function(data,params,args){
     }
 
   }
-
 
   prob <- prob[-c(1)]
 
@@ -180,20 +188,22 @@ likelihood <- function(model,optimal_param=FALSE,w_ika=FALSE){
 
 initialize_params <- function(num_classes,num_df,interval=FALSE){
   #if(num_classes > 2 ){
-  beta <-  matrix(sample(-2:2,(num_df*num_classes),replace=TRUE),ncol=num_classes)
-  beta[,1] <- 0#*(num_classes)
-  beta[1,1] <- 2.5
+  beta <-  matrix(sample(-4:4,(num_df*num_classes),replace=TRUE),ncol=num_classes)
+  beta[1,] <- sample(seq(-1,1,0.5),num_classes,replace=TRUE)
+  #beta[,1] <- 0#*(num_classes)
+  beta[1,1] <- 2
   # }else{
   #   beta <-  matrix(sample(-2:2,num_df,replace=TRUE),ncol=1)
   #   beta[1] <- -2
   # }
+
   if (interval){
     mu <-  c(0,sample(-6:6,size=num_classes-1,replace=TRUE))
   }else{
     mu <-  c(0,sample(2:6,size=num_classes-1,replace=TRUE))
   }
 
-  tau <-  c(0,sample(1:1,size=num_classes-1,replace=TRUE))
+  tau <-  c(0,sample(seq(1,3,0.2),size=num_classes-1,replace=TRUE))
   var <- tau^2+1
   params <- list(beta=beta,mu=mu,var=var,tau=tau)
  # params <- sort_args(params)

@@ -90,6 +90,7 @@ calculate_w <- function(data, params, args) {
     for (class in 0:(args$num_classes - 1)) {
       class_prob_str = paste0("class_prob_",class)
       weight_str <- paste0(a,"_",class)
+
       numerator <- prob[[class_prob_str]]*prob[[weight_str]]
 
       denominator <- denominator + numerator
@@ -104,6 +105,8 @@ calculate_w <- function(data, params, args) {
         curr_z <- big_z
       }
       curr_z[!data$mask] <- data$z[!data$mask]
+
+
       output[(index*num_data_points+1):((index+1)*num_data_points),] <-
         c(numerator,sign*curr_z,rep(class,num_data_points),rep(a,num_data_points),all_i)
       index = index + 1
@@ -117,5 +120,6 @@ calculate_w <- function(data, params, args) {
   output$k <- as.numeric(output$k)
   output$w_ika <- output$w_ika/as.numeric(denominator)
   return_var <- list(w_ika=output,denominator=denominator)
+
   return(return_var)
 }

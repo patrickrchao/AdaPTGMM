@@ -1,4 +1,50 @@
-initialization_experiment <- function(data,args,true_model=FALSE,num_trials=8,title){
+initialization_experiment <- function(x,
+                                      interval=FALSE,
+                                      p_values=FALSE,
+                                      z=FALSE,
+                                      num_df=10,
+                                      alpha_m=0.05,
+                                      zeta=0.1,
+                                      lambda=0.4,
+                                      spline=TRUE,
+                                      iterations=20,
+                                      tent=FALSE,
+                                      num_classes = 2,
+                                      unknown=FALSE,num_trials=7,title){
+
+
+  if(interval){
+    model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1,1))
+  }else{
+    model <- create_model(x,p_values,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes)
+    true_args <- model$args
+    true_args$num_df <- ncol(unknown$beta)
+    true_args$num_classes <- nrow(unknown$beta)
+    true_data <- model$data
+    true_data$full_x <- unknown$full_x
+    true_model <-  create_model_from_args(true_data,true_args,unknown)
+  }
+  models <- vector(mode="list", length=num_trials)
+  names(models) <- 1:num_trials
+  for(trial in 1:num_trials){
+    if(interval){
+      model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1,1))
+    }else{
+      model <- create_model(x,p_values,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes)
+
+    }
+    model <- fit_parameters(model)
+    models[[trial]] <- model
+
+  }
+
+  plot_theta_density(models,true_model)
+  plot_theta_density(models,true_model)
+  plot_theta_density(models,true_model)
+  plot_theta_density(models,true_model)
+  plot_theta_density(models,true_model)
+}
+old_initialization_experiment <- function(data,args,true_model=FALSE,num_trials=8,title){
 
   if(!is.logical(true_model)){
     true_params <- true_model$params

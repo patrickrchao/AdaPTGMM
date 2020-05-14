@@ -15,7 +15,7 @@ AdaPTGMM <- function(x,
                      likelihood=FALSE,
                      alphas = seq(0.9, 0.01, -0.01)) {
   if(interval){
-    model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1,1))
+    model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1.5,1.5))
   }else{
     model <- create_model(x,p_values,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes)
   }
@@ -27,7 +27,7 @@ AdaPTGMM <- function(x,
   fdr_log <- data.frame(matrix(ncol = 3 + calc_actual_FDP, nrow = length(alphas)))
 
   rejections <- data.frame(matrix(ncol = 1 + length(x), nrow = length(alphas)))
-  hist(data$p_values,breaks=30)
+  #hist(data$p_values,breaks=30,xlab="p values",main = "Histogram of p values")
   A_t = data$mask & data$p_values>args$lambda
   R_t = data$mask & data$p_values<args$alpha_m
   size_A_t = sum(A_t)
@@ -41,20 +41,69 @@ AdaPTGMM <- function(x,
   min_fdp <- 1
 
   model$args$iterations = 20
-  model <- fit_parameters(model)$model
+  model <- fit_parameters(model)
   model$args$iterations <- iterations
   for (t in alphas) {
     while (min_fdp > t) {
       if (size_R_t == 0) {
+        min_fdp <- (size_A_t + 1) / max(size_R_t, 1)*args$zeta
+        if(calc_actual_FDP){
+
+          actual_fdp <- 0
+
+          curr_row <- c(size_A_t,size_R_t,min_fdp,actual_fdp)
+        }else{
+          curr_row <-c(size_A_t,size_R_t,min_fdp)
+
+        }
+        fdr_log[count,] <- curr_row
+
+        rejections[count,] <-  c(t,R_t)
         break
       }
-      model <- fit_parameters(model)$model
+      model <- fit_parameters(model)
 
 
       data <- model$data
       params <- model$params
-      # if(count %% 5){
-      # plot(data$x[data$mask],data$p_values[data$mask],col=as.factor(data$a[data$mask]),main = t)
+      # if((count+1) %% 4==0){
+      #
+      #   #png(file="Images/Intermediate.png",
+      #   #    width=500, height=350,res=200)
+      #
+      #   a <- as.factor(data$a)
+      #   color <- rep("black",length(a))
+      #   color[a=="s"] <- "red"
+      #   color[a=="b"] <- "blue"
+      #   color[!data$mask] <- "black"
+      #   plot(data$x,data$p_values,col=color,
+      #        main = "AdaPTGMM (Intermediate Stage)",ylab = expression("p-value p"[i]),xlab=expression("predictor x"[i]),type="p",
+      #        xaxt = "n",yaxt="n",ylim=c(0,1),yaxs="i",pch=19,cex.main=2, cex.lab=1.45,cex.axis=2,cex=1.5)
+      #   xtick<-c(0,alpha_m,lambda,lambda+alpha_m/zeta,1)
+      #   axis(side=2, at=xtick, labels = TRUE)
+      #
+      #
+      #   #dev.off()
+      #
+      #   #png(file="Images/Analyst.png",
+      #    #   width=500, height=350,res=200)
+      #   appended_x <- c(data$x,data$x[data$mask&data$a=="s"],data$x[data$mask&data$a=="b"])
+      #   appended_p_values <- c(data$p_values,data$big_p_values[data$mask & data$a=="s"],data$small_p_values[data$mask & data$a=="b"])
+      #
+      #   color <- rep("black",length(data$x))
+      #   color[data$mask] <- "purple"
+      #   color <- c(color,rep("purple",sum(data$mask)))
+      #   pch_values  <- rep(19,length(data$x))
+      #   pch_values[data$mask] <- 1
+      #   pch_values <- c(pch_values,rep(1,sum(data$mask)))
+      #   print(paste(length(color),length(appended_x)))
+      #   plot(appended_x,appended_p_values,col=color,
+      #        main = "AdaPTGMM (Analyst View)",ylab = expression("p-value p"[i]),xlab=expression("predictor x"[i]),type="p",
+      #        xaxt = "n",yaxt="n",ylim=c(0,1),yaxs="i",pch=pch_values,cex.main=2, cex.lab=1.45,cex.axis=2,cex=1.5)
+      #   xtick<-c(0,alpha_m,lambda,lambda+alpha_m/zeta,1)
+      #   axis(side=2, at=xtick, labels = TRUE)
+      #   #dev.off()
+      #   browser()
       # }
 
 
@@ -74,7 +123,7 @@ AdaPTGMM <- function(x,
       size_A_t = sum(A_t)
       size_R_t = sum(R_t)
       fdphat <- (size_A_t + 1) / max(size_R_t, 1)*args$zeta
-      print(paste(sum(data$mask),round(fdphat,3),size_A_t,size_R_t))
+      #print(paste(sum(data$mask),round(fdphat,3),size_A_t,size_R_t))
       #print(paste(count,min_fdp,fdphat))
       if (fdphat < min_fdp) {
         min_fdp = min(min_fdp, fdphat)
@@ -87,13 +136,15 @@ AdaPTGMM <- function(x,
 
     if(calc_actual_FDP){
       if(interval){
-        actual_fdp <- sum(R_t*(abs(unknown$theta)<=1)) / max(size_R_t, 1)
+        actual_fdp <- sum(R_t*(abs(unknown$theta)<=1.5)) / max(size_R_t, 1)
       }else{
         actual_fdp <- sum(R_t*(unknown$theta <= 0)) / max(size_R_t, 1)
       }
-      curr_row <- c(size_A_t,size_R_t,min_fdp,actual_fdp)
+      curr_row <- c(size_A_t,size_R_t,t,actual_fdp)
+      #curr_row <- c(size_A_t,size_R_t,min_fdp,actual_fdp)
     }else{
-      curr_row <-c(size_A_t,size_R_t,min_fdp)
+      curr_row <- c(size_A_t,size_R_t,t)
+      #curr_row <-c(size_A_t,size_R_t,min_fdp)
 
     }
 
@@ -107,14 +158,14 @@ AdaPTGMM <- function(x,
   colnames(rejections) <- c("Alpha",paste("Hypo. ",1:(length(data$x)),sep=""))
   if(calc_actual_FDP){
     colnames(fdr_log) <-c("Accepted","Rejected","FDPHat","Actual_FDP")
-    plot(fdr_log$FDPHat[fdr_log$FDPHat<0.4],fdr_log$Actual_FDP[fdr_log$FDPHat<0.4])
+    plot(fdr_log$FDPHat[fdr_log$FDPHat<0.4],fdr_log$Actual_FDP[fdr_log$FDPHat<0.4],xlab  = "FDPHat",ylab="True FDP")
     abline(a=0,b=1)
-    hist(unknown$theta[as.logical(rejections[81,-1])])
+    #hist(unknown$theta[as.logical(rejections[81,-1])])
     print(sum(abs(unknown$theta[as.logical(rejections[81,-1])])<=1)/length(unknown$theta[as.logical(rejections[81,-1])]))
   }else{
     colnames(fdr_log) <-c("Accepted","Rejected","FDPHat")
   }
-  fdr_log$Type <- "AdaPTGMM"
+  fdr_log$Type <- "GMM"
   output <- list(fdr_log=fdr_log,params=params,rejections = rejections)
  # likelihood(model)
   return(output)

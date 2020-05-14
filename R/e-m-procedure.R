@@ -11,9 +11,8 @@ fit_parameters <- function(model,logging=FALSE){
     }
 
     model$params <- params
-    out <- list(model=model)
 
-    return(out)
+    return(model)
   }
 }
 

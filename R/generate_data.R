@@ -1,10 +1,10 @@
 library(Hmisc)
 # Currently only works with num_dim = 1
-generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,tau=FALSE,num_classes = 2,interval=FALSE,intervals=c(-1,1)){
+generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,tau=FALSE,num_classes = 2,interval=FALSE,intervals=c(-1.5,1.5)){
   #browser()
   stopifnot(num_classes >= 2)
 
-  params <- initialize_params(num_classes,num_df)
+  params <- initialize_params(num_classes,num_df,interval)
   if(as.logical(beta)){
     true_beta <- beta
   }else{
@@ -23,7 +23,7 @@ generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,ta
     true_tau <-  params$tau
   }
 
-  x <- sort(runif(num_samples)-0.5)
+  x <- sort(runif(num_samples)*2-1)
   spline_x <- generate_spline(x,num_df)
   colnames(spline_x) <- paste("X",0:(ncol(spline_x)-1),sep="")
 
@@ -58,7 +58,7 @@ generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,ta
 
 
   known <- list(p_values = p_values, z = z, x = x, spline_x = spline_x)
-  unknown <- list(beta = true_beta, mu = true_mu, var = true_tau^2+1, gamma = gamma, theta = theta)
+  unknown <- list(beta = true_beta, mu = true_mu, var = true_tau^2+1, gamma = gamma, theta = theta, full_x = spline_x)
 
   return(list(known = known, unknown = unknown))
 }

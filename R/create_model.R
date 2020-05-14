@@ -17,11 +17,17 @@ create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,s
   return(model)
 }
 
-create_model_from_args <- function(data,args){
+create_model_from_args <- function(data,args,params=FALSE){
   model <- structure(list(args=args,data=data),class="model")
-  model$params <- initialize_params(args$num_classes,args$num_df)
+  if(!is.logical(params)){
+    model$params <- params
+  }else{
+    model$params <- initialize_params(args$num_classes,args$num_df)
+  }
   return(model)
 }
+
+
 
 create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,spline=TRUE,iterations=20,tent=FALSE,
                          intervals = c(-1,1),num_classes = 2){
@@ -67,7 +73,7 @@ create_model_interval <- function(x,z,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4
 
   model <- structure(list(args=args,data=data),class="model")
   model <- preprocess_data(model)
-  model$params <- initialize_params(num_classes,num_df)
+  model$params <- initialize_params(num_classes,num_df,interval=TRUE)
   return(model)
 }
 

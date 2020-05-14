@@ -27,10 +27,11 @@ fit_beta <- function(x,gammas,params){
   #}
 
  # browser()
- # glmnet.control(pmin=0)
+ glmnet.control(pmin=0)
  #
- glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="multinomial",lambda=0.001,alpha=0,intercept=TRUE))
- beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+ glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="multinomial",nlambda=2,alpha=0,intercept=TRUE))
+
+ beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
  row.names(beta)[1] <- "Beta0"
  colnames(beta) <- 0:(ncol(gammas)-1)
 
@@ -59,13 +60,13 @@ update_parameters <- function(data,params,args){
     w_ia <- output$w_ika %>% filter(k==class)
 
     params$mu[class+1] <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
-    new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0)
-    if(new_var < 1e-10){
-      browser()
-    }
+    new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0.0)
+    # if(new_var < 1e-10){
+    #   browser()
+    # }
     params$var[class+1] <- new_var
   }
-  #print(params$var)
+
   #params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2,w_ia)
   #gradients <- calculate_gradients(data, params,args,w_ia)
 
