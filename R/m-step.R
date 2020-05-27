@@ -2,9 +2,9 @@ library(glmnet)
 library(nnet)
 # Fits the logistic glm beta based on the gammas as labels and x as inputs
 fit_beta <- function(x,gammas,params){
-  #if(sum(gammas>1)>0 || sum(gammas<0)>0||  sum(is.na(gammas))>0){
-  #browser()
-  #}
+  if(sum(gammas>1)>0 || sum(gammas<0)>0||  sum(is.na(gammas))>0 || sum(is.na(x))>0){
+  browser()
+  }
   #print(colSums(gammas))
 
   # num_classes <- ncol(gammas)
@@ -28,13 +28,63 @@ fit_beta <- function(x,gammas,params){
 
  # browser()
  glmnet.control(pmin=0)
- #
- glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="multinomial",nlambda=2,alpha=0,intercept=TRUE))
 
- beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- row.names(beta)[1] <- "Beta0"
- colnames(beta) <- 0:(ncol(gammas)-1)
 
+  if(ncol(x)==1){
+    beta <- matrix(log(colMeans(gammas)),ncol=ncol(gammas))
+    colnames(beta, do.NULL = FALSE)
+    colnames(beta) <- 0:(ncol(gammas)-1)
+
+  }else{
+    # empty_cols <- colSums(gammas) == 0
+    # gammas <- gammas[,!empty_cols]
+    # glm_beta <- suppressWarnings(glmnet(x=scale(data.matrix(x),T,F),
+    #                                     y=data.matrix(gammas),family="multinomial",lambda=0,alpha=0,intercept=FALSE,
+    #                                     penalty.factor = c(0, rep(1, ncol(x)-1))
+    #                                     ))
+    #
+    # #beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+    # beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+    # row.names(beta)[1] <- "Beta0"
+    # #colnames(beta) <- names(empty_cols)[!empty_cols]
+    # zero_mat <- matrix(0, nrow=nrow(beta), ncol=sum(empty_cols))
+    # colnames(zero_mat, do.NULL = FALSE)
+    # colnames(zero_mat) <- names(empty_cols)[empty_cols]
+    # beta <- cbind(beta,zero_mat)
+    # beta <- beta[,order(colnames(beta))]
+    # colnames(beta) <- 0:(ncol(beta)-1)
+
+   #  empty_cols <- colSums(gammas) == 0
+   #  gammas <- gammas[,!empty_cols]
+   # glm_beta <- suppressWarnings(glmnet(scale(x=data.matrix(x[,-1]),T,F),y=data.matrix(gammas),family="multinomial",lambda=0,alpha=0,intercept=TRUE))
+   #
+   # #temp_beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+   # temp_beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+   # row.names(temp_beta)[1] <- "Beta0"
+   # #colnames(beta) <- names(empty_cols)[!empty_cols]
+   # zero_mat <- matrix(0, nrow=nrow(temp_beta), ncol=sum(empty_cols))
+   # colnames(zero_mat, do.NULL = FALSE)
+   # colnames(zero_mat) <- names(empty_cols)[empty_cols]
+   # temp_beta <- cbind(temp_beta,zero_mat)
+   # temp_beta <- temp_beta[,order(colnames(temp_beta))]
+   # colnames(temp_beta) <- 0:(ncol(temp_beta)-1)
+   #
+   # browser()
+     empty_cols <- colSums(gammas) == 0
+     gammas <- gammas[,!empty_cols]
+    glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="multinomial",lambda=0.01,alpha=0,intercept=TRUE))
+
+    #beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+    beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
+    row.names(beta)[1] <- "Beta0"
+    #colnames(beta) <- names(empty_cols)[!empty_cols]
+    zero_mat <- matrix(0, nrow=nrow(beta), ncol=sum(empty_cols))
+    colnames(zero_mat, do.NULL = FALSE)
+    colnames(zero_mat) <- names(empty_cols)[empty_cols]
+    beta <- cbind(beta,zero_mat)
+    beta <- beta[,order(colnames(beta))]
+    colnames(beta) <- 0:(ncol(beta)-1)
+  }
  # #glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="binomial",lambda=0.00001,intercept=TRUE))
  # beta <- glm_beta$coefficients
  #
@@ -61,9 +111,6 @@ update_parameters <- function(data,params,args){
 
     params$mu[class+1] <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
     new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0.0)
-    # if(new_var < 1e-10){
-    #   browser()
-    # }
     params$var[class+1] <- new_var
   }
 
@@ -101,7 +148,7 @@ update_parameters <- function(data,params,args){
 
   params$beta <- curr_beta
   #params <- sort_args(params)
-  #likelihood(data,params,args,w_ika=output)
+
   return(params)
 }
 

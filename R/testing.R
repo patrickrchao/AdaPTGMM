@@ -12,20 +12,20 @@ options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1,
 
 ## Parameters
 
-num_df = 4
-num_classes = 4
-num_data_points = 500
+num_df = 3
+num_classes = 2
+num_data_points = 200
 interval = FALSE
 iterations = 5
-alpha_m = 0.2 #0.05
-zeta = 0.5
+alpha_m = 0.1 #0.05
+zeta = 0.2
 lambda = 0.4 # 0.4
 tent = FALSE
 
 run_initialization_experiments = FALSE
 #Assert alpha_m/zeta + lambda < 1
 #plot_masking_function(alpha_m,lambda,zeta,tent,title="Masking Function")
-all_data <- generate_data(num_data_points,num_df= 3,num_classes = 3,interval=interval)
+all_data <- generate_data(num_data_points,num_df= 3,num_classes = 2,interval=interval)
 known <- all_data$known
 unknown <- all_data$unknown
 x <- known$x
@@ -105,4 +105,4 @@ print(full_log %>% filter(FDPHat<0.101)%>%ggplot(aes(x=FDPHat,y=Rejected,fill=Ty
         xlab("FDP Hat")+ylab("Number of Rejections"))
 
 ggsave(paste0("Images/",file_name,"_Zoom",".png"),width=20,height=15,dpi=200,units="cm")
-browser()
+

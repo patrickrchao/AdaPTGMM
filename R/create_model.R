@@ -4,11 +4,17 @@ create_model <- function(x,p_values,num_df=10,alpha_m=0.05,zeta=0.1,lambda=0.4,s
 
   z_to_p <- function(z) pnorm(z,lower.tail = FALSE)
   p_to_z <- function(p) -qnorm(p)
-  args <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
-                 testing_interval=FALSE,p_to_z=p_to_z,z_to_p=z_to_p,all_a=c("s","b"),num_classes = num_classes)
+
   if(spline){
-    full_x <- generate_spline(x,num_df)
+    generated_spline <- generate_spline(x,num_df)
+    full_x <- generated_spline$spline_x
+    spline_func <- generated_spline$spline_func
   }
+
+  args <- list(alpha_m=alpha_m,zeta = zeta,lambda=lambda,spline=spline,iterations=iterations,num_df=num_df,tent=tent,
+               testing_interval=FALSE,p_to_z=p_to_z,z_to_p=z_to_p,
+               all_a=c("s","b"),num_classes = num_classes,spline_func=spline_func)
+
   data <- list(x = x, z=p_to_z(p_values), full_x=full_x,p_values=p_values,mask=TRUE)
   model <- structure(list(args=args,data=data),class="model")
 

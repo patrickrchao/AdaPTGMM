@@ -44,6 +44,18 @@ initialization_experiment <- function(x,
   plot_theta_density(models,true_model)
   plot_theta_density(models,true_model)
 }
+
+plot_theta_density_from_params <- function(model,unknown){
+  true_args <- model$args
+  true_args$num_df <- ncol(unknown$beta)
+  true_args$num_classes <- nrow(unknown$beta)
+  true_data <- model$data
+  true_data$full_x <- unknown$full_x
+  true_model <-  create_model_from_args(true_data,true_args,unknown)
+  models <- list()
+  models$"1" <- model
+  plot_theta_density(models,true_model)
+}
 old_initialization_experiment <- function(data,args,true_model=FALSE,num_trials=8,title){
 
   if(!is.logical(true_model)){

@@ -13,16 +13,19 @@ AdaPTGMM <- function(x,
                      calc_actual_FDP=FALSE,
                      unknown=FALSE,
                      likelihood=FALSE,
-                     alphas = seq(0.9, 0.01, -0.01)) {
+                     alphas = seq(0.9, 0.01, -0.01), selection="BIC") {
+  cv_fit_params <- cv_params(x,interval,p_values,z,alpha_m,zeta,lambda,spline,tent,selection)
+  num_df <- cv_fit_params$num_df
+  num_classes <- cv_fit_params$num_classes
+  print(paste("Cross Validation Parameters, df:",num_df,"classes:",num_classes))
   if(interval){
-    model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1.5,1.5))
+    model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1,1))
   }else{
     model <- create_model(x,p_values,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes)
   }
   data <- model$data
   args <- model$args
   params <- model$params
-
   # Increment number of columns by 1 if log actual FDP
   fdr_log <- data.frame(matrix(ncol = 3 + calc_actual_FDP, nrow = length(alphas)))
 
@@ -62,61 +65,35 @@ AdaPTGMM <- function(x,
         break
       }
       model <- fit_parameters(model)
-
+      #likelihood(model)
+      #browser()
 
       data <- model$data
       params <- model$params
-      # if((count+1) %% 4==0){
-      #
-      #   #png(file="Images/Intermediate.png",
-      #   #    width=500, height=350,res=200)
-      #
-      #   a <- as.factor(data$a)
-      #   color <- rep("black",length(a))
-      #   color[a=="s"] <- "red"
-      #   color[a=="b"] <- "blue"
-      #   color[!data$mask] <- "black"
-      #   plot(data$x,data$p_values,col=color,
-      #        main = "AdaPTGMM (Intermediate Stage)",ylab = expression("p-value p"[i]),xlab=expression("predictor x"[i]),type="p",
-      #        xaxt = "n",yaxt="n",ylim=c(0,1),yaxs="i",pch=19,cex.main=2, cex.lab=1.45,cex.axis=2,cex=1.5)
-      #   xtick<-c(0,alpha_m,lambda,lambda+alpha_m/zeta,1)
-      #   axis(side=2, at=xtick, labels = TRUE)
-      #
-      #
-      #   #dev.off()
-      #
-      #   #png(file="Images/Analyst.png",
-      #    #   width=500, height=350,res=200)
-      #   appended_x <- c(data$x,data$x[data$mask&data$a=="s"],data$x[data$mask&data$a=="b"])
-      #   appended_p_values <- c(data$p_values,data$big_p_values[data$mask & data$a=="s"],data$small_p_values[data$mask & data$a=="b"])
-      #
-      #   color <- rep("black",length(data$x))
-      #   color[data$mask] <- "purple"
-      #   color <- c(color,rep("purple",sum(data$mask)))
-      #   pch_values  <- rep(19,length(data$x))
-      #   pch_values[data$mask] <- 1
-      #   pch_values <- c(pch_values,rep(1,sum(data$mask)))
-      #   print(paste(length(color),length(appended_x)))
-      #   plot(appended_x,appended_p_values,col=color,
-      #        main = "AdaPTGMM (Analyst View)",ylab = expression("p-value p"[i]),xlab=expression("predictor x"[i]),type="p",
-      #        xaxt = "n",yaxt="n",ylim=c(0,1),yaxs="i",pch=pch_values,cex.main=2, cex.lab=1.45,cex.axis=2,cex=1.5)
-      #   xtick<-c(0,alpha_m,lambda,lambda+alpha_m/zeta,1)
-      #   axis(side=2, at=xtick, labels = TRUE)
-      #   #dev.off()
-      #   browser()
-      # }
 
 
 
 
       big_odds = decision(data,params,args)
+      if(sum(is.na(big_odds))){
+        browser()
+      }
       big_odds = big_odds * data$mask
-      data$mask <- as.logical(data$mask & (big_odds < quantile(big_odds[data$mask],.97)))
+      reveal_threshold <- quantile(big_odds[data$mask],.97)
+      revealed_p_values <- data$p_values[data$mask & (big_odds>=reveal_threshold)]
+      #print(revealed_p_values)
+      if(abs(revealed_p_values-0.405)<0.005 | revealed_p_values < 0.01){
+        #browser()
+      }
+      data$mask <- as.logical(data$mask & (big_odds < reveal_threshold))
+      if((count+1) %% 1==0){
+
+        #plot_analyst_view(data,args,params,reveal_threshold,t,big_odds)
+      }
+
 
 
       data <- reveal(data,args)
-
-
 
       A_t = data$mask & data$p_values > args$lambda
       R_t = data$mask & data$p_values < args$alpha_m
@@ -128,11 +105,13 @@ AdaPTGMM <- function(x,
       if (fdphat < min_fdp) {
         min_fdp = min(min_fdp, fdphat)
       }
+
       model$data <- data
+
     }
 
-    print(paste("alpha:",round(t,2),"FDPhat:",round(fdphat, 3),"A_t:",size_A_t,
-                "Num Rejections:",size_R_t,"minfdp",round(min_fdp,4)))
+    #print(paste("alpha:",round(t,2),"FDPhat:",round(fdphat, 3),"A_t:",size_A_t,
+     #           "Num Rejections:",size_R_t,"minfdp",round(min_fdp,4)))
 
     if(calc_actual_FDP){
       if(interval){
@@ -161,13 +140,14 @@ AdaPTGMM <- function(x,
     plot(fdr_log$FDPHat[fdr_log$FDPHat<0.4],fdr_log$Actual_FDP[fdr_log$FDPHat<0.4],xlab  = "FDPHat",ylab="True FDP")
     abline(a=0,b=1)
     #hist(unknown$theta[as.logical(rejections[81,-1])])
-    print(sum(abs(unknown$theta[as.logical(rejections[81,-1])])<=1)/length(unknown$theta[as.logical(rejections[81,-1])]))
+    #print(sum(abs(unknown$theta[as.logical(rejections[81,-1])])<=1)/length(unknown$theta[as.logical(rejections[81,-1])]))
   }else{
     colnames(fdr_log) <-c("Accepted","Rejected","FDPHat")
   }
   fdr_log$Type <- "GMM"
   output <- list(fdr_log=fdr_log,params=params,rejections = rejections)
  # likelihood(model)
+
   return(output)
 }
 

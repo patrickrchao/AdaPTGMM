@@ -30,7 +30,7 @@ expectation_gamma <- function(data, params, args) {
   if (sum(is.na(gammas))>0){
     browser()
   }else if(sum(colSums(gammas) == 0 ) > 0){
-    browser()
+    #browser()
   }
   # if(args$num_classes == 2){
   #   output <- data.frame(output$gamma_1)

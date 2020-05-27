@@ -1,6 +1,6 @@
 library(Hmisc)
 # Currently only works with num_dim = 1
-generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,tau=FALSE,num_classes = 2,interval=FALSE,intervals=c(-1.5,1.5)){
+generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,tau=FALSE,num_classes = 2,interval=FALSE,intervals=c(-1,1)){
   #browser()
   stopifnot(num_classes >= 2)
 
@@ -24,7 +24,10 @@ generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,ta
   }
 
   x <- sort(runif(num_samples)*2-1)
-  spline_x <- generate_spline(x,num_df)
+  splines <- generate_spline(x,num_df)
+
+  spline_x <- splines$spline_x
+  spline_func <- splines$spline_func
   colnames(spline_x) <- paste("X",0:(ncol(spline_x)-1),sep="")
 
  # if(num_classes == 2){
@@ -54,10 +57,11 @@ generate_data <- function(num_samples=1000,num_df= 20,beta = FALSE,mu = FALSE,ta
 
     p_values <- pnorm(z,lower.tail=FALSE)
   }
+  p_values <- pmin(p_values,1-1e-7)
   #all_data <- data.frame(x,gamma,theta,z,p_values)
 
 
-  known <- list(p_values = p_values, z = z, x = x, spline_x = spline_x)
+  known <- list(p_values = p_values, z = z, x = x, spline_x = spline_x, spline_func = spline_func)
   unknown <- list(beta = true_beta, mu = true_mu, var = true_tau^2+1, gamma = gamma, theta = theta, full_x = spline_x)
 
   return(list(known = known, unknown = unknown))

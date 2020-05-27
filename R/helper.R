@@ -9,8 +9,10 @@ weighted_mean <- function(weights,values,w_ia){
   total_weight <- sum(weights)
   if(sum(is.na(weights))>0){
     browser()
+  }else if(total_weight==0 ){
+    return(0)
   }
-  if(total_weight==0 || sum(weights<0)>0){
+  if(sum(weights<0)>0){
     browser()
     stop("Warning! Invalid weights found")
     return(0)
@@ -26,15 +28,16 @@ gaussian_pdf <- function(x,mean,var){
 
 generate_spline <- function(x,num_df){
   if(num_df > 1){
-    spline_x <- ns(x,df=num_df-1)
-    spline_x <- cbind(rep(1,length(x)),spline_x)
+    spline_func <- ns(x,df=num_df-1)
+    spline_x <- cbind(rep(1,length(x)),spline_func)
   }else{
     spline_x <- matrix(rep(1,length(x)))
+    spline_func <- function(x){matrix(rep(1,length(x)))}
   }
 
   beta_names <- coefficient_names("Beta",ncol(spline_x))
   colnames(spline_x) <- beta_names
-  return(spline_x)
+  return(list(spline_x=spline_x,spline_func= spline_func))
 }
 
 coefficient_names <- function(var_name,num_dim,start=0){
@@ -101,8 +104,10 @@ calculate_conditional_probabilities <- function(data,params,args){
 
   beta <- params$beta
 
+  #TODO CHANGE THIS TO PREDICT from glmnet
+
   class_prob <- probability_from_spline( data$full_x, beta, args$num_classes)
-  colnames(class_prob) <- paste0("class_prob_",0:(num_classes-1))
+  colnames(class_prob) <- paste0("class_prob_",0:(args$num_classes-1))
 
   prob <- data.frame(matrix(NA, nrow=length(small_z), ncol=1))
   if(args$testing_interval){
@@ -112,20 +117,24 @@ calculate_conditional_probabilities <- function(data,params,args){
 
         name <- paste0(a,"_",class)
         sign <- 1
-        if(str_detect(a,"neg")){
-          sign <- -1
-        }
-        if(str_detect(a,"s")){
-          prob[mask,name] <- change_of_density(sign*small_z[mask], radius, mu[class+1], var[class+1])
-          if(!str_detect(a,"neg")){
+        if(var[class+1] <- 0){
+          prob[,name] <- 0
+        }else{
+          if(str_detect(a,"neg")){
+            sign <- -1
+          }
+          if(str_detect(a,"s")){
+            prob[mask,name] <- change_of_density(sign*small_z[mask], radius, mu[class+1], var[class+1])
+            if(!str_detect(a,"neg")){
 
-            prob[!mask,name] <- change_of_density(z[!mask], radius, mu[class+1], var[class+1])
+              prob[!mask,name] <- change_of_density(z[!mask], radius, mu[class+1], var[class+1])
+            }else{
+              prob[!mask,name] <- 0
+            }
           }else{
+            prob[mask,name] <- change_of_density(sign*big_z[mask], radius, mu[class+1], var[class+1])/args$zeta
             prob[!mask,name] <- 0
           }
-        }else{
-          prob[mask,name] <- change_of_density(sign*big_z[mask], radius, mu[class+1], var[class+1])/args$zeta
-          prob[!mask,name] <- 0
         }
       }
     }
@@ -137,15 +146,20 @@ calculate_conditional_probabilities <- function(data,params,args){
     for(class in 1:(args$num_classes-1)){
       for(a in args$all_a){
         name <- paste0(a,"_",class)
-        if(str_detect(a,"s")){
-          prob[mask,name] <- change_of_density_one_sided(small_z[mask], mu[class+1], var[class+1])
-          prob[!mask,name] <- change_of_density_one_sided(z[!mask], mu[class+1], var[class+1])
-          #prob[mask,name] <- gaussian_pdf(small_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(small_z[mask], 0, 1)
-          #prob[!mask,name] <- gaussian_pdf(z[!mask], mu[class+1], var[class+1]) / gaussian_pdf(z[!mask], 0, 1)
+        if(var[class+1]==0){
+          prob[,name] <- 0
         }else{
-          prob[mask,name] <- change_of_density_one_sided(big_z[mask], mu[class+1], var[class+1])
-          #prob[mask,name] <- gaussian_pdf(big_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(big_z[mask], 0, 1)/args$zeta
-          prob[!mask,name] <- 0
+
+          if(str_detect(a,"s")){
+            prob[mask,name] <- change_of_density_one_sided(small_z[mask], mu[class+1], var[class+1])
+            prob[!mask,name] <- change_of_density_one_sided(z[!mask], mu[class+1], var[class+1])
+            #prob[mask,name] <- gaussian_pdf(small_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(small_z[mask], 0, 1)
+            #prob[!mask,name] <- gaussian_pdf(z[!mask], mu[class+1], var[class+1]) / gaussian_pdf(z[!mask], 0, 1)
+          }else{
+            prob[mask,name] <- change_of_density_one_sided(big_z[mask], mu[class+1], var[class+1])
+            #prob[mask,name] <- gaussian_pdf(big_z[mask], mu[class+1], var[class+1]) / gaussian_pdf(big_z[mask], 0, 1)/args$zeta
+            prob[!mask,name] <- 0
+          }
         }
 
       }
@@ -165,7 +179,7 @@ calculate_conditional_probabilities <- function(data,params,args){
   return(prob)
 }
 
-likelihood <- function(model,optimal_param=FALSE,w_ika=FALSE){
+log_likelihood <- function(model,optimal_param=FALSE,w_ika=FALSE,verbose=TRUE){
   data <- model$data
   params <- model$params
   args <- model$args
@@ -175,14 +189,15 @@ likelihood <- function(model,optimal_param=FALSE,w_ika=FALSE){
 
   }
   denominator <- w_ika$denominator
-  likelihood <- sum(log(denominator))
-
-  if(optimal_param){
-    print(paste0("Likelihood with True Parameters: ",likelihood))
-  }else{
-    print(paste0("Calculated Likelihood: ",likelihood))
+  log_likelihood <- sum(log(denominator))
+  if(verbose){
+    if(optimal_param){
+      print(paste0("Log Likelihood with True Parameters: ",log_likelihood))
+    }else{
+      print(paste0("Log Calculated Likelihood: ",log_likelihood))
+    }
   }
-  return(likelihood)
+  return(log_likelihood)
 
 }
 
@@ -197,11 +212,11 @@ initialize_params <- function(num_classes,num_df,interval=FALSE){
   #   beta[1] <- -2
   # }
 
-  if (interval){
+  #if (interval){
     mu <-  c(0,sample(-6:6,size=num_classes-1,replace=TRUE))
-  }else{
-    mu <-  c(0,sample(2:6,size=num_classes-1,replace=TRUE))
-  }
+  #}else{
+  #  mu <-  c(0,sample(2:6,size=num_classes-1,replace=TRUE))
+  #}
 
   tau <-  c(0,sample(seq(1,3,0.2),size=num_classes-1,replace=TRUE))
   var <- tau^2+1
