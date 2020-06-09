@@ -1,125 +1,103 @@
+#' Perform Expectation step for gamma
+#'
+#' We just need to sum over a in the w_ika computation
+#' @return gamma probability
+#' P[\gamma_i = k | x_i, \tilde p_i]=
+#' \sum_{a} P[\gamma_i = k | x_i] P[a_i=a_ia,\tilde p_i | \gamma_i=k]/\sum_{a',k'} P[\gamma_i = k' | x_i] P[a_i=a_ia',\tilde p_i | \gamma_i=k']
+#' @importFrom magrittr "%>%"
+#' @noRd
+e_step_gamma <- function(model,w_ika){
 
-# Returns expectation of gamma given x and using current params of mu, variance
-expectation_gamma <- function(data, params, args) {
-
-  names <- paste0("gamma_",0:(args$num_classes-1))
-
-  denominator <-0
-
-  prob <- calculate_conditional_probabilities(data, params, args)
-  output <-  data.frame(matrix(ncol = args$num_classes, nrow = length(prob$class_prob_0)))
-  colnames(output) <- names
-  denominator <- 0
-
-  for (class in 0:(args$num_classes - 1)) {
-    numerator <-  0
-    for (a in args$all_a) {
-      class_prob_str = paste0("class_prob_",class)
-      weight_str <- paste0(a,"_",class)
-
-      numerator <- numerator + prob[[class_prob_str]]*prob[[weight_str]]
-
-
-    }
-    output[paste0("gamma_",class)] <- numerator
-    denominator <- denominator + numerator
-  }
-
-  gammas <- output/denominator
-
-  if (sum(is.na(gammas))>0){
-    browser()
-  }else if(sum(colSums(gammas) == 0 ) > 0){
-    #browser()
-  }
-  # if(args$num_classes == 2){
-  #   output <- data.frame(output$gamma_1)
-  # }
-  # if (args$testing_interval) {
-  #   numerator <- prob$class_prob_1 * (prob$s_1 + prob$b_1 + prob$neg_s_1 + prob$neg_b_1)
-  #   denominator <- numerator + prob$class_prob_0 * (prob$s_0 + prob$b_0 + prob$neg_s_0 + prob$neg_b_0)
-  # } else{
-  #   numerator <- prob$class_prob_1 * (prob$s_1 + prob$b_1)
-  #   denominator <- numerator + prob$class_prob_0 * (prob$s_0 + prob$b_0)
-  # }
-  # expected_gamma <- numerator / denominator
+  gammas  <- w_ika %>%
+                dplyr::select(-c(a)) %>% # remove 'a' column
+                dplyr::group_by(class,i) %>% #groupby class and hypothesis
+                dplyr::summarise(value=sum(value)) %>% # sum across a_i
+                tidyr::spread(class,value) %>% #reshape into number of hypo by number of classes
+                dplyr::select(-c(i)) #remove hypothesis numbering column
 
   return(gammas)
 }
 
 
+#' Perform Expectation step for w_ika
+#'
+#' @return Dataframe, columns include a, i, k, value
+#' a corresponds to big/small
+#' i corresponds to hypothesis number
+#' k corresponds to which gaussian class
+#' value is the computed probability
+#'
+#' Rows correspond to hypotheses
+#'
+#'
+#' P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i] \zeta^1{a_ia=b}/ {\sum_{a',k'} P[a_i=a',\tilde p_i | \gamma=k']P[\gamma=k' | x_i] \zeta^1{a_ia'=b}}
+#' This probability is equivalent to w_ika, or P[gamma_i=k,a_i=a_ia | x_i, \tilde p_i]
+e_step_w_ika <- function(model){
 
-# fit_beta_ridge <- function(x,gammas){
-#
-#   lambdas <- 10^seq(-8, -9, by = -.7)
-#
-#   glm_beta <- cv.glmnet(x[,-1], cbind(gammas,1), alpha = 0, family="binomial",lambda = lambdas,intercept=TRUE)
-#
-#   #glm_beta <- suppressWarnings(glm(formula,data=logistic_glm_data,family=binomial()))
-#   beta <- as.matrix(coef(glm_beta))
-#   row.names(beta)[1] <- "X0"
-#   return(beta)
-# }
+  # need to iterate over a, k
+  # use helper in each case
+  data <- model$data
+  args <- model$args
+  all_a <- args$all_a
+  params <- model$params
+  nclasses <- model$args$nclasses
 
+  all_prob <- expand.grid(a=all_a,class=0:(nclasses-1))
 
-# this function returns dataframe
-# one dimensional case only contains
-# w_{i,big}, w_{i,small} (k assumed to be one)
-calculate_w <- function(data, params, args) {
-  prob <- calculate_conditional_probabilities(data, params, args)
+  prob <- cbind(all_prob,
+                t(apply(all_prob,MARGIN = 1,FUN=w_ika_helper,
+                        data = data,
+                        mu = params$mu,
+                        var = params$var,
+                        zeta = args$zeta)))
+  prob <- tidyr::gather(prob,"i","value",-a,-class)
+  prob$i <- as.numeric(prob$i)
 
-  small_z = data$small_z
-  big_z = data$big_z
+  # Normalize by total sum, or P[\tilde p_i | x_i]
+  prob <- prob %>% dplyr::group_by(i) %>%
+    dplyr::mutate(value = value / sum(value))%>% # sum over a and gamma
+    dplyr::ungroup()
 
+  # Add corresponding z to each row
+  # Unmasked hypotheses use true z
+  # Masked hypotheses use z corresponding to z_small or z_big
+  masked_indices <- data$mask[prob$i]
+  unmasked_indices <- !masked_indices
 
-  output <- data.frame()
-  names <- c("w_ika", "z", "k", "a", "i")
-  num_data_points <- length(data$small_z)
-  all_i = seq(1, num_data_points)
+  prob$z <- 0
+  prob$z[unmasked_indices]                <- data$z      [prob$i[unmasked_indices]]
+  prob$z[masked_indices & prob$a == "s"]  <- data$small_z[prob$i[masked_indices & prob$a == "s"]]
+  prob$z[masked_indices & prob$a == "b"]  <- data$big_z  [prob$i[masked_indices & prob$a == "b"]]
 
-  denominator <-0
-
-  total_rows <- num_data_points * length(args$all_a)*args$num_classes
-
-  output <-  data.frame(matrix(ncol = length(names), nrow = total_rows))
-  colnames(output) <- names
-
-  index = 0
-
-  for (a in args$all_a) {
-    for (class in 0:(args$num_classes - 1)) {
-      class_prob_str = paste0("class_prob_",class)
-      weight_str <- paste0(a,"_",class)
-
-      numerator <- prob[[class_prob_str]]*prob[[weight_str]]
-
-      denominator <- denominator + numerator
-      #browser()
-      sign <- 1
-      if(str_detect(a,"neg")){
-        sign <- -1
-      }
-      if(str_detect(a,"s")){
-        curr_z <- small_z
-      }else{
-        curr_z <- big_z
-      }
-      curr_z[!data$mask] <- data$z[!data$mask]
+  return(prob)
+}
 
 
-      output[(index*num_data_points+1):((index+1)*num_data_points),] <-
-        c(numerator,sign*curr_z,rep(class,num_data_points),rep(a,num_data_points),all_i)
-      index = index + 1
-    }
+#' Computes P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i] for each a,k
+#'
+#' For a=b, the probability is divided by zeta
+#'
+#' For unmasked p-values, we compute the probability P[p_i | \gamma=k]P[\gamma=k | x_i]
+#' and store it in P[a_i=s,\tilde p_i | \gamma=k]P[\gamma=k | x_i]
+#' In this way, we do not include the normalization from zeta and set
+#' the probability with a_i=b to zero.
+#'
+#'
+w_ika_helper <- function(row,data,mu,var,zeta){
+  a <- row["a"]
+  class <- as.numeric(row["class"])
+  mask <- data$mask
+  # Add one since class k has parameters at index k+1 (classes begin at 0)
+  class_ind <- class + 1
+
+  prob <- rep(0,length(data$x))
+
+  if(a=="s"){
+    prob[!mask] <- prob_jacobian(data$z[!mask]    ,mu[class_ind],var[class_ind])
+    prob[mask] <- prob_jacobian(data$small_z[mask],mu[class_ind],var[class_ind])
+  }else{
+    prob[mask] <- prob_jacobian(data$big_z[mask],  mu[class_ind],var[class_ind])/zeta
   }
-
-  denominator <- as.numeric(denominator)
-  output$w_ika <- as.numeric(output$w_ika)
-  output$i <- as.numeric(output$i)
-  output$z <- as.numeric(output$z)
-  output$k <- as.numeric(output$k)
-  output$w_ika <- output$w_ika/as.numeric(denominator)
-  return_var <- list(w_ika=output,denominator=denominator)
-
-  return(return_var)
+  prob <- prob * data$class_prob[,class_ind]
+  return(prob)
 }
