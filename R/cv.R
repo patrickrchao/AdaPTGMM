@@ -23,7 +23,7 @@ cv_params <- function(x,interval,p_values=FALSE,z=FALSE,alpha_m,zeta,lambda,spli
     }
   }
 
-  df_range <- c(1,3,4,5)
+  df_range <- c(2,3,4,5)
   class_range <- c(2,3,4)
   grid <-  data.frame(matrix(0,nrow=length(df_range),ncol=length(class_range)))#expand.grid(df=df_range,class=class_range)
   colnames(grid) <- paste("class",class_range,sep="_")
@@ -36,7 +36,7 @@ cv_params <- function(x,interval,p_values=FALSE,z=FALSE,alpha_m,zeta,lambda,spli
       }else{
         pretrain_model <- create_model(train_x,train_p,df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=class)
       }
-      print(paste(df,class))
+
       trained_model <- fit_parameters(pretrain_model)
 
       if(selection == "CV"){
@@ -66,7 +66,7 @@ cv_params <- function(x,interval,p_values=FALSE,z=FALSE,alpha_m,zeta,lambda,spli
 
     }
   }
-  browser()
+
   best_params <- which(grid == max(grid), arr.ind = TRUE)
   cv_params <- list(num_df=df_range[best_params[1]],num_classes=class_range[best_params[2]] )
   return(cv_params)

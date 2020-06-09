@@ -28,8 +28,9 @@ gaussian_pdf <- function(x,mean,var){
 
 generate_spline <- function(x,num_df){
   if(num_df > 1){
-    spline_func <- ns(x,df=num_df-1)
-    spline_x <- cbind(rep(1,length(x)),spline_func)
+    spline <- ns(x,df=num_df-1)
+    spline_x <- cbind(rep(1,length(x)),spline)
+    spline_func <- function(x){cbind(rep(1,length(x)),predict(spline,x))}
   }else{
     spline_x <- matrix(rep(1,length(x)))
     spline_func <- function(x){matrix(rep(1,length(x)))}
@@ -212,13 +213,13 @@ initialize_params <- function(num_classes,num_df,interval=FALSE){
   #   beta[1] <- -2
   # }
 
-  #if (interval){
+  if (interval){
     mu <-  c(0,sample(-6:6,size=num_classes-1,replace=TRUE))
-  #}else{
-  #  mu <-  c(0,sample(2:6,size=num_classes-1,replace=TRUE))
-  #}
+  }else{
+    mu <-  c(0,sample(2:6,size=num_classes-1,replace=TRUE))
+  }
 
-  tau <-  c(0,sample(seq(1,3,0.2),size=num_classes-1,replace=TRUE))
+  tau <-  c(0,sample(seq(0.1,3,0.2),size=num_classes-1,replace=TRUE))
   var <- tau^2+1
   params <- list(beta=beta,mu=mu,var=var,tau=tau)
  # params <- sort_args(params)

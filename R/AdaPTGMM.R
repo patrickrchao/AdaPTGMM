@@ -14,10 +14,13 @@ AdaPTGMM <- function(x,
                      unknown=FALSE,
                      likelihood=FALSE,
                      alphas = seq(0.9, 0.01, -0.01), selection="BIC") {
-  cv_fit_params <- cv_params(x,interval,p_values,z,alpha_m,zeta,lambda,spline,tent,selection)
-  num_df <- cv_fit_params$num_df
-  num_classes <- cv_fit_params$num_classes
-  print(paste("Cross Validation Parameters, df:",num_df,"classes:",num_classes))
+  if(selection!="NONE"){
+    cv_fit_params <- cv_params(x,interval,p_values,z,alpha_m,zeta,lambda,spline,tent,selection)
+    num_df <- cv_fit_params$num_df
+    num_classes <- cv_fit_params$num_classes
+    print(paste("Cross Validation Parameters, df:",num_df,"classes:",num_classes))
+  }
+
   if(interval){
     model <- create_model_interval(x,z,num_df,iterations=iterations,alpha_m = alpha_m,zeta = zeta,lambda=lambda,tent=tent,num_classes=num_classes,intervals=c(-1,1))
   }else{
@@ -26,11 +29,36 @@ AdaPTGMM <- function(x,
   data <- model$data
   args <- model$args
   params <- model$params
+  hist(data$p_values,breaks=30,xlab="p values",main = "Histogram of p values")
+ # axis(side = 1, at = seq(0,1,by=0.05))
+
+
+  # params$beta[2] <- 0.5
+  # x_range <- seq(-4,4,by = 0.05)
+  # ratios <- c(0)
+  # for(value in x_range){
+  #   params$mu <- c(0,value)
+  #   params$var <- c(1,1.05)
+  #   data <- model$data
+  #   big_odds = decision(data,params,args)
+  #   ratios <- c(ratios,big_odds[1]/big_odds[2])
+  # }
+  # plot(x_range,ratios[-1])
+  # lines(x_range,ratios[-1])
+  # browser()
+  # params$beta[1] <- 1
+  # params$mu <- c(0,)
+  # params$var <- c(1,0.1)
+  # data <- model$data
+  # big_odds = decision(data,params,args)
+  # browser()
+
+
   # Increment number of columns by 1 if log actual FDP
   fdr_log <- data.frame(matrix(ncol = 3 + calc_actual_FDP, nrow = length(alphas)))
 
   rejections <- data.frame(matrix(ncol = 1 + length(x), nrow = length(alphas)))
-  #hist(data$p_values,breaks=30,xlab="p values",main = "Histogram of p values")
+
   A_t = data$mask & data$p_values>args$lambda
   R_t = data$mask & data$p_values<args$alpha_m
   size_A_t = sum(A_t)
@@ -82,9 +110,9 @@ AdaPTGMM <- function(x,
       reveal_threshold <- quantile(big_odds[data$mask],.97)
       revealed_p_values <- data$p_values[data$mask & (big_odds>=reveal_threshold)]
       #print(revealed_p_values)
-      if(abs(revealed_p_values-0.405)<0.005 | revealed_p_values < 0.01){
-        #browser()
-      }
+      # if(abs(revealed_p_values-0.405)<0.005 | revealed_p_values < 0.01){
+      #   #browser()
+      # }
       data$mask <- as.logical(data$mask & (big_odds < reveal_threshold))
       if((count+1) %% 1==0){
 
@@ -110,12 +138,12 @@ AdaPTGMM <- function(x,
 
     }
 
-    #print(paste("alpha:",round(t,2),"FDPhat:",round(fdphat, 3),"A_t:",size_A_t,
-     #           "Num Rejections:",size_R_t,"minfdp",round(min_fdp,4)))
+    print(paste("alpha:",round(t,2),"FDPhat:",round(fdphat, 3),"A_t:",size_A_t,
+                "Num Rejections:",size_R_t,"minfdp",round(min_fdp,4)))
 
     if(calc_actual_FDP){
       if(interval){
-        actual_fdp <- sum(R_t*(abs(unknown$theta)<=1.5)) / max(size_R_t, 1)
+        actual_fdp <- sum(R_t*(abs(unknown$theta)<=1)) / max(size_R_t, 1)
       }else{
         actual_fdp <- sum(R_t*(unknown$theta <= 0)) / max(size_R_t, 1)
       }

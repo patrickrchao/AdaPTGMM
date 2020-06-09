@@ -152,8 +152,8 @@ plot_analyst_view <- function(data,args,params,reveal_threshold,t,big_odds){
   #spline_x <- generate_spline(grid$x,args$num_df)
 
 
-  spline_x <- predict(args$spline_func,grid$x)
-  spline_x <- cbind(rep(1,length(grid$x)),spline_x)
+  spline_x <- args$spline_func(grid$x)#predict(args$spline_func,grid$x)
+  #spline_x <- cbind(rep(1,length(grid$x)),spline_x)
 
   grid_data <- list()
   grid_data$x <- grid$x
@@ -181,35 +181,14 @@ plot_analyst_view <- function(data,args,params,reveal_threshold,t,big_odds){
   blue_x <- blue_poly$x
   blue_x <- c(min(blue_x),blue_x,max(blue_x))
 
-  # plot(x_plot, temp_y, col = "white", xlab = "X", ylab = "Y")
-  # polygon(x_plot,red_y,col = "#FADEDE",
-  #         border = "#EA3323",
-  #         lwd = 1)
 
-  # for(x_ind in 1:num_x){
-  #   curr_x <- x_poly[x_ind]
-  #   for(y_ind in 1:num_y){
-  #     if(args$tent){
-  #       curr_red_y <- red_y_range[num_y-y_ind+1]
-  #       curr_blue_y <- blue_y_range[num_y-y_ind+1]
-  #     }else{
-  #       curr_red_y <- red_y_range[y_ind]
-  #       curr_blue_y <- blue_y_range[y_ind]
-  #     }
-  #
-  #
-  #
-  #   }
-  #   red_y[y_ind] <- curr_red_y
-  #   blue_y[y_ind] <- curr_blue_y
-  # }
 
   a <- as.factor(data$a)
   color <- rep("black",length(a))
   color[a=="s"] <- "red"
   color[a=="b"] <- "blue"
   color[!data$mask] <- "black"
-  #pdf(file=paste0("Images/Intermediate_",t,".pdf"))
+  pdf(file=paste0("Images/Intermediate_",t,".pdf"))
   plot(data$x,data$p_values,col=color,
        main = "AdaPTGMM (Intermediate Stage)",ylab = expression("p-value p"[i]),xlab=expression("predictor x"[i]),
        xaxt = "n",yaxt="n",ylim=c(0,1),yaxs="i",pch=19,cex.main=2, cex.lab=1.45,cex.axis=2,cex=1.5,type="n")
@@ -234,10 +213,10 @@ plot_analyst_view <- function(data,args,params,reveal_threshold,t,big_odds){
   axis(side=2, at=ytick, labels = TRUE)
 
 
-  #dev.off()
+  dev.off()
 
 
-  #   width=900, height=700,res=200)
+
   appended_x <- c(data$x,data$x[data$mask&data$a=="s"],data$x[data$mask&data$a=="b"])
   appended_p_values <- c(data$p_values,data$big_p_values[data$mask & data$a=="s"],data$small_p_values[data$mask & data$a=="b"])
 
@@ -247,8 +226,8 @@ plot_analyst_view <- function(data,args,params,reveal_threshold,t,big_odds){
   pch_values  <- rep(19,length(data$x))
   pch_values[data$mask] <- 1
   pch_values <- c(pch_values,rep(1,sum(data$mask)))
-  print(paste(length(color),length(appended_x)))
-  #pdf(file=paste0("Images/Analyst_",t,".pdf"))
+
+  pdf(file=paste0("Images/Analyst_",t,".pdf"))
   plot(appended_x,appended_p_values,col=color,
        main = "AdaPTGMM (Analyst View)",ylab = expression("p-value p"[i]),xlab=expression("predictor x"[i]),type="n",
        xaxt = "n",yaxt="n",ylim=c(0,1),yaxs="i",pch=pch_values,cex.main=2, cex.lab=1.45,cex.axis=2,cex=1.5)
@@ -266,6 +245,6 @@ plot_analyst_view <- function(data,args,params,reveal_threshold,t,big_odds){
 
   ytick<-c(0,alpha_m,lambda,lambda+alpha_m/zeta,1)
   axis(side=2, at=ytick, labels = TRUE)
-  #dev.off()
+  dev.off()
 }
 
