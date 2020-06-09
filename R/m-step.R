@@ -1,174 +1,103 @@
-library(glmnet)
-library(nnet)
-# Fits the logistic glm beta based on the gammas as labels and x as inputs
-fit_beta <- function(x,gammas,params){
+#' Perform Maximization step for beta
+#'
+#' @param model model variable containing data, args, params
+#' @param gammas Estimated gammas from e_step_gammas, dataframe where columns correspond to classes
+#' and rows correspond to hypotheses. Each row sums to 1.
+#'
+#' @details Performs a multinomial logistic regression from nnet class
+#' @return model
+#' @noRd
+m_step_beta <- function(model,gammas){
 
-  if(sum(gammas>1)>0 || sum(gammas<0)>0||  sum(is.na(gammas))>0 || sum(is.na(x))>0){
-  browser()
-  }
-  #print(colSums(gammas))
+  x <- model$data$full_x
+  ndf <- model$args$ndf
+  nclasses <- model$args$nclasses
 
-  num_classes <- ncol(gammas)
-  colnames(gammas) <- 0:(ncol(gammas)-1)
-  spread_gammas <- gather(gammas,class,weight)
+  colnames(gammas) <- 0:(nclasses-1)
+  spread_gammas <- tidyr::gather(gammas,class,weight)
   gamma_class <- spread_gammas$class
   gamma_weight <- spread_gammas$weight
-  logistic_glm_data <- data.frame(x,gamma_class,gamma_weight)
-  beta_names <- coefficient_names("Beta",ncol(x))
-  colnames(logistic_glm_data) <- c(beta_names,"gammas","weight")
-  formula <- paste("gammas ~ ",paste0(colnames(logistic_glm_data)[c(1:ncol(x))],collapse=" + ")," -1",sep="")
-  beta_model <- multinom(formula,logistic_glm_data,weight = weight,trace=FALSE)
-  beta <- as.matrix(coef(beta_model))
+  multinom_data <- data.frame(x,gamma_class,gamma_weight)
+  x_colnames <- colnames(multinom_data)[seq(ndf)]
 
-  if (num_classes > 2){
-    beta <- t(beta)
-  }
+  formula <- paste0("gamma_class ~ ",paste0(x_colnames,collapse = " + ")," -1")
+  beta <- nnet::multinom(formula, multinom_data, weight = gamma_weight, trace = FALSE)
 
-    #print(dim(params$beta))
-  #print(paste("Correct",num_df,num_classes-1))
-  #}
+  # Update class probabilities
+  model$data$class_prob <- class_prob(beta,nclasses)
+  # Update beta
+  model$params$beta <- beta
 
- # browser()
- # glmnet.control(pmin=0)
- #
- #
- #  if(ncol(x)==1){
- #    beta <- matrix(log(colMeans(gammas)),ncol=ncol(gammas))
- #    colnames(beta, do.NULL = FALSE)
- #    colnames(beta) <- 0:(ncol(gammas)-1)
- #
- #  }else{
- #    # empty_cols <- colSums(gammas) == 0
- #    # gammas <- gammas[,!empty_cols]
- #    # glm_beta <- suppressWarnings(glmnet(x=scale(data.matrix(x),T,F),
- #    #                                     y=data.matrix(gammas),family="multinomial",lambda=0,alpha=0,intercept=FALSE,
- #    #                                     penalty.factor = c(0, rep(1, ncol(x)-1))
- #    #                                     ))
- #    #
- #    # #beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- #    # beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- #    # row.names(beta)[1] <- "Beta0"
- #    # #colnames(beta) <- names(empty_cols)[!empty_cols]
- #    # zero_mat <- matrix(0, nrow=nrow(beta), ncol=sum(empty_cols))
- #    # colnames(zero_mat, do.NULL = FALSE)
- #    # colnames(zero_mat) <- names(empty_cols)[empty_cols]
- #    # beta <- cbind(beta,zero_mat)
- #    # beta <- beta[,order(colnames(beta))]
- #    # colnames(beta) <- 0:(ncol(beta)-1)
- #
- #   #  empty_cols <- colSums(gammas) == 0
- #   #  gammas <- gammas[,!empty_cols]
- #   # glm_beta <- suppressWarnings(glmnet(scale(x=data.matrix(x[,-1]),T,F),y=data.matrix(gammas),family="multinomial",lambda=0,alpha=0,intercept=TRUE))
- #   #
- #   # #temp_beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- #   # temp_beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- #   # row.names(temp_beta)[1] <- "Beta0"
- #   # #colnames(beta) <- names(empty_cols)[!empty_cols]
- #   # zero_mat <- matrix(0, nrow=nrow(temp_beta), ncol=sum(empty_cols))
- #   # colnames(zero_mat, do.NULL = FALSE)
- #   # colnames(zero_mat) <- names(empty_cols)[empty_cols]
- #   # temp_beta <- cbind(temp_beta,zero_mat)
- #   # temp_beta <- temp_beta[,order(colnames(temp_beta))]
- #   # colnames(temp_beta) <- 0:(ncol(temp_beta)-1)
- #   #
- #   # browser()
- #     empty_cols <- colSums(gammas) == 0
- #     gammas <- gammas[,!empty_cols]
- #    glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="multinomial",lambda=0.01,alpha=0,intercept=TRUE))
- #
- #    #beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),function(x) as.matrix(x)[,"s1"])))#as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- #    beta <- as.matrix(as.data.frame(lapply(coef(glm_beta),as.matrix)))
- #    row.names(beta)[1] <- "Beta0"
- #    #colnames(beta) <- names(empty_cols)[!empty_cols]
- #    zero_mat <- matrix(0, nrow=nrow(beta), ncol=sum(empty_cols))
- #    colnames(zero_mat, do.NULL = FALSE)
- #    colnames(zero_mat) <- names(empty_cols)[empty_cols]
- #    beta <- cbind(beta,zero_mat)
- #    beta <- beta[,order(colnames(beta))]
- #    colnames(beta) <- 0:(ncol(beta)-1)
- #  }
- # #glm_beta <- suppressWarnings(glmnet(x=data.matrix(x[,-1]),y=data.matrix(gammas),family="binomial",lambda=0.00001,intercept=TRUE))
- # beta <- glm_beta$coefficients
- #
- # # beta <- c(glm_beta$a0,as.vector(glm_beta$beta))
- #
- #
- # #beta <- as.data.frame(lapply(coef(glm_beta),as.matrix))
- #
- # browser()
-  # beta <- data.frame(t(beta))
-  # beta$class <- rownames(beta)
 
-  return(beta)
+  return(model)
 }
 
-update_parameters <- function(data,params,args){
 
-  gammas <- expectation_gamma(data,params,args)
-  curr_beta <- fit_beta(data$full_x,gammas,params)
-  output <- calculate_w(data,params,args)
 
-  for (class in 1:(args$num_classes-1)){
-    w_ia <- output$w_ika %>% filter(k==class)
+#' Perform Maximization step for mu and tau
+#' @importFrom magrittr "%>%"
+#' @noRd
+m_step_mu_tau <- function(model,w_ika){
+  args <- model$args
+  params <- model$params
+  data <- model$data
 
-    params$mu[class+1] <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
-    new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0.0)
-    params$var[class+1] <- new_var
+  z <- w_ika$z
+  for (k in 1:(args$nclasses-1)){
+    subset <- w_ika[w_ika$class == k,]
+    params$mu[k+1] <- weighted_mean(z,subset$value)
+    params$var[k+1] <- weighted_mean((z-params$mu[k+1])^2,subset$value)
+    if(sum(is.na(c(params$mu,params$var)))>0){
+      browser()
+    }
   }
 
-  #params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2,w_ia)
-  #gradients <- calculate_gradients(data, params,args,w_ia)
-
-  # new_mu <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
-  #
-  # params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-new_mu)^2,w_ia)
-  # #params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2,w_ia)
-  # params$mu[2] <- new_mu
-  # gradients <- calculate_gradients(data, params,args,w_ia)
-  #print(paste("Mu grad",gradients$mu))
-  #print(paste("Var grad",gradients$var))
-  #print(paste(round(params$var[2],5),round(new_var,5)))
-  #params$var[2] <- new_var
-
-  # if(args$testing_interval){
-  #
-  #   for(iter in seq(3)){
-  #
-  #     #w_ia_full <- calculate_w(data,params,args)
-  #     #w_ia <- w_ia_full %>% filter(k==1)
-  #     gradients <- calculate_gradients(data, params,args,w_ia)
-  #     #print(paste0("Iter: ",iter," Update: ",round(gradients$var,5)))
-  #     params$var[2] <- max(params$var - 0.1/sqrt(iter)* pmin(pmax(gradients$var,-2),2),0.1)
-  #     #print(paste(params$mu,params$var))
-  #
-  #   }
-  # }else{
-  #   params$var[2] <- weighted_mean(w_ia$w_ika,(w_ia$z-params$mu)^2)
-  #
-  # }
-  #print(paste(round(params$var[2],5),round(new_var,5)))
-
-  params$beta <- curr_beta
-  #params <- sort_args(params)
 
   return(params)
 }
 
 
 
+# levels(prob$a) <- 1:2
+# prob$a <- as.numeric(prob$a)
 
+# total_weight <- prob %>% subset(select=-c(a,class)) %>% rowSums()
+# # for (class in 1:(args$num_classes-1)){
+# #   w_ia <- output$w_ika %>% filter(k==class)
+# #
+# #   params$mu[class+1] <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
+# #   new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0.0)
+# #   params$var[class+1] <- new_var
+# # }
+# #prob %>% dplyr::group_by(class) %>% subset(select=-c(class,a))%>% dplyr::group_map(function(x) as.vector(t(x)))
 #
+# helper_mu <- function(row,data){
 #
-# calculate_gradients <- function(data,params,args,w_ia){
-#   gradients <- list()
-#   mu <- params$mu[2]
-#   var <- params$var[2]
-#   z <- w_ia$z
-#   #browser()
-#   gradients$mu  <- sum(w_ia$w_ika * (z-mu)/var)
-#   gradients$var <- sum(w_ia$w_ika * (1/var - (z-mu)^2/(var^2)))
-#   gradients$var_second <- sum(w_ia$w_ika*(-1/(var^2) +2*(z-mu)^2/(var^3)))
-#   #print(paste("gradient",gradients$var,"second",gradients$var_second))
-#   return(gradients)
+#   a <- row["a"]
+#   values <- row[3:length(row)]
+#   weighted_sum <- ifelse(a=="1",values*data$small_z,values*data$big_z)
+#   return(weighted_sum)
+#
 # }
+#
+# helper_var <- function(row,data,mu){
+#   a <- row["a"]
+#   class <- as.numeric(row["class"])
+#   values <- row[3:length(row)]
+#   weighted_sum <- ifelse(a=="1",values*(data$small_z-mu[class+1])^2,values*(data$big_z-mu[class+1])^2)
+#   return(weighted_sum)
+# }
+# # df_to_vec <- function(x) as.vector(t(x))
+# # stacked_df <- do.call(rbind,
+# #                 prob %>%
+# #                   dplyr::group_by(class) %>%
+# #                   subset(select=-c(a)) %>%
+# #                   dplyr::group_map(~df_to_vec(.x)))
+# # full_z <- c(data$small_z, data$big_z)
+# # total_weights <- rowSums(stacked_df)
+# # params$mu <- as.vector((stacked_df %*% full_z) / total_weights)
+# # params$var <- as.vector((stacked_df %*% (full_z-params$mu)^2) / total_weights)
+# prob_sum <- cbind(prob$class,total_weight,apply(prob,1,FUN=helper_mu,data))
+# for(class in 1:)
+# browser()
 
