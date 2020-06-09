@@ -44,7 +44,7 @@ adapt_gmm <- function(x=NULL,
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   input_checks(x,p_values,z,ndf,nclasses,niter,alpha_m,zeta,lambda,masking_shape,alphas)
   args <- construct_args(testing,alpha_m,zeta,lambda,masking_shape,niter,n=length(x))
-  hist(p_values,breaks=30,xlab="p values",main = "Histogram of p values")
+  #hist(p_values,breaks=30,xlab="p values",main = "Histogram of p values")
   data <- construct_data(x,p_values,z,args)
   model <- model_selection(data,args,ndf,nclasses,selection)
 

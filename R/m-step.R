@@ -12,16 +12,12 @@ m_step_beta <- function(model,gammas){
   x <- model$data$full_x
   ndf <- model$args$ndf
   nclasses <- model$args$nclasses
-
-  colnames(gammas) <- 0:(nclasses-1)
-  spread_gammas <- tidyr::gather(gammas,class,weight)
-  gamma_class <- spread_gammas$class
-  gamma_weight <- spread_gammas$weight
-  multinom_data <- data.frame(x,gamma_class,gamma_weight)
+  multinom_data <- data.frame(x,gammas)
   x_colnames <- colnames(multinom_data)[seq(ndf)]
 
-  formula <- paste0("gamma_class ~ ",paste0(x_colnames,collapse = " + ")," -1")
-  beta <- nnet::multinom(formula, multinom_data, weight = gamma_weight, trace = FALSE)
+  formula <- paste0("class ~ ",paste0(x_colnames,collapse = " + ")," -1")
+
+  beta <- nnet::multinom(formula, multinom_data, weights = weight, trace = FALSE)
 
   # Update class probabilities
   model$data$class_prob <- class_prob(beta,nclasses)

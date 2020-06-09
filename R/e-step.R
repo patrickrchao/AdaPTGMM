@@ -11,8 +11,8 @@ e_step_gamma <- function(model,w_ika){
   gammas  <- w_ika %>%
                 dplyr::select(-c(a)) %>% # remove 'a' column
                 dplyr::group_by(class,i) %>% #groupby class and hypothesis
-                dplyr::summarise(value=sum(value)) %>% # sum across a_i
-                tidyr::spread(class,value) %>% #reshape into number of hypo by number of classes
+                dplyr::summarise(weight=sum(value)) %>%# sum across a_i
+                #tidyr::spread(class,value) %>% #reshape into number of hypo by number of classes
                 dplyr::select(-c(i)) #remove hypothesis numbering column
 
   return(gammas)
@@ -40,23 +40,48 @@ e_step_w_ika <- function(model){
   args <- model$args
   all_a <- args$all_a
   params <- model$params
-  nclasses <- model$args$nclasses
+  nclasses <- args$nclasses
+  num_a <- length(all_a)
+  n <- args$n
 
   all_prob <- expand.grid(a=all_a,class=0:(nclasses-1))
 
-  prob <- cbind(all_prob,
-                t(apply(all_prob,MARGIN = 1,FUN=w_ika_helper,
-                        data = data,
-                        mu = params$mu,
-                        var = params$var,
-                        zeta = args$zeta)))
-  prob <- tidyr::gather(prob,"i","value",-a,-class)
-  prob$i <- as.numeric(prob$i)
+  # prob <- cbind(all_prob,
+  #               t(apply(all_prob,MARGIN = 1,FUN=w_ika_helper,
+  #                       data = data,
+  #                       mu = params$mu,
+  #                       var = params$var,
+  #                       zeta = args$zeta)))
+
+  prob <- data.frame(matrix(0,nrow=num_a*nclasses*n,ncol=5))
+  colnames(prob) <- c("a","class","i","value","z")
+  count <- 0
+  prob$i <- rep(1:n,num_a*nclasses)
+  prob$a <- rep(all_a,each = n*nclasses)
+  prob$class <- rep(rep(1:nclasses,each=n),num_a)
+  for(a in args$all_a){
+    for(k in 0:(nclasses-1)){
+      start_ind <- 1+count*n
+      end_ind <- (count+1)*n
+      #prob[start_ind:end_ind,"a"] <- a
+      #prob[start_ind:end_ind,"class"] <- k
+      #prob[start_ind:end_ind,"i"] <- 1:n
+      prob[start_ind:end_ind,"value"] <- w_ika_helper(a,k,data,params$mu,params$var,args$zeta)
+      count <- count + 1
+    }
+  }
+
+  #prob <- tidyr::gather(prob,"i","value",-a,-class)
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
+  #browser()
+  #hypo_sum <- aggregate(prob$value, by=list(i=prob$i), FUN=sum)
+  #prob$value <- prob$value / hypo_sum$[prob$i]
+
   prob <- prob %>% dplyr::group_by(i) %>%
     dplyr::mutate(value = value / sum(value))%>% # sum over a and gamma
     dplyr::ungroup()
+
 
   # Add corresponding z to each row
   # Unmasked hypotheses use true z
@@ -83,9 +108,7 @@ e_step_w_ika <- function(model){
 #' the probability with a_i=b to zero.
 #'
 #'
-w_ika_helper <- function(row,data,mu,var,zeta){
-  a <- row["a"]
-  class <- as.numeric(row["class"])
+w_ika_helper <- function(a,class,data,mu,var,zeta){
   mask <- data$mask
   # Add one since class k has parameters at index k+1 (classes begin at 0)
   class_ind <- class + 1
