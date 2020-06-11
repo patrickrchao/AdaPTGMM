@@ -8,8 +8,7 @@
 #' @noRd
 generate_spline <- function(x,ndf){
   num_hypo <- length(x)
-  # Create natural spline basis
-  # Add column of ones
+  # Create natural spline basis and add intercept column
   ifelse(ndf > 1,
     spline <- cbind(rep(1,num_hypo), splines::ns(x, df = ndf-1)),
     spline <- matrix(rep(1,num_hypo))
@@ -21,8 +20,8 @@ generate_spline <- function(x,ndf){
 
 #' Weighted Mean computation
 #'
-#' @params values Vector of values
-#' @params weights Vector of nonnegative weights
+#' @param values Vector of values
+#' @param weights Vector of nonnegative weights
 #'
 #' @return weighted mean
 #' @noRd
@@ -33,16 +32,27 @@ weighted_mean <- function(values,weights){
 #' Perform checks for valid parameters
 #'
 #' @noRd
-input_checks <- function(x,p_values,z,ndf,nclasses,niter,alpha_m,zeta,lambda,masking_shape,alphas){
+input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,niter,alpha_m,zeta,lambda,masking_shape,alphas){
   if(is.null(x) | (is.null(p_values) & is.null(z))){
     stop("Invalid inputs for x, p_values, and test_statistics. None were inputted.")
   }
-
+  if(testing == "interval"){
+    if(is.null(z)){
+      stop("Invalid input for z. Must include test statistics to perform interval null testing.")
+    }else if(!is.null(p_values)){
+      warning("Inputted p-values will be ignored in interval null testing, they will be computed automatically.")
+    }
+    if(is.null(rendpoint)){
+      stop("Invalid input for rendpoint. Must include right endpoint for interval null testing.")
+    }
+  }
   if(length(x) != max(length(p_values), length(z))){
     stop("Invalid inputs, x and p_values/test statistics have different length.")
   }
-  if(min(p_values<0) | max(p_values) > 1){
-    stop("Invalid p-values, p-values must be in range [0,1].")
+  if(!is.null(p_values)){
+     if((min(p_values<0) | max(p_values) > 1)){
+        stop("Invalid p-values, p-values must be in range [0,1].")
+     }
   }
   if(alpha_m<0 | alpha_m>1 | alpha_m>lambda | lambda<0 | lambda>1 | zeta<0 | zeta>1 | lambda+alpha_m/zeta>1){
     stop("Invalid input for alpha_m, zeta, lambda, must all be between 0 and 1 and 0<alpha_m<=lambda<lambda+alpha_m/zeta<=1.")
@@ -62,4 +72,19 @@ input_checks <- function(x,p_values,z,ndf,nclasses,niter,alpha_m,zeta,lambda,mas
   if(min(ndf) < 1){
     stop("Invalid number of degrees of freedom, minimum 1 (intercept only model).")
   }
+  if(!is.null(rendpoint) & !is.null(lendpoint)){
+    if(lendpoint > rendpoint){
+      stop("Invalid input for endpoints. Right endpoint must be greater than left endpoint.")
+    }
+  }
+}
+
+#' Helper function to find inverse of a function
+#' Used to find test statistics that correspond to mirrored p-values
+#' From Mike Axiak, https://stackoverflow.com/questions/10081479/solving-for-the-inverse-of-a-function-in-r
+#' @param f function
+#'
+#' @noRd
+inverse = function (f, lower = 0, upper = 200) {
+  return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^0.5)[1])
 }

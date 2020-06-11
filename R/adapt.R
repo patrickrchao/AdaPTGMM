@@ -5,46 +5,55 @@
 #'
 #' @param x Vector of covariates TODO: (specify type)
 #' @param p_values Vector of p-values (supply either p_values or test statistics)
-#' @param z Vector of test statistics, TODO: not sure about how to deal with this yet
-#' @param testing What form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".
-#' @param ndf Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. Minimum degrees of freedom is 1,
-#' representing no relationship between covariates and hypotheses. Note: Recommended to use <7 degrees of freedom.
-#' Default is c(1,3,4). TODO: cannot use ndf=2 for now.
-#' @param nclasses Vector of number of classes in Gaussian Mixture model. Minimum number of classes is 2.
-#' Note: recommended to use <5 classes. Default is c(2,3,4).
-#' @param niter Number of iterations per fitting of the expectation maximization algorithm.
+#' @param z Vector of test statistics, required if \code{testing}='\code{interval}'.
+#' @param testing The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".
+#' @param rendpoint Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.
+#' @param lendpoint Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
+#' \code{lendpoint} will be assumed to be \code{-rendpoint}.
+#' @param ndf Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. The vector corresponds to the possible
+#' degrees of freedom to select in the model selection procedure. Minimum degrees of freedom is 1, representing no relationship
+#' between covariates and hypotheses. Note: Recommended to use <7 degrees of freedom.
+#' Default is c(1,3,5). The greater the number of degrees of freedom the longer it takes the beta model to fit, and the
+#' longer the list of possible values, the longer the model selection procedure takes.
+#' @param nclasses Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
+#' number of classes to select in the model selection procedure. Minimum number of classes is 2.
+#' Note: recommended to use <5 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
+#' longer the list of possible values, the longer the model selection procedure takes.
+#' @param niter Number of updates per instance of the expectation maximization algorithm.
 #' @param alpha_m The maximum possible rejected p-value. We recommend \eqn{0.01\le \alpha_m \le 0.1}, default is 0.1.
 #' @param zeta Controls minimum possible number of rejections, we recommend small values of zeta with low total number of samples.
-#' If \code{zeta}=\eqn{\alpha} the desired FDR level, any number of rejections is possible.
+#' If \code{zeta}=\eqn{\alpha}, the desired FDR level, any number of rejections is possible.
 #' @param lambda Controls where p-values are mirrored, boundary of blue region. TODO: Fix wording. We recommend \eqn{0.3\le\lambda\le 0.5}, default is 0.4
 #' This is the most expensive part of the procedure, we recommend smaller number (<5) of iterations for larger problems. Default is 10.
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
-#' @param alphas Vector of FDR levels of interest. Default is [0.9,0.89,...,0.02,0.01].
+#' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
 #' @param selection Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{BIC}".
 #' @details
 #'  The constraint on these masking function parameters is
 #' \deqn{0< \alpha_m \le \lambda <\lambda+ \alpha_m/\zeta\le 1.}
-#' Setting \code{alpha_m} to 0.5, \code{lambda} to 0.5, \code{zeta} to 1, and \code{masking_shape} to "\code{tent}" results in the AdaPT default masking function.
+#' Setting \code{alpha_m} to 0.5, \code{lambda} to 0.5, \code{zeta} to 1, and \code{masking_shape} to "\code{tent}" results in the AdaPT masking function.
 #'
 #' @export
 
-adapt_gmm <- function(x=NULL,
-                      p_values=NULL,
-                      z=NULL,
-                      testing="one_sided",
-                      ndf=c(1,3,4),
-                      nclasses=c(2,3,4),
-                      niter=5,
-                      alpha_m=0.05,
-                      zeta=0.1,
-                      lambda=0.4,
-                      masking_shape="tent",
+adapt_gmm <- function(x = NULL,
+                      p_values = NULL,
+                      z = NULL,
+                      testing = "one_sided",
+                      rendpoint = NULL,
+                      lendpoint = NULL,
+                      ndf = c(1,3,5),
+                      nclasses = c(2,3,4),
+                      niter = 3,
+                      alpha_m = 0.05,
+                      zeta = 0.1,
+                      lambda = 0.4,
+                      masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01), selection="BIC"){
 
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
-  input_checks(x,p_values,z,ndf,nclasses,niter,alpha_m,zeta,lambda,masking_shape,alphas)
-  args <- construct_args(testing,alpha_m,zeta,lambda,masking_shape,niter,n=length(x))
-  #hist(p_values,breaks=30,xlab="p values",main = "Histogram of p values")
+  input_checks(x, p_values, z, testing,rendpoint,lendpoint,ndf, nclasses, niter, alpha_m, zeta, lambda, masking_shape, alphas)
+  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter,n=length(x))
+
   data <- construct_data(x,p_values,z,args)
   model <- model_selection(data,args,ndf,nclasses,selection)
 
@@ -75,6 +84,7 @@ adapt_gmm <- function(x=NULL,
     alpha <- sorted_alphas[index]
     while (min_fdp > alpha & values$R_t > 0) {
       model <- EM(model)
+      data <- model$data
       big_odds = big_over_small_prob(model)
       reveal_threshold <- quantile(big_odds[data$mask],.97)
 
@@ -85,7 +95,6 @@ adapt_gmm <- function(x=NULL,
       fdphat <- values$fdphat
       min_fdp <- min(min_fdp,fdphat)
       model$data <- data
-
     }
 
     A_t <- values$A_t
@@ -98,6 +107,7 @@ adapt_gmm <- function(x=NULL,
   }
   output <- list(fdr_log = fdr_log, params=model$params, rejections = rejections)
   #plot(fdr_log$Alpha,fdr_log$Rejected)
+
   return(output)
 }
 
@@ -108,6 +118,7 @@ adapt_gmm <- function(x=NULL,
 #'
 #' @details Computes FDPHat with (A_t+1)/(max(R_t,1))
 #' @return List with A_t, R_t, and estimated FDPHat
+#' @noRd
 compute_fdphat <- function(data,args){
   p_values <- data$p_values
   mask <- data$mask

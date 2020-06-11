@@ -8,14 +8,18 @@
 #' @noRd
 big_over_small_prob <- function(model){
 
-  prob <- e_step_w_ika(model)
+  w_ika <- e_step_w_ika(model)
 
-  big_small <- prob %>% dplyr::group_by(a,i) %>% #groupby a and hypothesis
-    dplyr::summarise(value=sum(value))  %>% # sum across gamma
-    tidyr::spread(a,value) %>%  #create rows for a=s,b
-    dplyr::select(-c(i)) #remove hypothesis numbering column
-
+  # marginalize over class and remove hypothesis numbering column
+  big_small <- tidyr::spread(marginalize(w_ika,"class"),a,value)
   odds <- big_small$b / big_small$s
+
+  # Fast Version
+  # big_small <- marginalize(w_ika,"class")
+  # big_small <- big_small[order(big_small$a),]
+  # big <- seq(1,nrow(big_small),2)
+  # small <- seq(2,nrow(big_small),2)
+  # odds <- big_small$value[big]/big_small$value[small]
 
   return(odds)
 

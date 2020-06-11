@@ -4,7 +4,14 @@
 \alias{model_selection}
 \title{Model selection for degrees of freedom and number of classes}
 \usage{
-model_selection(data, args, ndf_list, nclasses_list, selection)
+model_selection(
+  data,
+  args,
+  ndf_list,
+  nclasses_list,
+  selection,
+  training_proportion = 0.6
+)
 }
 \arguments{
 \item{data}{data of model}
@@ -16,6 +23,8 @@ model_selection(data, args, ndf_list, nclasses_list, selection)
 \item{nclasses_list}{Vector for possible number of classes}
 
 \item{selection}{Criteria for model selection}
+
+\item{training_proportion}{Proportion of data used for training, in the \code{selection}='\code{cross_validation}' case.}
 }
 \description{
 Model selection for degrees of freedom and number of classes

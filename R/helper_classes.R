@@ -3,6 +3,8 @@
 #' Class containing all relevant arguments for model
 #'
 #' @param testing "\code{one_sided}" or "\code{interval}".
+#' @param rendpoint Right endpoint of interval null
+#' @param lendpoint Left endpoint of interval null
 #' @param alpha_m The maximum possible rejected p-value.
 #' @param zeta Controls minimum possible number of rejections.
 #' @param lambda Controls where p-values are mirrored.
@@ -12,21 +14,31 @@
 #' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
 #' @return args class
 #' @noRd
-construct_args <- function(testing,alpha_m,zeta,lambda,masking_shape,niter,n,ndf=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter,n,ndf=NULL,nclasses=NULL){
+
   all_a <- c("s","b")
   if(testing=="one_sided"){
     z_to_p <- function(z) pnorm(z,lower.tail = FALSE)
     p_to_z <- function(p) -qnorm(p)
+    jacobian <- prob_jacobian_one_sided
   }else if(testing=="interval"){
-    z_to_p <- function(z) pnorm(abs(z)+1,lower.tail=FALSE)+pnorm(-abs(z)+1)
+    if(is.null(lendpoint)){
+      lendpoint <- -1 * rendpoint
+    }
+    radius <-  (rendpoint-lendpoint)/2
+    z_to_p <- function(z) pnorm(abs(z)+radius,lower.tail=FALSE)+pnorm(-abs(z)+radius)
     p_to_z_inv <- inverse(z_to_p,lower = 0)
     p_to_z <- function(z) unlist(mapply(p_to_z_inv,z))
-    all_a <- c(all_a,"neg_s","neg_b")
+    all_a <- c(all_a,"s_neg","b_neg")
+
+    jacobian <- function(z,mean,var)prob_jacobian_interval(z,mean,var,radius=radius)
   }else{
     stop("Invalid testing type inputted. Valid forms of testing: `one_sided` and `interval`.")
   }
 
   args <- list(testing = testing,
+               rendpoint = rendpoint,
+               lendpoint = lendpoint,
                alpha_m = alpha_m,
                zeta = zeta,
                lambda = lambda,
@@ -37,7 +49,9 @@ construct_args <- function(testing,alpha_m,zeta,lambda,masking_shape,niter,n,ndf
                ndf = ndf,
                nclasses = nclasses,
                all_a = all_a,
-               n  = n)
+               n  = n,
+               jacobian = jacobian
+               )
   class(args) <- "args"
   return(args)
 }
@@ -53,14 +67,18 @@ construct_args <- function(testing,alpha_m,zeta,lambda,masking_shape,niter,n,ndf
 #' @return data class
 #' @noRd
 construct_data <- function(x,p_values,z,args){
-
-
+  if(args$testing == "interval"){
+    center <- (args$rendpoint + args$lendpoint)/2
+    z <- abs(z-center)
+  }
   data <- list(x = x,
                p_values = p_values,
                z = z
                )
   class(data) <- "data"
+
   data <- data_preprocessing(data,args)
+
   return(data)
 }
 
@@ -78,23 +96,20 @@ construct_data <- function(x,p_values,z,args){
 #' @return params class containing beta, mu, tau, var (tau^2+1)
 #' @noRd
 initialize_params <- function(args){
-  ndf <- args$ndf
+
   nclasses <- args$nclasses
 
-  beta <-  matrix(runif(ndf*nclasses, min = -4, max = 4), ncol = nclasses)
-  beta[1,] <- runif(nclasses, min = -1, max = 1)
-  beta[1,1] <- 2
-
-
+  beta <- NULL
   if(args$testing == "interval"){
     mu <-  c(0, runif(nclasses - 1, min = -6, max = 6))
   }else{
     mu <-  c(0, runif(nclasses - 1, min = 1, max = 6))
   }
 
-  tau <-  c(0, runif(nclasses - 1, min = 0.1, max = 3))
+  tau <-   c(0, runif(nclasses - 1, min = 0.1, max = 3))
   var <- tau^2 + 1
-  params <- list(beta=beta, mu=mu, var=var, tau=tau)
+
+  params <- list(beta=beta, mu=mu, var=var)
   class(params) <- "params"
   return(params)
 }

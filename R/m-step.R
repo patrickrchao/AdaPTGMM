@@ -8,30 +8,37 @@
 #' @return model
 #' @noRd
 m_step_beta <- function(model,gammas){
-
-  x <- model$data$full_x
   ndf <- model$args$ndf
   nclasses <- model$args$nclasses
-  multinom_data <- data.frame(x,gammas)
-  x_colnames <- colnames(multinom_data)[seq(ndf)]
+  if(ndf == 1){
+    # If there is only a single degree of freedom (intercept only model),
+    # we may estimate the class probabilities by considering the mean for each class.
+    grouped <- dplyr::group_by(gammas,class)
+    beta <- dplyr::ungroup(dplyr::summarise(grouped, value=mean(value)))$value
+    beta <- beta/sum(beta)
+  }else{
 
-  formula <- paste0("class ~ ",paste0(x_colnames,collapse = " + ")," -1")
-
-  beta <- nnet::multinom(formula, multinom_data, weights = weight, trace = FALSE)
+    x <- model$data$full_x
+    multinom_data <- data.frame(x,gammas)
+    x_colnames <- colnames(multinom_data)[seq(ndf)]
+    formula <- paste0("class ~ ",paste0(x_colnames,collapse = " + ")," -1")
+    # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
+    if(!is.null(model$params$beta)){
+      beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta$wts)
+    }else{
+      beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
+    }
+  }
 
   # Update class probabilities
   model$data$class_prob <- class_prob(beta,nclasses)
   # Update beta
   model$params$beta <- beta
 
-
   return(model)
 }
 
-
-
 #' Perform Maximization step for mu and tau
-#' @importFrom magrittr "%>%"
 #' @noRd
 m_step_mu_tau <- function(model,w_ika){
   args <- model$args
@@ -41,59 +48,11 @@ m_step_mu_tau <- function(model,w_ika){
   z <- w_ika$z
   for (k in 1:(args$nclasses-1)){
     subset <- w_ika[w_ika$class == k,]
-    params$mu[k+1] <- weighted_mean(z,subset$value)
-    params$var[k+1] <- weighted_mean((z-params$mu[k+1])^2,subset$value)
-    if(sum(is.na(c(params$mu,params$var)))>0){
-      browser()
-    }
+    params$mu[k+1] <- weighted_mean(subset$z,subset$value)
+    # Minimum variance for convolved Gaussian is 1
+    params$var[k+1] <- max(weighted_mean((subset$z-params$mu[k+1])^2,subset$value), 1)
   }
-
 
   return(params)
 }
-
-
-
-# levels(prob$a) <- 1:2
-# prob$a <- as.numeric(prob$a)
-
-# total_weight <- prob %>% subset(select=-c(a,class)) %>% rowSums()
-# # for (class in 1:(args$num_classes-1)){
-# #   w_ia <- output$w_ika %>% filter(k==class)
-# #
-# #   params$mu[class+1] <- weighted_mean(w_ia$w_ika,w_ia$z,w_ia)
-# #   new_var <- max(weighted_mean(w_ia$w_ika,(w_ia$z-params$mu[class+1])^2,w_ia),0.0)
-# #   params$var[class+1] <- new_var
-# # }
-# #prob %>% dplyr::group_by(class) %>% subset(select=-c(class,a))%>% dplyr::group_map(function(x) as.vector(t(x)))
-#
-# helper_mu <- function(row,data){
-#
-#   a <- row["a"]
-#   values <- row[3:length(row)]
-#   weighted_sum <- ifelse(a=="1",values*data$small_z,values*data$big_z)
-#   return(weighted_sum)
-#
-# }
-#
-# helper_var <- function(row,data,mu){
-#   a <- row["a"]
-#   class <- as.numeric(row["class"])
-#   values <- row[3:length(row)]
-#   weighted_sum <- ifelse(a=="1",values*(data$small_z-mu[class+1])^2,values*(data$big_z-mu[class+1])^2)
-#   return(weighted_sum)
-# }
-# # df_to_vec <- function(x) as.vector(t(x))
-# # stacked_df <- do.call(rbind,
-# #                 prob %>%
-# #                   dplyr::group_by(class) %>%
-# #                   subset(select=-c(a)) %>%
-# #                   dplyr::group_map(~df_to_vec(.x)))
-# # full_z <- c(data$small_z, data$big_z)
-# # total_weights <- rowSums(stacked_df)
-# # params$mu <- as.vector((stacked_df %*% full_z) / total_weights)
-# # params$var <- as.vector((stacked_df %*% (full_z-params$mu)^2) / total_weights)
-# prob_sum <- cbind(prob$class,total_weight,apply(prob,1,FUN=helper_mu,data))
-# for(class in 1:)
-# browser()
 

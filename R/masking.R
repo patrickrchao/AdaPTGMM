@@ -12,14 +12,15 @@ data_preprocessing <- function(data,args){
   # preprocess masking
 
   # Initialize z and p_values if uninitialized
-
   if(is.null(data$z)){
     data$p_values <- pmax(pmin(data$p_values, 1 - 1e-15), 1e-15)
     data$z <- args$p_to_z(data$p_values)
   }else if(is.null(data$p_values)){
     data$p_values <- args$z_to_p(data$z)
   }
+  # Clamp p-values
   data$p_values <- pmax(pmin(data$p_values, 1 - 1e-15), 1e-15)
+
   p_values <- data$p_values
   z <- data$z
   num_hypo <- length(p_values)
@@ -28,15 +29,18 @@ data_preprocessing <- function(data,args){
   alpha_m <- args$alpha_m
   zeta <- args$zeta
 
-
-
   data <- masking(data,args)
-
 
   return(data)
 }
 
-
+#' Compute big/small test statistics and p-values based on masking parameters
+#'
+#' @param data class, contains information for p-values and test statistics
+#' @param args class, contains information on masking function and model constants
+#'
+#' @return data with computed big/small test statistics, p-values, initial mask, and a
+#' @noRd
 masking <- function(data,args){
   alpha_m <- args$alpha_m
   lambda <- args$lambda
@@ -52,8 +56,6 @@ masking <- function(data,args){
   a[(p_values > lambda) & (p_values < lambda + alpha_m / zeta)] <-  "b"
 
   mask <- (a != "NONE")
-
-
 
   small_p_values <- rep(NA,length(p_values))
   big_p_values <- rep(NA,length(p_values))

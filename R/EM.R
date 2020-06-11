@@ -8,17 +8,19 @@
 #' @param model Model class with data, args, and initialize parameters
 #'
 #' @return Model class with updated parameters.
-EM <- function(model){
-  data <- model$data
-  args <- model$args
+EM <- function(model, preset_iter=NULL){
 
-  for(i in seq(args$niter)){
+
+  if(is.null(preset_iter)){
+    niter  <- model$args$niter
+  }else{
+    niter <- preset_iter
+  }
+  for(i in seq(niter)){
     w_ika <- e_step_w_ika(model)
     gammas <- e_step_gamma(model,w_ika)
     model <- m_step_beta(model,gammas)
-    w_ika <- e_step_w_ika(model)
     model$params <- m_step_mu_tau(model,w_ika)
   }
-
   return(model)
 }

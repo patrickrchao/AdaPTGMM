@@ -14,7 +14,7 @@ create_model <- function(data,args){
 
   data$full_x <- generate_spline(data$x,args$ndf)
 
-  data$class_prob <- matrix(c(0.9,rep(0.1/(args$nclasses-1),args$nclasses-1)),ncol=args$nclasses,nrow=args$n,byrow=FALSE)
+  data$class_prob <- matrix(c(0.9,rep(0.1/(args$nclasses-1),args$nclasses-1)),ncol=args$nclasses,nrow=args$n,byrow=TRUE)
   model <- list(data=data, args=args, params=params)
 
   testing <- args$testing
