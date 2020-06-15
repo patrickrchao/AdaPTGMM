@@ -8,6 +8,7 @@
 #' @return model
 #' @noRd
 m_step_beta <- function(model,gammas){
+
   ndf <- model$args$ndf
   nclasses <- model$args$nclasses
   if(ndf == 1){
@@ -16,6 +17,9 @@ m_step_beta <- function(model,gammas){
     grouped <- dplyr::group_by(gammas,class)
     beta <- dplyr::ungroup(dplyr::summarise(grouped, value=mean(value)))$value
     beta <- beta/sum(beta)
+    if(sum(beta==0)>0){
+      browser()
+    }
   }else{
 
     x <- model$data$full_x
@@ -27,6 +31,9 @@ m_step_beta <- function(model,gammas){
       beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta$wts)
     }else{
       beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
+    }
+    if(sum(colSums(fitted(beta))==0)>0){
+      browser()
     }
   }
 
@@ -52,7 +59,9 @@ m_step_mu_tau <- function(model,w_ika){
     # Minimum variance for convolved Gaussian is 1
     params$var[k+1] <- max(weighted_mean((subset$z-params$mu[k+1])^2,subset$value), 1)
   }
-
+  if(sum(is.na(params$mu))>0 | sum(is.na(params$var))>0){
+    browser()
+  }
   return(params)
 }
 

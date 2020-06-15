@@ -28,6 +28,7 @@
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
 #' @param selection Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{BIC}".
+#' @param verbose Boolean. Include print statements at each stage of the procedure.
 #' @details
 #'  The constraint on these masking function parameters is
 #' \deqn{0< \alpha_m \le \lambda <\lambda+ \alpha_m/\zeta\le 1.}
@@ -41,16 +42,17 @@ adapt_gmm <- function(x = NULL,
                       testing = "one_sided",
                       rendpoint = NULL,
                       lendpoint = NULL,
-                      ndf = c(1,3,5),
+                      ndf = c(1,3,5,7),
                       nclasses = c(2,3,4),
                       niter = 3,
                       alpha_m = 0.05,
                       zeta = 0.1,
                       lambda = 0.4,
                       masking_shape = "tent",
-                      alphas = seq(0.01, 1, 0.01), selection="BIC"){
+                      alphas = seq(0.01, 1, 0.01),
+                      selection = "BIC"){
 
-  options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
+ # options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   input_checks(x, p_values, z, testing,rendpoint,lendpoint,ndf, nclasses, niter, alpha_m, zeta, lambda, masking_shape, alphas)
   args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter,n=length(x))
 
@@ -72,8 +74,13 @@ adapt_gmm <- function(x = NULL,
 
   p_values <- data$p_values
   values <- compute_fdphat(data,args)
+
   fdphat <- values$fdphat
   min_fdp <- values$fdphat
+  A_t <- values$A_t
+  R_t <- values$R_t
+  print(paste("Initialization: FDPhat:",round(fdphat, 3),"A_t:",A_t,
+            "Num Rejections:",R_t,"minfdp",round(min_fdp,4)))
   sorted <- sort(alphas,decreasing=TRUE,index.return=TRUE)
 
   sorted_alphas <- sorted$x
@@ -106,7 +113,6 @@ adapt_gmm <- function(x = NULL,
                 "Num Rejections:",R_t,"minfdp",round(min_fdp,4)))
   }
   output <- list(fdr_log = fdr_log, params=model$params, rejections = rejections)
-  #plot(fdr_log$Alpha,fdr_log$Rejected)
 
   return(output)
 }

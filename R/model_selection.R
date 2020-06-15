@@ -5,6 +5,8 @@
 #' @param nclasses_list Vector for possible number of classes
 #' @param selection Criteria for model selection
 #' @param training_proportion Proportion of data used for training, in the \code{selection}='\code{cross_validation}' case.
+#'
+#' @return Initialized and pretrained model with best performance based on selection criterion
 #' @keywords Internal
 model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_proportion=0.6){
 
@@ -15,7 +17,7 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
   param_grid <-  expand.grid(ndf_list,nclasses_list)
   colnames(param_grid) <- c("ndf","nclasses")
   n_permutations <- nrow(param_grid)
-  model_list <-vector("list",n_permutations)
+  model_list <- vector("list",n_permutations)
 
   # Construct train/validation splits for cross_validation
   if(selection == "cross_validation"){
@@ -37,13 +39,15 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
     train_args$nclasses <- row$nclasses
 
     model <- create_model(train,train_args)
-    model <- EM(model,preset_iter = 5)
+    model <- EM(model,preset_iter = 10)
+
+    model_list[[row_index]] <- model
 
     if(selection == "cross_validation"){
       trained_params <- model$params
 
       valid_args <- train_args
-      valid_args$n <- as.integer(n * (1-training_proportion))
+      valid_args$n <- as.integer(n * (1 - training_proportion))
 
       model <- create_model(valid,valid_args)
       model$params <- trained_params
@@ -63,11 +67,9 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
       # df degrees of freedom in beta
       # (class-1)*2 degrees of freedom in mu and tau^2+1
       d <- model$args$ndf + (model$args$nclasses - 1)*2
-      model_list[[row_index]] <- model
       # BIC is divided by -2 so that large values are desirable
       if(selection == "BIC"){
         penalty <- log(n)*d/2
-
       # AIC is divided by -N/2 so that large values are desirable
       } else if(selection == "AIC"){
         penalty <- d
@@ -76,10 +78,11 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
 
     #Update grid with correct value
 
-    param_grid[row_index,"value"] <-  log_likelihood(model) - penalty
-
+    param_grid[row_index,"log_like"] <-  log_likelihood(model)
+    param_grid[row_index,"penalty"] <- penalty
   }
 
+  param_grid$value <- param_grid$log_like - param_grid$penalty
   # Extract best set of parameters from grid
   max_index <- which(param_grid$value == max(param_grid$value), arr.ind = TRUE)
   ndf <- param_grid[max_index,"ndf"]
@@ -87,15 +90,15 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
   args$ndf <- ndf
   args$nclasses <- nclasses
 
-  print(paste("Model selection completed. With",selection,ndf,"degree(s) of freedom and",nclasses,"classes was chosen."))
+  print(paste("Model selection completed,",ndf,"degree(s) of freedom and",nclasses,"classes."))
   # If using cross_validation, model needs to be reinitialized with full data and pretrained
   if(selection == "cross_validation"){
     model <- create_model(data,args)
+    model$params <- model_list[[max_index]]$params
     chosen_model <- EM(model,preset_iter = 10)
   }else{
     chosen_model <- model_list[[max_index]]
   }
-
   return(chosen_model)
 }
 
@@ -106,9 +109,10 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
 #' @param training_proportion proportion of data for training
 #' @noRd
 split_data <- function(data,n,training_proportion){
+  random_order <- sample(1:n,size = n)
   split_point <- as.integer(n*training_proportion)
-  train <-   lapply(data,function(x) x[1:split_point] )
-  valid <- lapply(data,function(x) x[(split_point+1):n] )
+  train <- lapply(data,function(x) x[random_order[1:split_point]] )
+  valid <- lapply(data,function(x) x[random_order[(split_point+1):n]] )
   datasets <- list("train"= train, "valid" = valid)
   return(datasets)
 }

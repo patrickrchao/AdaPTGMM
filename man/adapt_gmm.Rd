@@ -11,7 +11,7 @@ adapt_gmm(
   testing = "one_sided",
   rendpoint = NULL,
   lendpoint = NULL,
-  ndf = c(1, 3, 5),
+  ndf = c(1, 3, 5, 7),
   nclasses = c(2, 3, 4),
   niter = 3,
   alpha_m = 0.05,

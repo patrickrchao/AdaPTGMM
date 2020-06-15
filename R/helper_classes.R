@@ -69,8 +69,9 @@ construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,maski
 construct_data <- function(x,p_values,z,args){
   if(args$testing == "interval"){
     center <- (args$rendpoint + args$lendpoint)/2
-    z <- abs(z-center)
+    z <- z-center
   }
+
   data <- list(x = x,
                p_values = p_values,
                z = z
@@ -100,10 +101,9 @@ initialize_params <- function(args){
   nclasses <- args$nclasses
 
   beta <- NULL
+  mu <-  c(0, runif(nclasses - 1, min = 2, max = 6))
   if(args$testing == "interval"){
-    mu <-  c(0, runif(nclasses - 1, min = -6, max = 6))
-  }else{
-    mu <-  c(0, runif(nclasses - 1, min = 1, max = 6))
+    mu <-  sample(x = c(-1,1),size = nclasses ,replace = TRUE) * mu
   }
 
   tau <-   c(0, runif(nclasses - 1, min = 0.1, max = 3))
