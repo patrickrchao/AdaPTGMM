@@ -1,6 +1,6 @@
 #' Perform Expectation Maximization Algorithm on Gaussian Mixture Model
 #'
-#' @description Will perform \code{niter} iterations of the expectation maximization procedure.
+#' @description Will perform \code{niter_fit} iterations of the expectation maximization procedure.
 #' This procedure estimates \code{gammas}, the probabilities for each class, then uses these to fit \eqn{\beta}.
 #' With the updated beta, data, and parameters, we estimate the probability of a class and true p-value based on
 #' the covariate and masked value.
@@ -12,13 +12,12 @@ EM <- function(model, preset_iter=NULL){
 
 
   if(is.null(preset_iter)){
-    niter  <- model$args$niter
+    niter  <- model$args$niter_fit
   }else{
     niter <- preset_iter
   }
   w_ika <- NULL
   for(i in seq(niter)){
-
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model,w_ika)
     model <- m_step_beta(model,gammas)

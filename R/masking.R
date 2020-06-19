@@ -13,13 +13,13 @@ data_preprocessing <- function(data,args){
 
   # Initialize z and p_values if uninitialized
   if(is.null(data$z)){
-    data$p_values <- pmax(pmin(data$p_values, 1 - 1e-20), 1e-20)
+    data$p_values <- pmax(pmin(data$p_values, 1 - 1e-15), 1e-15)
     data$z <- args$p_to_z(data$p_values)
-  }else if(is.null(data$p_values)){
+  }else if(is.null(data$p_values) | args$testing == "interval"){
     data$p_values <- args$z_to_p(data$z)
   }
   # Clamp p-values
-  data$p_values <- pmax(pmin(data$p_values, 1 - 1e-20), 1e-20)
+  data$p_values <- pmax(pmin(data$p_values, 1 - 1e-15), 1e-15)
 
   p_values <- data$p_values
   z <- data$z
@@ -79,7 +79,7 @@ masking <- function(data,args){
   big_z <- rep(NA, length(p_values))
   small_z[a!="NONE"] <-  args$p_to_z(small_p_values[a!="NONE"])
 
-  if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent"){
+  if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent" & args$testing == "one_sided"){
     big_z[a!="NONE"] <-  - small_z[a!="NONE"]
   }else{
     big_z[a!="NONE"] <-  args$p_to_z(big_p_values[a!="NONE"])

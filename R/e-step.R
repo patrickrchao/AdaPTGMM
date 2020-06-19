@@ -10,7 +10,7 @@ e_step_gamma <- function(model,w_ika){
 
   gammas <- subset(marginalize(w_ika,"a"),select=-c(i))
   gammas <- gammas[order(gammas$class),]
-
+  if(any(is.na(gammas))){browser()}
   return(gammas)
 }
 
@@ -141,5 +141,6 @@ w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
 
   # Scale by class probability
   prob <- prob * data$class_prob[, class_ind]
+
   return(prob)
 }

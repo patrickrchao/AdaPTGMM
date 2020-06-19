@@ -32,7 +32,7 @@ weighted_mean <- function(values,weights){
 #' Perform checks for valid parameters
 #'
 #' @noRd
-input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,niter,alpha_m,zeta,lambda,masking_shape,alphas){
+input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,niter_fit,niter_ms,nfit,alpha_m,zeta,lambda,masking_shape,alphas){
   if(is.null(x) | (is.null(p_values) & is.null(z))){
     stop("Invalid inputs for x, p_values, and test_statistics. None were inputted.")
   }
@@ -54,7 +54,8 @@ input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,n
         stop("Invalid p-values, p-values must be in range [0,1].")
      }
   }
-  if(alpha_m<0 | alpha_m>1 | alpha_m>lambda | lambda<0 | lambda>1 | zeta<0 | zeta>1 | lambda+alpha_m/zeta>1){
+
+  if(alpha_m<0 | alpha_m>1 | alpha_m>lambda | lambda<0 | lambda>1 | zeta<0  | lambda+alpha_m/zeta>1){
     stop("Invalid input for alpha_m, zeta, lambda, must all be between 0 and 1 and 0<alpha_m<=lambda<lambda+alpha_m/zeta<=1.")
   }
   if(masking_shape!="tent" & masking_shape != "comb"){
@@ -63,8 +64,8 @@ input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,n
   if(min(alphas) < 0 | max(alphas) > 1){
     stop("Invalid alphas inputted, alphas must be in range [0,1].")
   }
-  if(niter < 0){
-    stop("Invalid number of iterations.")
+  if(niter_fit <= 0 | niter_ms <= 0 | nfit <= 0){
+    stop("Invalid number of iterations for niter_fit, niter_ms, or nfit, must be an integer greater than 0.")
   }
   if(min(nclasses) < 2){
     stop("Invalid number of classes, minimum 2 classes.")
@@ -86,5 +87,5 @@ input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,n
 #'
 #' @noRd
 inverse = function (f, lower = 0, upper = 200) {
-  return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^0.5)[1])
+  return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^2)[1])
 }

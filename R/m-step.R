@@ -17,6 +17,9 @@ m_step_beta <- function(model,gammas){
     grouped <- dplyr::group_by(gammas,class)
     beta <- dplyr::ungroup(dplyr::summarise(grouped, value=mean(value)))$value
     beta <- beta/sum(beta)
+    if(sum(is.na(beta))>0){
+      browser()
+    }
     if(sum(beta==0)>0){
       browser()
     }
@@ -32,9 +35,7 @@ m_step_beta <- function(model,gammas){
     }else{
       beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
     }
-    if(sum(colSums(fitted(beta))==0)>0){
-      browser()
-    }
+
   }
 
   # Update class probabilities

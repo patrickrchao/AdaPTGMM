@@ -24,32 +24,29 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
     datasets <- split_data(data,n,training_proportion)
     train <- datasets$train
     valid <- datasets$valid
-    train_args <- args
-    valid_args <- args
-    train_args$n <- as.integer(n * training_proportion)
+    new_args <- args
+    new_args$n <- as.integer(n * training_proportion)
   }else{
     train <- data
-    train_args <- args
+    new_args <- args
   }
 
   for(row_index in 1:n_permutations){
-
     row <- param_grid[row_index,]
-    train_args$ndf <- row$ndf
-    train_args$nclasses <- row$nclasses
+    new_args$ndf <- row$ndf
+    new_args$nclasses <- row$nclasses
+    #print(paste(row$ndf,row$nclasses))
+    model <- create_model(train, new_args)
+    model <- EM(model, preset_iter = args$niter_ms)
 
-    model <- create_model(train,train_args)
-    model <- EM(model,preset_iter = 10)
-
+    # Store all trained models
     model_list[[row_index]] <- model
 
     if(selection == "cross_validation"){
       trained_params <- model$params
-
-      valid_args <- train_args
-      valid_args$n <- as.integer(n * (1 - training_proportion))
-
-      model <- create_model(valid,valid_args)
+      valid_args <- new_args
+      valid_args$n <- as.integer(n - new_args$n)
+      model <- create_model(valid, valid_args)
       model$params <- trained_params
 
       if(model$args$ndf == 1){
@@ -60,9 +57,10 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
           prob <- cbind(1-prob,prob)
         }
       }
-      penalty <- 0
+
       model$data$class_prob <- prob
 
+      penalty <- 0
     } else {
       # df degrees of freedom in beta
       # (class-1)*2 degrees of freedom in mu and tau^2+1
@@ -73,13 +71,15 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
       # AIC is divided by -N/2 so that large values are desirable
       } else if(selection == "AIC"){
         penalty <- d
+      } else{
+        stop("Invalid model selection method.")
       }
     }
 
-    #Update grid with correct value
+    #Update grid loglikelihood and penalty
 
-    param_grid[row_index,"log_like"] <-  log_likelihood(model)
-    param_grid[row_index,"penalty"] <- penalty
+    param_grid[row_index, "log_like"] <- log_likelihood(model)
+    param_grid[row_index, "penalty"] <- penalty
   }
 
   param_grid$value <- param_grid$log_like - param_grid$penalty
@@ -95,7 +95,7 @@ model_selection <- function(data,args,ndf_list,nclasses_list,selection,training_
   if(selection == "cross_validation"){
     model <- create_model(data,args)
     model$params <- model_list[[max_index]]$params
-    chosen_model <- EM(model,preset_iter = 10)
+    chosen_model <- EM(model,preset_iter = args$niter_ms)
   }else{
     chosen_model <- model_list[[max_index]]
   }

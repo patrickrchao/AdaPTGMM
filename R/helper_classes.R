@@ -9,12 +9,15 @@
 #' @param zeta Controls minimum possible number of rejections.
 #' @param lambda Controls where p-values are mirrored.
 #' @param masking_shape "\code{tent}" or "\code{comb}".
-#' @param niter Number of iterations in EM procedure
+#' @param niter_fit Number of iterations in EM procedure for model update
+#' @param niter_ms Number of iterations in EM procedure for model selection
+#' @param nfit Number of model updates in AdaPT procedure
 #' @param ndf Degrees of freedom of spline basis, number of dimensions of \eqn{\beta}.
 #' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
+#' @param n Number of hypotheses
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter,n,ndf=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n,ndf=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){
@@ -42,7 +45,9 @@ construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,maski
                alpha_m = alpha_m,
                zeta = zeta,
                lambda = lambda,
-               niter = niter,
+               niter_fit = niter_fit,
+               niter_ms = niter_ms,
+               nfit = nfit,
                masking_shape = masking_shape,
                p_to_z = p_to_z,
                z_to_p = z_to_p,
