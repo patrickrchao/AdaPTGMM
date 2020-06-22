@@ -6,26 +6,29 @@
 \usage{
 adapt_gmm(
   x = NULL,
-  p_values = NULL,
+  pvals = NULL,
   z = NULL,
   testing = "one_sided",
   rendpoint = NULL,
   lendpoint = NULL,
-  ndf = c(1, 3, 5, 7),
+  beta_formulas = NULL,
   nclasses = c(2, 3, 4),
-  niter = 3,
+  niter_fit = 3,
+  niter_ms = 10,
+  nfit = 20,
   alpha_m = 0.05,
   zeta = 0.1,
   lambda = 0.4,
   masking_shape = "tent",
   alphas = seq(0.01, 1, 0.01),
-  selection = "BIC"
+  selection = "cross_validation",
+  intercept_model = TRUE
 )
 }
 \arguments{
 \item{x}{Vector of covariates TODO: (specify type)}
 
-\item{p_values}{Vector of p-values (supply either p_values or test statistics)}
+\item{pvals}{Vector of p-values (supply either pvals or test statistics)}
 
 \item{z}{Vector of test statistics, required if \code{testing}='\code{interval}'.}
 
@@ -36,18 +39,16 @@ adapt_gmm(
 \item{lendpoint}{Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
 \code{lendpoint} will be assumed to be \code{-rendpoint}.}
 
-\item{ndf}{Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. The vector corresponds to the possible
-degrees of freedom to select in the model selection procedure. Minimum degrees of freedom is 1, representing no relationship
-between covariates and hypotheses. Note: Recommended to use <7 degrees of freedom.
-Default is c(1,3,5). The greater the number of degrees of freedom the longer it takes the beta model to fit, and the
-longer the list of possible values, the longer the model selection procedure takes.}
-
 \item{nclasses}{Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 number of classes to select in the model selection procedure. Minimum number of classes is 2.
 Note: recommended to use <5 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
 longer the list of possible values, the longer the model selection procedure takes.}
 
-\item{niter}{Number of updates per instance of the expectation maximization algorithm.}
+\item{niter_fit}{Number of iterations of EM per model update.}
+
+\item{niter_ms}{Number of iterations of EM in model selection.}
+
+\item{nfit}{Number of model fitting steps.}
 
 \item{alpha_m}{The maximum possible rejected p-value. We recommend \eqn{0.01\le \alpha_m \le 0.1}, default is 0.1.}
 
@@ -61,7 +62,15 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{alphas}{Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].}
 
-\item{selection}{Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{BIC}".}
+\item{selection}{Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{cross_validation}".}
+
+\item{ndf}{Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. The vector corresponds to the possible
+degrees of freedom to select in the model selection procedure. Minimum degrees of freedom is 1, representing no relationship
+between covariates and hypotheses. Note: Recommended to use <7 degrees of freedom.
+Default is c(1,3,5). The greater the number of degrees of freedom the longer it takes the beta model to fit, and the
+longer the list of possible values, the longer the model selection procedure takes.}
+
+\item{verbose}{Boolean. Include print statements at each stage of the procedure.}
 }
 \description{
 Fits a Gaussian Mixture model to the distribution of test statistics and

@@ -85,7 +85,6 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
     for(k in 0:(nclasses-1)){
       start_i <- 1 + count * n
       end_i <- (1 + count) * n
-
       w_ika[start_i:end_i,"value"] <- w_ika_helper(a, k, data, params$mu, params$var, args$zeta, args$jacobian)
       count <- count + 1
     }
@@ -126,7 +125,7 @@ w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
   # Add one since class k has parameters at index k+1 (classes begin at 0)
   class_ind <- class + 1
 
-  prob <- rep(0,length(data$x))
+  prob <- rep(0,length(data$pvals))
 
   sign <- ifelse(a == "s_neg" | a == "b_neg", -1, 1)
 

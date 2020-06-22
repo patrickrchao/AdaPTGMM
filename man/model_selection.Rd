@@ -7,7 +7,7 @@
 model_selection(
   data,
   args,
-  ndf_list,
+  beta_formulas,
   nclasses_list,
   selection,
   training_proportion = 0.6
@@ -18,13 +18,16 @@ model_selection(
 
 \item{args}{args of model}
 
-\item{ndf_list}{Vector for possible degrees of freedom}
+\item{beta_formulas}{List of formulas for beta expansion}
 
 \item{nclasses_list}{Vector for possible number of classes}
 
 \item{selection}{Criteria for model selection}
 
 \item{training_proportion}{Proportion of data used for training, in the \code{selection}='\code{cross_validation}' case.}
+}
+\value{
+Initialized and pretrained model with best performance based on selection criterion
 }
 \description{
 Model selection for degrees of freedom and number of classes

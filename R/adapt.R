@@ -4,7 +4,7 @@
 #' returns rejections and fitted parameters.
 #'
 #' @param x Vector of covariates TODO: (specify type)
-#' @param p_values Vector of p-values (supply either p_values or test statistics)
+#' @param pvals Vector of p-values (supply either pvals or test statistics)
 #' @param z Vector of test statistics, required if \code{testing}='\code{interval}'.
 #' @param testing The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".
 #' @param rendpoint Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.
@@ -39,12 +39,12 @@
 #' @export
 
 adapt_gmm <- function(x = NULL,
-                      p_values = NULL,
+                      pvals = NULL,
                       z = NULL,
                       testing = "one_sided",
                       rendpoint = NULL,
                       lendpoint = NULL,
-                      ndf = c(1,3,5,7),
+                      beta_formulas = NULL,
                       nclasses = c(2,3,4),
                       niter_fit = 3,
                       niter_ms = 10,
@@ -54,15 +54,16 @@ adapt_gmm <- function(x = NULL,
                       lambda = 0.4,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
-                      selection = "cross_validation"){
+                      selection = "cross_validation",
+                      intercept_model = TRUE){
 
  # options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
-  x <- (x-min(x))/(max(x)-min(x))
-  input_checks(x, p_values, z, testing, rendpoint, lendpoint,ndf, nclasses, niter_fit, niter_ms, nfit, alpha_m, zeta, lambda, masking_shape, alphas)
-  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n=length(x))
+  #x <- (x-min(x))/(max(x)-min(x))
+  .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, alpha_m, zeta, lambda, masking_shape, alphas)
+  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,intercept_model,n=length(pvals))
 
-  data <- construct_data(x,p_values,z,args)
-  model <- model_selection(data,args,ndf,nclasses,selection)
+  data <- construct_data(x,pvals,z,args)
+  model <- model_selection(data,args,beta_formulas,nclasses,selection)
 
   data <- model$data
   args <- model$args
@@ -77,7 +78,7 @@ adapt_gmm <- function(x = NULL,
   colnames(fdr_log) <-c("Alpha","Accepted","Rejected")
   colnames(rejections) <- c("Alpha",paste("Hypo. ",1:n,sep=""))
 
-  p_values <- data$p_values
+  pvals <- data$pvals
   values <- compute_fdphat(data,args)
   fdphat <- values$fdphat
   min_fdp <- fdphat
@@ -141,11 +142,11 @@ adapt_gmm <- function(x = NULL,
 #' @return List with A_t, R_t, and estimated FDPHat
 #' @noRd
 compute_fdphat <- function(data,args){
-  p_values <- data$p_values
+  pvals <- data$pvals
   mask <- data$mask
 
-  rejs <- mask & p_values < args$alpha_m
-  A_t <-  sum(mask & p_values > args$lambda)
+  rejs <- mask & pvals < args$alpha_m
+  A_t <-  sum(mask & pvals > args$lambda)
   R_t <-  sum(rejs)
   fdphat <- (A_t + 1) / max(R_t, 1)*args$zeta
   output <- list(A_t=A_t, R_t=R_t, rejs = which(as.logical(rejs)), fdphat=fdphat)

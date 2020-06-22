@@ -13,7 +13,7 @@ EM(model, preset_iter = NULL)
 Model class with updated parameters.
 }
 \description{
-Will perform \code{niter} iterations of the expectation maximization procedure.
+Will perform \code{niter_fit} iterations of the expectation maximization procedure.
 This procedure estimates \code{gammas}, the probabilities for each class, then uses these to fit \eqn{\beta}.
 With the updated beta, data, and parameters, we estimate the probability of a class and true p-value based on
 the covariate and masked value.

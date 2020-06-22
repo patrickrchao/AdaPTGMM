@@ -2,28 +2,30 @@
 #'
 #' @param beta fitted multinom
 #' @param nclasses number of Gaussian mixture classes
-#'
+#' @param x input for beta model
 #' @return Dataframe of class probabilities, columns represent classes and rows represent each hypothesis
 #' @noRd
-class_prob <- function(beta,nclasses){
+class_prob <- function(beta,nclasses,x = NULL){
+  # If model is an intercept model
   if(typeof(beta) == "double"){
     prob <- data.frame(t(beta))
   }else{
-    prob <- fitted(beta)
+    if(is.null(x)){
+      prob <- fitted(beta)
+    }else{
+      prob <- predict(beta,type="probs",newdata=x)
+    }
     # Divide by the number of classes since the input data uses n*nclasses data points
     # fitted(beta) repeats predictions for various classes
-    if(ncol(prob)==1){
+    if(nclasses == 2){
       prob <- cbind(1-prob,prob)
     }
-    prob <- prob[1:(nrow(prob)/nclasses),]
+    if(is.null(x)){
+      prob <- prob[1:(nrow(prob)/nclasses),]
+    }
   }
   return(prob)
 }
-
-#' Compute the probability of big/small and masked p-value conditioned on class
-#'
-#' @param model
-#'
 
 
 #' Helper function to compute probability of big/small and masked p-value conditioned on class in one sided case

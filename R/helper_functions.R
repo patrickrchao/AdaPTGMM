@@ -1,23 +1,3 @@
-#' Generate Spline Basis
-#'
-#' @param x one dimensional covariate
-#' @param ndf number of degrees of freedom, 1 corresponds to intercept model
-#'
-#' @details \code{ndf}=1 corresponds to an intercept only model, meaning we disregard \code{x} as a whole.
-#' We utilize a natural cubic spline basis
-#' @noRd
-generate_spline <- function(x,ndf){
-  num_hypo <- length(x)
-  # Create natural spline basis and add intercept column
-  ifelse(ndf > 1,
-    spline <- cbind(rep(1,num_hypo), splines::ns(x, df = ndf-1)),
-    spline <- matrix(rep(1,num_hypo))
-    )
-
-  return(spline)
-
-}
-
 #' Weighted Mean computation
 #'
 #' @param values Vector of values
@@ -25,32 +5,32 @@ generate_spline <- function(x,ndf){
 #'
 #' @return weighted mean
 #' @noRd
-weighted_mean <- function(values,weights){
+.weighted_mean <- function(values,weights){
   return(sum(values*weights)/sum(weights))
 }
 
 #' Perform checks for valid parameters
 #'
 #' @noRd
-input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,niter_fit,niter_ms,nfit,alpha_m,zeta,lambda,masking_shape,alphas){
-  if(is.null(x) | (is.null(p_values) & is.null(z))){
-    stop("Invalid inputs for x, p_values, and test_statistics. None were inputted.")
+.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,ndf,nclasses,niter_fit,niter_ms,nfit,alpha_m,zeta,lambda,masking_shape,alphas){
+  if(is.null(x) | (is.null(pvals) & is.null(z))){
+    stop("Invalid inputs for x, pvals, and test_statistics. None were inputted.")
   }
   if(testing == "interval"){
     if(is.null(z)){
       stop("Invalid input for z. Must include test statistics to perform interval null testing.")
-    }else if(!is.null(p_values)){
+    }else if(!is.null(pvals)){
       warning("Inputted p-values will be ignored in interval null testing, they will be computed automatically.")
     }
     if(is.null(rendpoint)){
       stop("Invalid input for rendpoint. Must include right endpoint for interval null testing.")
     }
   }
-  if(length(x) != max(length(p_values), length(z))){
-    stop("Invalid inputs, x and p_values/test statistics have different length.")
-  }
-  if(!is.null(p_values)){
-     if((min(p_values<0) | max(p_values) > 1)){
+  #if(length(x) != max(length(pvals), length(z))){
+  #  stop("Invalid inputs, x and pvals/test statistics have different length.")
+  #}
+  if(!is.null(pvals)){
+     if((min(pvals<0) | max(pvals) > 1)){
         stop("Invalid p-values, p-values must be in range [0,1].")
      }
   }
@@ -86,6 +66,6 @@ input_checks <- function(x,p_values,z,testing,rendpoint,lendpoint,ndf,nclasses,n
 #' @param f function
 #'
 #' @noRd
-inverse = function (f, lower = 0, upper = 200) {
+.inverse = function (f, lower = 0, upper = 200) {
   return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^2)[1])
 }

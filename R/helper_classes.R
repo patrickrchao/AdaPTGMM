@@ -12,12 +12,14 @@
 #' @param niter_fit Number of iterations in EM procedure for model update
 #' @param niter_ms Number of iterations in EM procedure for model selection
 #' @param nfit Number of model updates in AdaPT procedure
-#' @param ndf Degrees of freedom of spline basis, number of dimensions of \eqn{\beta}.
-#' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
+#' @param intercept_model Boolean to include intercept model
 #' @param n Number of hypotheses
+#' @param beta_formula Beta formula for model
+#' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
+#'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n,ndf=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,intercept_model,n,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){
@@ -30,7 +32,7 @@ construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,maski
     }
     radius <-  (rendpoint-lendpoint)/2
     z_to_p <- function(z) pnorm(abs(z)+radius,lower.tail=FALSE)+pnorm(-abs(z)+radius)
-    p_to_z_inv <- inverse(z_to_p,lower = 0)
+    p_to_z_inv <- .inverse(z_to_p,lower = 0)
     p_to_z <- function(z) unlist(mapply(p_to_z_inv,z))
     all_a <- c(all_a,"s_neg","b_neg")
 
@@ -51,11 +53,12 @@ construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,maski
                masking_shape = masking_shape,
                p_to_z = p_to_z,
                z_to_p = z_to_p,
-               ndf = ndf,
+               beta_formula = beta_formula,
                nclasses = nclasses,
                all_a = all_a,
                n  = n,
-               jacobian = jacobian
+               jacobian = jacobian,
+               intercept_model = TRUE
                )
   class(args) <- "args"
   return(args)
@@ -66,19 +69,19 @@ construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,maski
 #' Class containing all relevant data inputs from user
 #' @param x Vector of covariates
 #' @param z Vector of test statistics
-#' @param p_values Vector of p-values
+#' @param pvals Vector of pvals
 #' @param args args class containing masking function arguments
 #'
 #' @return data class
 #' @noRd
-construct_data <- function(x,p_values,z,args){
+construct_data <- function(x,pvals,z,args){
   if(args$testing == "interval"){
     center <- (args$rendpoint + args$lendpoint)/2
     z <- z-center
   }
 
   data <- list(x = x,
-               p_values = p_values,
+               pvals = pvals,
                z = z
                )
   class(data) <- "data"

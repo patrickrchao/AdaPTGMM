@@ -9,9 +9,10 @@
 #' @noRd
 m_step_beta <- function(model,gammas){
 
-  ndf <- model$args$ndf
+
   nclasses <- model$args$nclasses
-  if(ndf == 1){
+  beta_formula <- model$args$beta_formula
+  if(beta_formula == "intercept"){
     # If there is only a single degree of freedom (intercept only model),
     # we may estimate the class probabilities by considering the mean for each class.
     grouped <- dplyr::group_by(gammas,class)
@@ -24,11 +25,9 @@ m_step_beta <- function(model,gammas){
       browser()
     }
   }else{
-
-    x <- model$data$full_x
+    x <- model$data$x
     multinom_data <- data.frame(x,gammas)
-    x_colnames <- colnames(multinom_data)[seq(ndf)]
-    formula <- paste0("class ~ ",paste0(x_colnames,collapse = " + ")," -1")
+    formula <- paste0("class ~ ",beta_formula)
     # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
     if(!is.null(model$params$beta)){
       beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta$wts)
@@ -56,9 +55,9 @@ m_step_mu_tau <- function(model,w_ika){
   z <- w_ika$z
   for (k in 1:(args$nclasses-1)){
     subset <- w_ika[w_ika$class == k,]
-    params$mu[k+1] <- weighted_mean(subset$z,subset$value)
+    params$mu[k+1] <- .weighted_mean(subset$z,subset$value)
     # Minimum variance for convolved Gaussian is 1
-    params$var[k+1] <- max(weighted_mean((subset$z-params$mu[k+1])^2,subset$value), 1)
+    params$var[k+1] <- max(.weighted_mean((subset$z-params$mu[k+1])^2,subset$value), 1)
   }
   if(sum(is.na(params$mu))>0 | sum(is.na(params$var))>0){
     browser()

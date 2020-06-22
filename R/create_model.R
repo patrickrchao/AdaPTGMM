@@ -12,9 +12,10 @@
 create_model <- function(data,args){
   params <- initialize_params(args)
 
-  data$full_x <- generate_spline(data$x,args$ndf)
+  nclasses <- args$nclasses
+  base_prob <- c(0.9,rep(0.1/(nclasses-1),nclasses-1))
+  data$class_prob <- t(replicate(n=args$n,base_prob))
 
-  data$class_prob <- matrix(c(0.9,rep(0.1/(args$nclasses-1),args$nclasses-1)),ncol=args$nclasses,nrow=args$n,byrow=TRUE)
   model <- list(data=data, args=args, params=params)
 
   testing <- args$testing

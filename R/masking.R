@@ -1,29 +1,29 @@
 #' Data Preprocessing function
 #'
-#' Computes p_values and test statistics from dataset
+#' Computes pvals and test statistics from dataset
 #' @param data data class
 #' @param args args class
 #'
-#' @return data class augmented with big/small test statistics, p_values, a_i, and boolean mask.
+#' @return data class augmented with big/small test statistics, pvals, a_i, and boolean mask.
 #' @noRd
 data_preprocessing <- function(data,args){
   # set mask to true
-  # preprocess p_values and test_statistics
+  # preprocess pvals and test_statistics
   # preprocess masking
 
-  # Initialize z and p_values if uninitialized
+  # Initialize z and pvals if uninitialized
   if(is.null(data$z)){
-    data$p_values <- pmax(pmin(data$p_values, 1 - 1e-15), 1e-15)
-    data$z <- args$p_to_z(data$p_values)
-  }else if(is.null(data$p_values) | args$testing == "interval"){
-    data$p_values <- args$z_to_p(data$z)
+    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
+    data$z <- args$p_to_z(data$pvals)
+  }else if(is.null(data$pvals) | args$testing == "interval"){
+    data$pvals <- args$z_to_p(data$z)
   }
   # Clamp p-values
-  data$p_values <- pmax(pmin(data$p_values, 1 - 1e-15), 1e-15)
+  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
 
-  p_values <- data$p_values
+  pvals <- data$pvals
   z <- data$z
-  num_hypo <- length(p_values)
+  num_hypo <- length(pvals)
 
   lambda <- args$lambda
   alpha_m <- args$alpha_m
@@ -46,49 +46,49 @@ masking <- function(data,args){
   lambda <- args$lambda
   zeta <- args$zeta
 
-  p_values <- data$p_values
+  pvals <- data$pvals
   z <- data$z
-  num_hypo <- length(p_values)
+  num_hypo <- length(pvals)
 
   # Determine if hypothesis corresponds to big or small
   a <- rep("NONE",num_hypo)
-  a[p_values < alpha_m] <-  "s"
-  a[(p_values > lambda) & (p_values < lambda + alpha_m / zeta)] <-  "b"
+  a[pvals < alpha_m] <-  "s"
+  a[(pvals > lambda) & (pvals < lambda + alpha_m / zeta)] <-  "b"
 
   mask <- (a != "NONE")
 
-  small_p_values <- rep(NA,length(p_values))
-  big_p_values <- rep(NA,length(p_values))
+  small_pvals <- rep(NA,length(pvals))
+  big_pvals <- rep(NA,length(pvals))
 
-  small_p_values[a=="s"] <- p_values[a=="s"]
-  big_p_values[a=="b"] <- p_values[a=="b"]
+  small_pvals[a=="s"] <- pvals[a=="s"]
+  big_pvals[a=="b"] <- pvals[a=="b"]
 
 
 
   if(args$masking_shape == "tent"){
-    small_p_values[a=="b"] <- alpha_m + zeta * (lambda - p_values[(a == "b") ])
-    big_p_values[a=="s"] <- (alpha_m - p_values[a=="s"]) / zeta + lambda
+    small_pvals[a=="b"] <- alpha_m + zeta * (lambda - pvals[(a == "b") ])
+    big_pvals[a=="s"] <- (alpha_m - pvals[a=="s"]) / zeta + lambda
   }else if(args$masking_shape == "comb"){
-    small_p_values[a=="b"] <- zeta * (p_values[a=="b"] - lambda)
-    big_p_values[a=="s"] <- p_values[a=="s"] / zeta + lambda
+    small_pvals[a=="b"] <- zeta * (pvals[a=="b"] - lambda)
+    big_pvals[a=="s"] <- pvals[a=="s"] / zeta + lambda
   }else{
     stop("Invalid masking shape.")
   }
 
-  small_z <- rep(NA, length(p_values))
-  big_z <- rep(NA, length(p_values))
-  small_z[a!="NONE"] <-  args$p_to_z(small_p_values[a!="NONE"])
+  small_z <- rep(NA, length(pvals))
+  big_z <- rep(NA, length(pvals))
+  small_z[a!="NONE"] <-  args$p_to_z(small_pvals[a!="NONE"])
 
   if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent" & args$testing == "one_sided"){
     big_z[a!="NONE"] <-  - small_z[a!="NONE"]
   }else{
-    big_z[a!="NONE"] <-  args$p_to_z(big_p_values[a!="NONE"])
+    big_z[a!="NONE"] <-  args$p_to_z(big_pvals[a!="NONE"])
   }
   # Add to data class
   data$small_z <- small_z
   data$big_z <- big_z
-  data$small_p_values <- small_p_values
-  data$big_p_values <- big_p_values
+  data$small_pvals <- small_pvals
+  data$big_pvals <- big_pvals
   data$mask <- mask
   data$a <- a
 
