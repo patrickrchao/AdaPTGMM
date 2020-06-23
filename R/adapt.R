@@ -3,7 +3,7 @@
 #' @description Fits a Gaussian Mixture model to the distribution of test statistics and
 #' returns rejections and fitted parameters.
 #'
-#' @param x Vector of covariates TODO: (specify type)
+#' @param x Dataframe of covariates TODO: (specify type)
 #' @param pvals Vector of p-values (supply either pvals or test statistics)
 #' @param z Vector of test statistics, required if \code{testing}='\code{interval}'.
 #' @param testing The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".
@@ -121,15 +121,15 @@ adapt_gmm <- function(x = NULL,
         reveal_order_index <- 1
       }
     }
-
     R_t <- values$R_t
     nrejs[sorted_indices[index]] <- R_t
     rejs[[sorted_indices[index]]] <- values$rejs
-    cat(paste0("alpha = " , alpha,
-               ": FDPhat ",round(min_fdp, 4),
-                ", Number of Rej. ",R_t,"\n"))
+    qvals[values$rejs] <- min(min_fdp,qvals[values$rejs])
+  #  cat(paste0("alpha = " , alpha,
+  #             ": FDPhat ",round(min_fdp, 4),
+  #              ", Number of Rej. ",R_t,"\n"))
   }
-
+  cat("Complete.\n")
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals)
   return(output)
 }

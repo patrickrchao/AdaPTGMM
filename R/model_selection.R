@@ -11,7 +11,7 @@
 model_selection <- function(data,args,beta_formulas,nclasses_list,selection,training_proportion=0.6){
 
   n <- args$n
-  cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
+  #cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
   if(args$intercept_model){
     beta_formulas <- c("intercept",beta_formulas)
   }
@@ -64,7 +64,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,trai
   args$beta_formula <- beta_formulas[beta_formula]
   args$nclasses <- nclasses
 
-  cat("Model selection completed.\n")
+  #cat("Model selection completed.\n")
   # If using cross_validation, model needs to be reinitialized with full data and pretrained
   if(selection == "cross_validation"){
     model <- create_model(data,args)
