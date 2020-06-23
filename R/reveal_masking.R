@@ -29,16 +29,3 @@ big_over_small_prob <- function(model){
   return(odds)
 
 }
-
-
-#' Reveal Hypotheses
-#'
-#' @param data data class
-#' @param indices indices to reveal
-#'
-#' @return data class
-#' @noRd
-reveal <- function(data,indices){
-  data$mask[indices] <- FALSE
-  return(data)
-}

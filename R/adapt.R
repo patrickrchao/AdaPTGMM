@@ -60,7 +60,8 @@ adapt_gmm <- function(x = NULL,
  # options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   #x <- (x-min(x))/(max(x)-min(x))
   .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, alpha_m, zeta, lambda, masking_shape, alphas)
-  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,intercept_model,n=length(pvals))
+
+  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,intercept_model,n=nrow(x))
 
   data <- construct_data(x,pvals,z,args)
   model <- model_selection(data,args,beta_formulas,nclasses,selection)
@@ -102,7 +103,7 @@ adapt_gmm <- function(x = NULL,
     alpha <- sorted_alphas[index]
     while (min_fdp > alpha & values$R_t > 0) {
       reveal_hypo <- to_reveal_order[reveal_order_index]
-      data <- reveal(data, reveal_hypo)
+      data$mask[reveal_hypo] <- FALSE
       if(data$a[reveal_hypo] == "s" | data$a[reveal_hypo] == "s_neg"){
         qvals[reveal_hypo] <- min_fdp
       }

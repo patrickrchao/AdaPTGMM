@@ -81,6 +81,8 @@ masking <- function(data,args){
 
   if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent" & args$testing == "one_sided"){
     big_z[a!="NONE"] <-  - small_z[a!="NONE"]
+    # Reveal pvals between 0.45 and 0.55 for symmetric masking to mimic AdaPT
+    mask[abs(pvals-0.5)<0.05] <- FALSE
   }else{
     big_z[a!="NONE"] <-  args$p_to_z(big_pvals[a!="NONE"])
   }
