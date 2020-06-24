@@ -24,7 +24,7 @@ class_prob <- function(beta,nclasses,x = NULL){
       prob <- prob[1:(nrow(prob)/nclasses),]
     }
   }
-  prob <- pmax(pmin(prob,1 - 1e-12),1 - 1e-12)
+  prob <- pmax(pmin(prob,1 - 1e-12), 1e-12)
   return(prob)
 }
 

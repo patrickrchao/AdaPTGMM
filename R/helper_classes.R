@@ -12,14 +12,13 @@
 #' @param niter_fit Number of iterations in EM procedure for model update
 #' @param niter_ms Number of iterations in EM procedure for model selection
 #' @param nfit Number of model updates in AdaPT procedure
-#' @param intercept_model Boolean to include intercept model
 #' @param n Number of hypotheses
 #' @param beta_formula Beta formula for model
 #' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,intercept_model,n,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){
@@ -57,8 +56,7 @@ construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,maski
                nclasses = nclasses,
                all_a = all_a,
                n  = n,
-               jacobian = jacobian,
-               intercept_model = TRUE
+               jacobian = jacobian
                )
   class(args) <- "args"
   return(args)

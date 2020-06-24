@@ -4,15 +4,16 @@
 #' @param beta_formulas List of formulas for beta expansion
 #' @param nclasses_list Vector for possible number of classes
 #' @param selection Criteria for model selection
+#' @param intercept_model Boolean whether to include intercept model
 #' @param training_proportion Proportion of data used for training, in the \code{selection}='\code{cross_validation}' case.
 #'
 #' @return Initialized and pretrained model with best performance based on selection criterion
 #' @keywords Internal
-model_selection <- function(data,args,beta_formulas,nclasses_list,selection,training_proportion=0.6){
+model_selection <- function(data,args,beta_formulas,nclasses_list,selection,intercept_model,training_proportion=0.6){
 
   n <- args$n
   #cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
-  if(args$intercept_model){
+  if(intercept_model){
     beta_formulas <- c("intercept",beta_formulas)
   }
 

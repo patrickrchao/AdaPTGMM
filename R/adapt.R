@@ -30,6 +30,8 @@
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
 #' @param selection Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{cross_validation}".
+#' @param return_all_models Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
+#' Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.
 #' @param verbose Boolean. Include print statements at each stage of the procedure.
 #' @details
 #'  The constraint on these masking function parameters is
@@ -55,16 +57,16 @@ adapt_gmm <- function(x = NULL,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
                       selection = "cross_validation",
-                      intercept_model = TRUE){
+                      intercept_model = TRUE,
+                      return_all_models = FALSE){
 
- # options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
+  options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   #x <- (x-min(x))/(max(x)-min(x))
   .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, alpha_m, zeta, lambda, masking_shape, alphas)
 
-  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,intercept_model,n=nrow(x))
-
+  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n=nrow(x))
   data <- construct_data(x,pvals,z,args)
-  model <- model_selection(data,args,beta_formulas,nclasses,selection)
+  model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model)
 
   data <- model$data
   args <- model$args
@@ -94,13 +96,14 @@ adapt_gmm <- function(x = NULL,
   to_reveal_order <- order(big_odds,decreasing=TRUE)
   reveal_order_index <- 1
 
-  #nrejs, rejs, qvals, order
   qvals <- rep(Inf, n)
   rejs <- rep(list(integer(0)), n_alphas)
   nrejs <- rep(0, n_alphas)
+  all_params <- rep(list(), n_alphas)
 
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
+
     while (min_fdp > alpha & values$R_t > 0) {
       reveal_hypo <- to_reveal_order[reveal_order_index]
       data$mask[reveal_hypo] <- FALSE
@@ -125,12 +128,20 @@ adapt_gmm <- function(x = NULL,
     nrejs[sorted_indices[index]] <- R_t
     rejs[[sorted_indices[index]]] <- values$rejs
     qvals[values$rejs] <- min(min_fdp,qvals[values$rejs])
-  #  cat(paste0("alpha = " , alpha,
-  #             ": FDPhat ",round(min_fdp, 4),
-  #              ", Number of Rej. ",R_t,"\n"))
+
+    if(return_all_models){
+      all_params[[sorted_indices[index]]] <- model$params
+    }
+   cat(paste0("alpha = " , alpha,
+              ": FDPhat ",round(min_fdp, 4),
+               ", Number of Rej. ",R_t,"\n"))
   }
   cat("Complete.\n")
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals)
+  if(return_all_models){
+    output$model <- model
+    output$model$params <- all_params
+  }
   return(output)
 }
 
