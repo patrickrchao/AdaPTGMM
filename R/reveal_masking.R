@@ -1,15 +1,15 @@
 #' Compute Probability of big vs small p-value from masked data
 #'
-#' @param model w_ika class
-#'
+#' @param model Model class
+#' @param w_ika w_ika data frame
 #' @return Vector of odds ratio of big/small
 #' @details Specifically, we compute P[a_i=b | \tilde p_i,x_i]/P[a_i=s | \tilde p_i,x_i]
 #'
 #' @noRd
-big_over_small_prob <- function(model){
-
-  w_ika <- e_step_w_ika(model)
-
+big_over_small_prob <- function(model,w_ika = NULL){
+  if(is.null(w_ika)){
+    w_ika <- e_step_w_ika(model)
+  }
   # marginalize over class and remove hypothesis numbering column
   big_small <- tidyr::spread(marginalize(w_ika,"class"),a,value)
   if(model$args$testing == "interval"){

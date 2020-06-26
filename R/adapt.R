@@ -90,7 +90,7 @@ adapt_gmm <- function(x = NULL,
   sorted_alphas <- sorted$x
   sorted_indices <- sorted$ix
 
-  refitting_constant <- floor(n/nfit)
+  refitting_constant <- floor(sum(data$mask)/(nfit+1))
   nrevealed <- 0
   big_odds <-  big_over_small_prob(model)
   to_reveal_order <- order(big_odds,decreasing=TRUE)
@@ -100,13 +100,25 @@ adapt_gmm <- function(x = NULL,
   rejs <- rep(list(integer(0)), n_alphas)
   nrejs <- rep(0, n_alphas)
   all_params <- rep(list(), n_alphas)
+  odds_per_alpha <- rep(Inf,n_alphas)
 
+  reveal_hypo <- NULL
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
 
     while (min_fdp > alpha & values$R_t > 0) {
+      if(nrevealed %% refitting_constant == 0 & nrevealed > 0){
+        model$data <- data
+        model <- EM(model)
+        big_odds <-  big_over_small_prob(model)
+        to_reveal_order <- order(big_odds, decreasing=TRUE)
+        reveal_order_index <- 1
+      }
+
       reveal_hypo <- to_reveal_order[reveal_order_index]
+      if(!data$mask[reveal_hypo]){browser()}
       data$mask[reveal_hypo] <- FALSE
+
       if(data$a[reveal_hypo] == "s" | data$a[reveal_hypo] == "s_neg"){
         qvals[reveal_hypo] <- min_fdp
       }
@@ -115,29 +127,27 @@ adapt_gmm <- function(x = NULL,
 
       values <- compute_fdphat(data,args)
       min_fdp <- min(min_fdp,values$fdphat)
-
-      if(nrevealed %% refitting_constant == 0){
-        model$data <- data
-        model <- EM(model)
-        big_odds <-  big_over_small_prob(model)
-        to_reveal_order <- order(big_odds, decreasing=TRUE)
-        reveal_order_index <- 1
-      }
     }
     R_t <- values$R_t
     nrejs[sorted_indices[index]] <- R_t
     rejs[[sorted_indices[index]]] <- values$rejs
     qvals[values$rejs] <- min(min_fdp,qvals[values$rejs])
+    if(is.null(reveal_hypo)){
+      odds_per_alpha[sorted_indices[index]] <- Inf
+    }else{
+      odds_per_alpha[sorted_indices[index]] <- big_odds[reveal_hypo]
+    }
 
     if(return_all_models){
       all_params[[sorted_indices[index]]] <- model$params
     }
-   cat(paste0("alpha = " , alpha,
-              ": FDPhat ",round(min_fdp, 4),
-               ", Number of Rej. ",R_t,"\n"))
+    # cat(paste0("alpha = " , alpha,
+    #            ": FDPhat ",round(min_fdp, 4),
+    #             ", Number of Rej. ",R_t,"\n"))
   }
   cat("Complete.\n")
-  output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals)
+  output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,
+                 odds_per_alpha=odds_per_alpha)
   if(return_all_models){
     output$model <- model
     output$model$params <- all_params
