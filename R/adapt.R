@@ -23,8 +23,8 @@
 #' @param niter_ms Number of iterations of EM in model selection.
 #' @param nfit Number of model fitting steps.
 #' @param alpha_m The maximum possible rejected p-value. We recommend \eqn{0.01\le \alpha_m \le 0.1}, default is 0.1.
-#' @param zeta Controls minimum possible number of rejections, we recommend small values of zeta with low total number of samples.
-#' If \code{zeta}=\eqn{\alpha}, the desired FDR level, any number of rejections is possible.
+#' @param zeta Controls minimum possible number of rejections. We recommend large values of zeta, \code{\zeta>1}, for situations with low numbers of rejections.
+#' If \code{zeta}\ge 1/\alpha}, the desired FDR level, any number of rejections is possible.
 #' @param lambda Controls where p-values are mirrored, boundary of blue region. TODO: Fix wording. We recommend \eqn{0.3\le\lambda\le 0.5}, default is 0.4
 #' This is the most expensive part of the procedure, we recommend smaller number (<5) of iterations for larger problems. Default is 10.
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
@@ -35,7 +35,7 @@
 #' @param verbose Boolean. Include print statements at each stage of the procedure.
 #' @details
 #'  The constraint on these masking function parameters is
-#' \deqn{0< \alpha_m \le \lambda <\lambda+ \alpha_m/\zeta\le 1.}
+#' \deqn{0< \alpha_m \le \lambda <\lambda+ \alpha_m\zeta\le 1.}
 #' Setting \code{alpha_m} to 0.5, \code{lambda} to 0.5, \code{zeta} to 1, and \code{masking_shape} to "\code{tent}" results in the AdaPT masking function.
 #'
 #' @export
@@ -52,7 +52,7 @@ adapt_gmm <- function(x = NULL,
                       niter_ms = 10,
                       nfit = 20,
                       alpha_m = 0.1,
-                      zeta = 1/7,
+                      zeta = 7,
                       lambda = 0.2,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
@@ -116,7 +116,6 @@ adapt_gmm <- function(x = NULL,
       }
 
       reveal_hypo <- to_reveal_order[reveal_order_index]
-      if(!data$mask[reveal_hypo]){browser()}
       data$mask[reveal_hypo] <- FALSE
 
       if(data$a[reveal_hypo] == "s" | data$a[reveal_hypo] == "s_neg"){
@@ -170,7 +169,7 @@ compute_fdphat <- function(data,args){
   rejs <- mask & pvals < args$alpha_m
   A_t <-  sum(mask & pvals > args$lambda)
   R_t <-  sum(rejs)
-  fdphat <- (A_t + 1) / max(R_t, 1)*args$zeta
+  fdphat <- (A_t + 1) / max(R_t, 1)/args$zeta
   output <- list(A_t=A_t, R_t=R_t, rejs = which(as.logical(rejs)), fdphat=fdphat)
   return(output)
 }

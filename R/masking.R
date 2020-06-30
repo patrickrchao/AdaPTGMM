@@ -53,7 +53,7 @@ masking <- function(data,args){
   # Determine if hypothesis corresponds to big or small
   a <- rep("NONE",num_hypo)
   a[pvals < alpha_m] <-  "s"
-  a[(pvals > lambda) & (pvals < lambda + alpha_m / zeta)] <-  "b"
+  a[(pvals > lambda) & (pvals < lambda + alpha_m * zeta)] <-  "b"
 
   mask <- (a != "NONE")
 
@@ -66,23 +66,24 @@ masking <- function(data,args){
 
 
   if(args$masking_shape == "tent"){
-    small_pvals[a=="b"] <- alpha_m + zeta * (lambda - pvals[(a == "b") ])
-    big_pvals[a=="s"] <- (alpha_m - pvals[a=="s"]) / zeta + lambda
+    small_pvals[a=="b"] <- alpha_m + (lambda - pvals[(a == "b") ]) / zeta
+    big_pvals[a=="s"] <- (alpha_m - pvals[a=="s"]) * zeta + lambda
   }else if(args$masking_shape == "comb"){
-    small_pvals[a=="b"] <- zeta * (pvals[a=="b"] - lambda)
-    big_pvals[a=="s"] <- pvals[a=="s"] / zeta + lambda
+    small_pvals[a=="b"] <-  (pvals[a=="b"] - lambda) / zeta
+    big_pvals[a=="s"] <- pvals[a=="s"] * zeta + lambda
   }else{
     stop("Invalid masking shape.")
   }
 
   small_z <- rep(NA, length(pvals))
   big_z <- rep(NA, length(pvals))
+  
   small_z[a!="NONE"] <-  args$p_to_z(small_pvals[a!="NONE"])
 
   if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent" & args$testing == "one_sided"){
     big_z[a!="NONE"] <-  - small_z[a!="NONE"]
     # Reveal pvals between 0.45 and 0.55 for symmetric masking to mimic AdaPT
-    mask[abs(pvals-0.5)<0.05] <- FALSE
+    mask[abs(pvals-0.5) < 0.05] <- FALSE
   }else{
     big_z[a!="NONE"] <-  args$p_to_z(big_pvals[a!="NONE"])
   }

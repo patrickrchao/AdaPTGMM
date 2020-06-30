@@ -10,7 +10,6 @@ e_step_gamma <- function(model,w_ika){
 
   gammas <- subset(marginalize(w_ika,"a"),select=-c(i))
   gammas <- gammas[order(gammas$class),]
-  if(any(is.na(gammas))){browser()}
   return(gammas)
 }
 
@@ -34,7 +33,7 @@ e_step_gamma <- function(model,w_ika){
 #' Rows correspond to hypotheses
 #'
 #' P[gamma_i=k,a_i=a_ia | x_i, \tilde p_i]=
-#' P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i] \zeta^1{a_ia=b}/ {\sum_{a',k'} P[a_i=a',\tilde p_i | \gamma=k']P[\gamma=k' | x_i] \zeta^1{a_ia'=b}}
+#' {P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i]/\zeta^1{a_ia=b}}/ {\sum_{a',k'} P[a_i=a',\tilde p_i | \gamma=k']P[\gamma=k' | x_i] / \zeta^1{a_ia'=b}}
 #' @noRd
 e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hypotheses = FALSE){
 
@@ -74,6 +73,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
       w_ika$z[masked_i & (w_ika$a == "s_neg" | w_ika$a == "b_neg")]  <- -1 * w_ika$z[masked_i & (w_ika$a == "s" | w_ika$a == "b")]
 
     }
+    
   }else{
     w_ika <- prev_w_ika
   }
@@ -113,7 +113,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
 #' @param zeta args$zeta, ratio of size of small/big region
 #' @param jacobian jacobian probability function, varies for one sided vs interval null
 #'
-#' For a=b, the probability is divided by zeta
+#' For a=b, the probability is multiplied by zeta
 #'
 #' For unmasked p-values, we compute the probability P[p_i | \gamma=k]P[\gamma=k | x_i]
 #' and store it in P[a_i=s,\tilde p_i | \gamma=k]P[\gamma=k | x_i]
@@ -130,7 +130,7 @@ w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
   sign <- ifelse(a == "s_neg" | a == "b_neg", -1, 1)
 
   if(a == "b" | a == "b_neg"){
-    prob[mask]  <- jacobian(sign * data$big_z[mask],   mu[class_ind], var[class_ind])/zeta
+    prob[mask]  <- jacobian(sign * data$big_z[mask],   mu[class_ind], var[class_ind]) * zeta
   }else if(a == "s_neg" | a == "s"){
     prob[mask]  <- jacobian(sign * data$small_z[mask], mu[class_ind], var[class_ind])
     if(a == "s"){

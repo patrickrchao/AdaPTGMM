@@ -35,8 +35,8 @@
      }
   }
 
-  if(alpha_m<0 | alpha_m>1 | alpha_m>lambda | lambda<0 | lambda>1 | zeta<0  | lambda+alpha_m/zeta>1){
-    stop("Invalid input for alpha_m, zeta, lambda, must all be between 0 and 1 and 0<alpha_m<=lambda<lambda+alpha_m/zeta<=1.")
+  if(alpha_m<0 | alpha_m>1 | alpha_m>lambda | lambda<0 | lambda>1 | zeta<0  | lambda+alpha_m*zeta>1){
+    stop("Invalid input for alpha_m and lambda, must all be between 0 and 1 and 0<alpha_m<=lambda<lambda+alpha_m*zeta<=1.")
   }
   if(masking_shape!="tent" & masking_shape != "comb"){
     stop("Invalid masking shape inputted, must be `tent` or `comb`.")

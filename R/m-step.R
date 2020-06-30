@@ -18,12 +18,6 @@ m_step_beta <- function(model,gammas){
     grouped <- dplyr::group_by(gammas,class)
     beta <- dplyr::ungroup(dplyr::summarise(grouped, value=mean(value)))$value
     beta <- beta/sum(beta)
-    if(sum(is.na(beta))>0){
-      browser()
-    }
-    if(sum(beta==0)>0){
-      browser()
-    }
   }else{
     x <- model$data$x
     multinom_data <- data.frame(x,gammas)
@@ -58,9 +52,6 @@ m_step_mu_tau <- function(model,w_ika){
     params$mu[k+1] <- .weighted_mean(subset$z,subset$value)
     # Minimum variance for convolved Gaussian is 1
     params$var[k+1] <- max(.weighted_mean((subset$z-params$mu[k+1])^2,subset$value), 1)
-  }
-  if(sum(is.na(params$mu))>0 | sum(is.na(params$var))>0){
-    browser()
   }
   return(params)
 }
