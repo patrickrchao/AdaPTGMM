@@ -5,9 +5,10 @@
 #' @param testing "\code{one_sided}" or "\code{interval}".
 #' @param rendpoint Right endpoint of interval null
 #' @param lendpoint Left endpoint of interval null
-#' @param alpha_m The maximum possible rejected p-value.
-#' @param zeta Controls minimum possible number of rejections.
-#' @param lambda Controls where p-values are mirrored.
+#' @param masking_params List of masking params, 
+#' alpha_m The maximum possible rejected p-value.
+#' zeta Controls minimum possible number of rejections.
+#' lambda Controls where p-values are mirrored.
 #' @param masking_shape "\code{tent}" or "\code{comb}".
 #' @param niter_fit Number of iterations in EM procedure for model update
 #' @param niter_ms Number of iterations in EM procedure for model selection
@@ -18,7 +19,7 @@
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,masking_param,masking_shape,niter_fit,niter_ms,nfit,n,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){

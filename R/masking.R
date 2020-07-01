@@ -1,3 +1,24 @@
+#' Select masking parameters
+#' 
+#' zeta influences the minimum possible number of rejections. The minimum number of possible rejections
+#' at FDR level \code{alpha} is \code{1/(\zeta\alpha)}. Thus for \code{alpha}=0.05, this corresponds to
+#' \code{20/\zeta}.
+select_masking_params <- function(n,alpha_m,zeta,lambda){
+    if(is.null(alpha_m) | is.null(zeta) | is.null(lambda)){
+      warning("Masking parameter alpha_m, zeta, or lambda found to be NULL. Automatically selecting masking function. See documentation for details.")
+      zeta <- min(20,max(2000/n,1))
+      if(zeta>8){
+        alpha_m <- 0.8 / zeta
+      }else{
+        alpha_m <- 0.9 / (zeta + 1)
+      }
+      lambda <- max(alpha_m,0.1)
+    }
+    masking_params <- list(alpha_m=alpha_m, zeta=zeta, lambda=lambda)
+    return(masking_params)
+}
+
+
 #' Data Preprocessing function
 #'
 #' Computes pvals and test statistics from dataset

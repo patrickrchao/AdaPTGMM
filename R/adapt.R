@@ -51,9 +51,9 @@ adapt_gmm <- function(x = NULL,
                       niter_fit = 3,
                       niter_ms = 10,
                       nfit = 20,
-                      alpha_m = 0.1,
-                      zeta = 7,
-                      lambda = 0.2,
+                      alpha_m = NULL,
+                      zeta = NULL,
+                      lambda = NULL,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
                       selection = "cross_validation",
@@ -61,10 +61,11 @@ adapt_gmm <- function(x = NULL,
                       return_all_models = FALSE){
 
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
-  #x <- (x-min(x))/(max(x)-min(x))
-  .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, alpha_m, zeta, lambda, masking_shape, alphas)
+  n=nrow(x)
+  masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
+  .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas)
 
-  args <- construct_args(testing,rendpoint,lendpoint,alpha_m,zeta,lambda,masking_shape,niter_fit,niter_ms,nfit,n=nrow(x))
+  args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n)
   data <- construct_data(x,pvals,z,args)
   model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model)
 

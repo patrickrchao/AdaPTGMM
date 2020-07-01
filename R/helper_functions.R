@@ -12,9 +12,15 @@
 #' Perform checks for valid parameters
 #'
 #' @noRd
-.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,ndf,nclasses,niter_fit,niter_ms,nfit,alpha_m,zeta,lambda,masking_shape,alphas){
+.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,ndf,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas){
+  alpha_m <- masking_params$alpha_m
+  zeta <- masking_params$zeta
+  lambda <- masking_params$lambda
   if(is.null(x) | (is.null(pvals) & is.null(z))){
     stop("Invalid inputs for x, pvals, and test_statistics. None were inputted.")
+  }
+  if(!is.data.frame(x)){
+    stop("Invalid input, x must be a dataframe.")
   }
   if(testing == "interval"){
     if(is.null(z)){
