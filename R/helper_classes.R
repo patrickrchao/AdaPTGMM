@@ -19,7 +19,7 @@
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,masking_param,masking_shape,niter_fit,niter_ms,nfit,n,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){
@@ -40,7 +40,10 @@ construct_args <- function(testing,rendpoint,lendpoint,masking_param,masking_sha
   }else{
     stop("Invalid testing type inputted. Valid forms of testing: `one_sided` and `interval`.")
   }
-
+  alpha_m <- masking_params$alpha_m
+  zeta <- masking_params$zeta
+  lambda <- masking_params$lambda
+  
   args <- list(testing = testing,
                rendpoint = rendpoint,
                lendpoint = lendpoint,
