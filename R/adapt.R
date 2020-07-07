@@ -91,7 +91,7 @@ adapt_gmm <- function(x = NULL,
   sorted_alphas <- sorted$x
   sorted_indices <- sorted$ix
 
-  refitting_constant <- floor(sum(data$mask)/(nfit+1))
+  refitting_constant <- max(floor(sum(data$mask)/(nfit+1)),1)
   nrevealed <- 0
   big_odds <-  big_over_small_prob(model)
   to_reveal_order <- order(big_odds,decreasing=TRUE)
@@ -108,14 +108,16 @@ adapt_gmm <- function(x = NULL,
     alpha <- sorted_alphas[index]
 
     while (min_fdp > alpha & values$R_t > 0) {
-      if(nrevealed %% refitting_constant == 0 & nrevealed > 0){
+
+
+
+      if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
         model$data <- data
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
         to_reveal_order <- order(big_odds, decreasing=TRUE)
         reveal_order_index <- 1
       }
-
       reveal_hypo <- to_reveal_order[reveal_order_index]
       data$mask[reveal_hypo] <- FALSE
 

@@ -1,5 +1,5 @@
 #' Select masking parameters
-#' 
+#'
 #' zeta influences the minimum possible number of rejections. The minimum number of possible rejections
 #' at FDR level \code{alpha} is \code{1/(\zeta\alpha)}. Thus for \code{alpha}=0.05, this corresponds to
 #' \code{20/\zeta}.
@@ -98,7 +98,7 @@ masking <- function(data,args){
 
   small_z <- rep(NA, length(pvals))
   big_z <- rep(NA, length(pvals))
-  
+
   small_z[a!="NONE"] <-  args$p_to_z(small_pvals[a!="NONE"])
 
   if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent" & args$testing == "one_sided"){

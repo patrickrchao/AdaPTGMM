@@ -5,7 +5,7 @@
 #' @param testing "\code{one_sided}" or "\code{interval}".
 #' @param rendpoint Right endpoint of interval null
 #' @param lendpoint Left endpoint of interval null
-#' @param masking_params List of masking params, 
+#' @param masking_params List of masking params,
 #' alpha_m The maximum possible rejected p-value.
 #' zeta Controls minimum possible number of rejections.
 #' lambda Controls where p-values are mirrored.
@@ -43,7 +43,7 @@ construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_sh
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
-  
+
   args <- list(testing = testing,
                rendpoint = rendpoint,
                lendpoint = lendpoint,
@@ -103,7 +103,7 @@ construct_data <- function(x,pvals,z,args){
 #' @details Randomly samples the entries of the beta matrix, and sets the first entry to 2
 #' to ensure high probability of class 0. The mu parameter is randomly drawn from -6 to 6 for interval testing,
 #' and randomly drawn from 1 to 6 for one sided testing.
-#' T
+#'
 #' @return params class containing beta, mu, tau, var (tau^2+1)
 #' @noRd
 initialize_params <- function(args){

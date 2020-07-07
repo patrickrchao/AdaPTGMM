@@ -47,7 +47,9 @@ m_step_mu_tau <- function(model,w_ika){
   data <- model$data
 
   z <- w_ika$z
+
   for (k in 1:(args$nclasses-1)){
+  #for (k in 1:(args$nclasses-1)){
     subset <- w_ika[w_ika$class == k,]
     params$mu[k+1] <- .weighted_mean(subset$z,subset$value)
     # Minimum variance for convolved Gaussian is 1
