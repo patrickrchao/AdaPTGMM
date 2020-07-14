@@ -108,6 +108,7 @@ construct_data <- function(x,pvals,z,args){
 #' @return params class containing beta, mu, var
 #' @noRd
 initialize_params <- function(data,nclasses,initialization){
+  set.seed(1)
   mask <- data$mask
   a <- data$a
 
@@ -121,7 +122,7 @@ initialize_params <- function(data,nclasses,initialization){
     # Use true_z twice to count as double the weight
     all_z <- c(true_z,true_z,small_z,big_z)
 
-    out <- kmeans(all_z, nclasses, nstart=5)
+    out <- kmeans(all_z, nclasses, nstart=10)
 
     mu <- as.numeric(out$centers)
     pred <- data.frame(z=all_z,class=out$cluster)

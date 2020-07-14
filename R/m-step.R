@@ -26,6 +26,7 @@ m_step_beta <- function(model,gammas){
     if(!is.null(model$params$beta)){
       beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta$wts)
     }else{
+      # TODO: Wrap this in try catch
       beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
     }
 
@@ -47,11 +48,7 @@ m_step_mu_tau <- function(model,w_ika){
   data <- model$data
 
   z <- w_ika$z
-  start <- 0
-  if(model$args$initialization == "random"){
-    start <- 1
-  }
-  for (k in start:(args$nclasses-1)){
+  for (k in 0:(args$nclasses-1)){
   #for (k in 1:(args$nclasses-1)){
     subset <- w_ika[w_ika$class == k,]
     params$mu[k+1] <- .weighted_mean(subset$z,subset$value)

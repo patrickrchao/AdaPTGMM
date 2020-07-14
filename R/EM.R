@@ -17,12 +17,15 @@ EM <- function(model, preset_iter=NULL){
     niter <- preset_iter
   }
   w_ika <- NULL
+  browser()
   for(i in seq(niter)){
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model,w_ika)
-    model <- m_step_beta(model,gammas)
+
+    if(i >= 1){
+      model <- m_step_beta(model,gammas)
+    }
     model$params <- m_step_mu_tau(model,w_ika)
-    #print(log_likelihood(model))
   }
   return(model)
 }
