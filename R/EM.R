@@ -17,7 +17,6 @@ EM <- function(model, preset_iter=NULL){
     niter <- preset_iter
   }
   w_ika <- NULL
-  browser()
   for(i in seq(niter)){
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model,w_ika)
