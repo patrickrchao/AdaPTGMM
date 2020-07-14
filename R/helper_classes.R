@@ -115,11 +115,9 @@ initialize_params <- function(data,nclasses,initialization){
   small_z <- data$small_z[mask]
   big_z <- data$big_z[mask]
   if(initialization == "random"){
-    print("random")
     mu <- c(0,runif(nclasses-1,2,6))
     var <- c(1,runif(nclasses-1,2,10))
   }else if (initialization == "kmeans"){
-    print("kmeans")
     # Use true_z twice to count as double the weight
     all_z <- c(true_z,true_z,small_z,big_z)
 
