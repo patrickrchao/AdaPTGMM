@@ -2,6 +2,7 @@
 #'
 #' @param data data class
 #' @param args args class
+#' @param params args class, default NULL, only include if precomputed
 #'
 #' @details
 #' Function initializes parameters and computes the basis expanded covariates. Combines data, args, and params
@@ -9,10 +10,12 @@
 #'
 #' @return model class with data, args, and params
 #' @noRd
-create_model <- function(data,args){
-  params <- initialize_params(args)
-
+create_model <- function(data,args,params=NULL){
   nclasses <- args$nclasses
+  if(is.null(params)){
+    params <- initialize_params(data,nclasses,args$initialization)
+  }
+
   base_prob <- c(0.9,rep(0.1/(nclasses-1),nclasses-1))
   data$class_prob <- t(replicate(n=args$n,base_prob))
 

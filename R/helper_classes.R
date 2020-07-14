@@ -14,12 +14,13 @@
 #' @param niter_ms Number of iterations in EM procedure for model selection
 #' @param nfit Number of model updates in AdaPT procedure
 #' @param n Number of hypotheses
+#' @param initialization Initialization procedure, kmeans or random
 #' @param beta_formula Beta formula for model
 #' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){
@@ -60,6 +61,7 @@ construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_sh
                nclasses = nclasses,
                all_a = all_a,
                n  = n,
+               initialization = initialization,
                jacobian = jacobian
                )
   class(args) <- "args"
@@ -98,26 +100,43 @@ construct_data <- function(x,pvals,z,args){
 
 #' Initialize Parameters for Gaussian Mixture Model
 #'
-#' @param args args class
+#' @param data data class
+#' @param nclasses number of classes in Gaussian mixture model
 #'
-#' @details Randomly samples the entries of the beta matrix, and sets the first entry to 2
-#' to ensure high probability of class 0. The mu parameter is randomly drawn from -6 to 6 for interval testing,
-#' and randomly drawn from 1 to 6 for one sided testing.
+#' @details Selects mu and variance by k-means
 #'
-#' @return params class containing beta, mu, tau, var (tau^2+1)
+#' @return params class containing beta, mu, var
 #' @noRd
-initialize_params <- function(args){
+initialize_params <- function(data,nclasses,initialization){
+  mask <- data$mask
+  a <- data$a
 
-  nclasses <- args$nclasses
+  true_z <- data$z[!mask]
+  small_z <- data$small_z[mask]
+  big_z <- data$big_z[mask]
+  if(initialization == "random"){
+    print("random")
+    mu <- c(0,runif(nclasses-1,2,6))
+    var <- c(1,runif(nclasses-1,2,10))
+  }else if (initialization == "kmeans"){
+    print("kmeans")
+    # Use true_z twice to count as double the weight
+    all_z <- c(true_z,true_z,small_z,big_z)
 
-  beta <- NULL
-  mu <-  c(0, runif(nclasses - 1, min = 2, max = 6))
-  if(args$testing == "interval"){
-    mu <-  sample(x = c(-1,1),size = nclasses ,replace = TRUE) * mu
+    out <- kmeans(all_z, nclasses, nstart=5)
+
+    mu <- as.numeric(out$centers)
+    pred <- data.frame(z=all_z,class=out$cluster)
+    var <- aggregate(pred$z,list(pred$class),"var")
+    colnames(var) <- c("group","value")
+    var <- var[order(var$group),]
+    var <- pmax(var$value,1)
+
+  }else{
+    stop("Unknown initialization scheme inputted.")
   }
+  beta <- NULL
 
-  tau <-   c(0, runif(nclasses - 1, min = 0.1, max = 3))
-  var <- tau^2 + 1
 
   params <- list(beta=beta, mu=mu, var=var)
   class(params) <- "params"

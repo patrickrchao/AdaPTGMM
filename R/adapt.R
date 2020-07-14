@@ -30,8 +30,11 @@
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
 #' @param selection Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{cross_validation}".
+#' @param initialization Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
+#' "\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".
 #' @param return_all_models Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
 #' Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.
+#' @param intercept_model Boolean.Include intercept only model in the model selection, default is \code{TRUE}.
 #' @param verbose Boolean. Include print statements at each stage of the procedure.
 #' @details
 #'  The constraint on these masking function parameters is
@@ -57,6 +60,7 @@ adapt_gmm <- function(x = NULL,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
                       selection = "cross_validation",
+                      initialization = "kmeans",
                       intercept_model = TRUE,
                       return_all_models = FALSE){
 
@@ -65,9 +69,12 @@ adapt_gmm <- function(x = NULL,
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
   .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas)
 
-  args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n)
+  args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
   data <- construct_data(x,pvals,z,args)
-  model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model)
+
+
+  model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
+
 
   data <- model$data
   args <- model$args
@@ -104,6 +111,7 @@ adapt_gmm <- function(x = NULL,
   odds_per_alpha <- rep(Inf,n_alphas)
 
   reveal_hypo <- NULL
+
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
 

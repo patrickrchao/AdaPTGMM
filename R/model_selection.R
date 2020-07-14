@@ -5,11 +5,12 @@
 #' @param nclasses_list Vector for possible number of classes
 #' @param selection Criteria for model selection
 #' @param intercept_model Boolean whether to include intercept model
+#' @param initialization Initialization procedure, either kmeans or random
 #' @param training_proportion Proportion of data used for training, in the \code{selection}='\code{cross_validation}' case.
 #'
 #' @return Initialized and pretrained model with best performance based on selection criterion
 #' @keywords Internal
-model_selection <- function(data,args,beta_formulas,nclasses_list,selection,intercept_model,training_proportion=0.6){
+model_selection <- function(data,args,beta_formulas,nclasses_list,selection,intercept_model,initialization,training_proportion=0.6){
 
   n <- args$n
   #cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
@@ -18,7 +19,8 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   }
 
   # Construct grid of all parameter combinations
-  param_grid <-  expand.grid(1:length(beta_formulas),nclasses_list)
+  # corresponds to indicies in beta_formulas and nclasses_list
+  param_grid <-  expand.grid(1:length(beta_formulas),1:length(nclasses_list))
 
   colnames(param_grid) <- c("formula","nclasses")
   n_permutations <- nrow(param_grid)
@@ -36,13 +38,14 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     new_args <- args
     valid <- NULL
   }
+  init_params <- lapply(nclasses_list,function(x)initialize_params(train,x,initialization))
 
   for(row_index in 1:n_permutations){
     row <- param_grid[row_index,]
     new_args$beta_formula <- beta_formulas[row$formula]
-    new_args$nclasses <- row$nclasses
+    new_args$nclasses <- nclasses_list[row$nclasses]
 
-    model <- create_model(train, new_args)
+    model <- create_model(train, new_args,init_params[[row$nclasses]])
     model <- EM(model, preset_iter = args$niter_ms)
     out <- .selection_helper(selection,model,valid,n)
 
@@ -60,17 +63,16 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   param_grid$value <- param_grid$log_like - param_grid$penalty
   # Extract best set of parameters from grid
   max_index <- which(param_grid$value == max(param_grid$value), arr.ind = TRUE)
-  beta_formula <- param_grid[max_index,"formula"]
-  nclasses <- param_grid[max_index,"nclasses"]
-  args$beta_formula <- beta_formulas[beta_formula]
-  args$nclasses <- nclasses
+  beta_formula_ind <- param_grid[max_index,"formula"]
+  nclasses_ind <- param_grid[max_index,"nclasses"]
+  args$beta_formula <- beta_formulas[beta_formula_ind]
+  args$nclasses <- nclasses_list[nclasses_ind]
 
   #cat("Model selection completed.\n")
   # If using cross_validation, model needs to be reinitialized with full data and pretrained
   if(selection == "cross_validation"){
-    model <- create_model(data,args)
-
-    model$params <- model_list[[max_index]]$params
+    params <- model_list[[max_index]]$params
+    model <- create_model(data,args,params)
     chosen_model <- EM(model,preset_iter = args$niter_ms)
   }else{
     chosen_model <- model_list[[max_index]]
@@ -83,6 +85,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
 #' @param data data class
 #' @param n number of total data points
 #' @param training_proportion proportion of data for training
+#'
 #' @noRd
 .split_data <- function(data,n,training_proportion){
   random_order <- sample(1:n,size = n)
@@ -127,8 +130,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     trained_params <- model$params
     valid_args <- model$args
     valid_args$n <- as.integer(total_n - model$args$n)
-    model <- create_model(valid, valid_args)
-    model$params <- trained_params
+    model <- create_model(valid, valid_args,trained_params)
 
     prob <- class_prob(model$params$beta,model$args$nclasses,model$data$x)
     model$data$class_prob <- prob
