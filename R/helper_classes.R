@@ -84,6 +84,7 @@ construct_data <- function(x,pvals,z,args){
     z <- z-center
   }
 
+  x <- .scale_data(x)
   data <- list(x = x,
                pvals = pvals,
                z = z
@@ -140,4 +141,19 @@ initialize_params <- function(data,nclasses,initialization){
   params <- list(beta=beta, mu=mu, var=var)
   class(params) <- "params"
   return(params)
+}
+
+
+#' Scale data to [0,1] range
+#'
+#' @param x data frame
+#'
+#' @details Scales all features to [0,1] range for `multinom` function
+#'
+#' @return dataframe of x with scaled data
+#' @noRd
+.scale_data <- function(x){
+  y <- data.frame(apply(x,2,function(x){(x-min(x))/(max(x)-min(x))}) )
+  colnames(y) <- colnames(x)
+  return(y)
 }
