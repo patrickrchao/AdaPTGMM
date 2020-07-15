@@ -66,6 +66,7 @@ adapt_gmm <- function(x = NULL,
 
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   n=nrow(x)
+  x <- apply(x,2,function(x){(x-min(x))/(max(x)-min(x))})
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
   .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas)
 
