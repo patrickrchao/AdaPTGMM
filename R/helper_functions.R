@@ -75,3 +75,32 @@
 .inverse = function (f, lower = 0, upper = 200) {
   return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^2)[1])
 }
+
+
+#' Helper function to ensure all formulas are valid
+#'
+#' @param x dataframe of covariates
+#' @param beta_formulas list of all beta formulas
+.check_formulas <- function(x,beta_formulas){
+  new_formulas <- lapply(beta_formulas,function(formula){
+    if(formula == "intercept"){
+      return(formula)
+    }else{
+      tryCatch({
+        eval(parse(text=formula),x)
+        return(formula)
+      }, error = function(e) {
+        warning(paste0("Invalid beta_formula found: ",formula,". Ignoring formula."))
+        return("invalid")
+      })
+    }
+  })
+
+  new_formulas <- unlist(new_formulas[new_formulas!="invalid"])
+  if(length(new_formulas)==0){
+    stop("All formulas are invalid. Stopping.")
+  }else if(length(new_formulas) == 1 & new_formulas[1] == "intercept"){
+    warning("Only using intercept model.")
+  }
+  return(new_formulas)
+}
