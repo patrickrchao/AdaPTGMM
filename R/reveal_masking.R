@@ -12,7 +12,6 @@ big_over_small_prob <- function(model,w_ika = NULL){
   }
   # marginalize over class and remove hypothesis numbering column
   big_small <- tidyr::spread(marginalize(w_ika,"class"),a,value)
-  browser()
   if(model$args$testing == "interval"){
     odds <- (big_small$b + big_small$b_neg)/ (big_small$s + big_small$s_neg)
   }else if(model$args$testing == "one_sided"){
