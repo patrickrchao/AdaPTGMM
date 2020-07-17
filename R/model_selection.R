@@ -17,7 +17,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   if(intercept_model){
     beta_formulas <- c("intercept",beta_formulas)
   }
-  beta_formulas <- .check_formulas(x,beta_formulas)
+  beta_formulas <- .check_formulas(data$x,beta_formulas)
   # Construct grid of all parameter combinations
   # corresponds to indicies in beta_formulas and nclasses_list
   param_grid <-  expand.grid(1:length(beta_formulas),1:length(nclasses_list))
