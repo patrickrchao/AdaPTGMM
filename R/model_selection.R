@@ -17,15 +17,8 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   if(intercept_model){
     beta_formulas <- c("intercept",beta_formulas)
   }
+
   beta_formulas <- .check_formulas(data$x,beta_formulas)
-  # Construct grid of all parameter combinations
-  # corresponds to indicies in beta_formulas and nclasses_list
-  param_grid <-  expand.grid(1:length(beta_formulas),1:length(nclasses_list))
-
-  colnames(param_grid) <- c("formula","nclasses")
-  n_permutations <- nrow(param_grid)
-  model_list <- vector("list",n_permutations)
-
   # Construct train/validation splits for cross_validation
   if(selection == "cross_validation"){
     datasets <- .split_data(data,n,training_proportion)
@@ -33,11 +26,22 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     valid <- datasets$valid
     new_args <- args
     new_args$n <- as.integer(n * training_proportion)
+    beta_formulas <- .check_formulas(train$x,beta_formulas)
+    beta_formulas <- .check_formulas(valid$x,beta_formulas)
   }else{
     train <- data
     new_args <- args
     valid <- NULL
   }
+  
+
+  # Construct grid of all parameter combinations
+  # corresponds to indicies in beta_formulas and nclasses_list
+  param_grid <-  expand.grid(1:length(beta_formulas),1:length(nclasses_list))
+  colnames(param_grid) <- c("formula","nclasses")
+  n_permutations <- nrow(param_grid)
+  model_list <- vector("list",n_permutations)
+  
   init_params <- lapply(nclasses_list,function(x)initialize_params(train,x,initialization))
 
   for(row_index in 1:n_permutations){
