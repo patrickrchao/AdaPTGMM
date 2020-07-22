@@ -128,10 +128,13 @@ initialize_params <- function(data,nclasses,initialization){
     mu <- as.numeric(out$centers)
     pred <- data.frame(z=all_z,class=out$cluster)
     var <- aggregate(pred$z,list(pred$class),"var")
+
     colnames(var) <- c("group","value")
     var <- var[order(var$group),]
     var <- pmax(var$value,1)
-
+    # If a class only has one observation, the empirical variance will be zero
+    # Set NA values to 1
+    var[is.na(var)] <- 1
   }else{
     stop("Unknown initialization scheme inputted.")
   }

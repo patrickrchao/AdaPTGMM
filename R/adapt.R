@@ -52,8 +52,8 @@ adapt_gmm <- function(x = NULL,
                       beta_formulas = NULL,
                       nclasses = c(2,3,4),
                       niter_fit = 3,
-                      niter_ms = 10,
-                      nfit = 20,
+                      niter_ms = 10, #change to 5
+                      nfit = 20, # change to 5
                       alpha_m = NULL,
                       zeta = NULL,
                       lambda = NULL,
@@ -122,8 +122,13 @@ adapt_gmm <- function(x = NULL,
 
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
+
+        if(rendpoint == 100){
+        model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
+      }else{
         model$data <- data
         model <- EM(model)
+        }
         big_odds <-  big_over_small_prob(model)
         to_reveal_order <- order(big_odds, decreasing=TRUE)
         reveal_order_index <- 1

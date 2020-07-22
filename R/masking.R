@@ -6,7 +6,9 @@
 select_masking_params <- function(n,alpha_m,zeta,lambda){
     if(is.null(alpha_m) | is.null(zeta) | is.null(lambda)){
       warning("Masking parameter alpha_m, zeta, or lambda found to be NULL. Automatically selecting masking function. See documentation for details.")
-      zeta <- min(20,max(2000/n,1))
+      if(is.null(zeta)){
+        zeta <- min(20,max(10000/n,2))
+      }
       if(zeta>8){
         alpha_m <- 0.8 / zeta
       }else{
