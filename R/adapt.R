@@ -122,13 +122,8 @@ adapt_gmm <- function(x = NULL,
 
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
-
-        if(rendpoint == 100){
-        model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
-      }else{
         model$data <- data
         model <- EM(model)
-        }
         big_odds <-  big_over_small_prob(model)
         to_reveal_order <- order(big_odds, decreasing=TRUE)
         reveal_order_index <- 1
