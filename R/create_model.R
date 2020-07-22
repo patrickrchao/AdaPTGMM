@@ -15,7 +15,6 @@ create_model <- function(data,args,params=NULL){
   if(is.null(params)){
     params <- initialize_params(data,nclasses,args$initialization)
   }
-  data$full_x <- .evaluate_formula(data$x,args$beta_formula)
   base_prob <- c(0.9,rep(0.1/(nclasses-1),nclasses-1))
   data$class_prob <- t(replicate(n=args$n,base_prob))
 

@@ -68,7 +68,6 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
       param_grid[row_index, "penalty"] <- penalty
     }
   }
-
   param_grid$value <- param_grid$log_like - param_grid$penalty
   # Extract best set of parameters from grid
   max_index <- which(param_grid$value == max(param_grid$value), arr.ind = TRUE)
