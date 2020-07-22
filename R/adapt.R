@@ -66,9 +66,10 @@ adapt_gmm <- function(x = NULL,
 
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   n=nrow(x)
+  beta_formulas <- unlist(lapply(beta_formulas,complete_pkg))
 
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
-  .input_checks(x, pvals, z, testing, rendpoint, lendpoint,beta_formulas, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas)
+  .input_checks(x, pvals, z, testing, rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas)
 
   args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
   data <- construct_data(x,pvals,z,args)

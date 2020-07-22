@@ -33,7 +33,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     new_args <- args
     valid <- NULL
   }
-  
+
 
   # Construct grid of all parameter combinations
   # corresponds to indicies in beta_formulas and nclasses_list
@@ -41,7 +41,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   colnames(param_grid) <- c("formula","nclasses")
   n_permutations <- nrow(param_grid)
   model_list <- vector("list",n_permutations)
-  
+
   init_params <- lapply(nclasses_list,function(x)initialize_params(train,x,initialization))
 
   for(row_index in 1:n_permutations){
@@ -50,18 +50,23 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(train, new_args,init_params[[row$nclasses]])
-    model <- EM(model, preset_iter = args$niter_ms)
-    out <- .selection_helper(selection,model,valid,n)
+    model <- try(EM(model, preset_iter = args$niter_ms),silent=TRUE)
+    if (class(model)[1] == "try-error"){
+      param_grid[row_index, "log_like"] <- -Inf
+      param_grid[row_index, "penalty"] <- 0
+    }else{
+      out <- .selection_helper(selection,model,valid,n)
 
-    model <- out$model
-    penalty <- out$penalty
+      model <- out$model
+      penalty <- out$penalty
 
-    # Store all trained models
-    model_list[[row_index]] <- model
+      # Store all trained models
+      model_list[[row_index]] <- model
 
-    #Update grid loglikelihood and penalty
-    param_grid[row_index, "log_like"] <- log_likelihood(model)
-    param_grid[row_index, "penalty"] <- penalty
+      #Update grid loglikelihood and penalty
+      param_grid[row_index, "log_like"] <- log_likelihood(model)
+      param_grid[row_index, "penalty"] <- penalty
+    }
   }
 
   param_grid$value <- param_grid$log_like - param_grid$penalty

@@ -12,7 +12,7 @@
 #' Perform checks for valid parameters
 #'
 #' @noRd
-.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,ndf,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas){
+.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas){
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
@@ -56,9 +56,6 @@
   if(min(nclasses) < 2){
     stop("Invalid number of classes, minimum 2 classes.")
   }
-  if(min(ndf) < 1){
-    stop("Invalid number of degrees of freedom, minimum 1 (intercept only model).")
-  }
   if(!is.null(rendpoint) & !is.null(lendpoint)){
     if(lendpoint > rendpoint){
       stop("Invalid input for endpoints. Right endpoint must be greater than left endpoint.")
@@ -83,17 +80,13 @@
 #' @param beta_formulas list of all beta formulas
 .check_formulas <- function(x,beta_formulas){
   new_formulas <- lapply(beta_formulas,function(formula){
-    if(formula == "intercept"){
-      return(formula)
-    }else{
-      tryCatch({
-        eval(parse(text=formula),x)
+  tryCatch({
+        .evaluate_formula(x,formula)
         return(formula)
       }, error = function(e) {
         warning(paste0("Invalid beta_formula found: ",formula,". Ignoring formula."))
         return("invalid")
       })
-    }
   })
 
   new_formulas <- unlist(new_formulas[new_formulas!="invalid"])
@@ -103,4 +96,35 @@
     warning("Only using intercept model.")
   }
   return(new_formulas)
+}
+
+.evaluate_formula <- function(x,formula){
+  if(formula == "intercept"){
+    return(x)
+  }else{
+    new_x <- eval(parse(text=formula),x)
+    colnames(new_x)
+  }
+}
+
+# From Lihua Lei's AdaPTMT Package
+# https://github.com/lihualei71/adaptMT/blob/master/R/helpers.R
+complete_pkg <- function(formula){
+  formula <- as.character(formula)
+  formula <- tail(formula, 1)
+  formula <- tail(strsplit(formula, "~")[[1]], 1)
+  formula <- paste0(" ", formula)
+  if (grepl("ns\\(", formula)){
+    if (!requireNamespace("splines", quietly = TRUE)){
+      stop("package \'splines\' not found. Please install.")
+    }
+    formula <- gsub("([^:])ns\\(", "\\1splines::ns\\(", formula)
+  }
+  if (grepl("[^a-z]s\\(", formula)){
+    if (!requireNamespace("mgcv", quietly = TRUE)){
+      stop("package \'mgcv\' not found. Please install.")
+    }
+    formula <- gsub("([^:a-z])s\\(", "\\1mgcv::s\\(", formula)
+  }
+  return(formula)
 }

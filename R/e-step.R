@@ -73,7 +73,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
       w_ika$z[masked_i & (w_ika$a == "s_neg" | w_ika$a == "b_neg")]  <- -1 * w_ika$z[masked_i & (w_ika$a == "s" | w_ika$a == "b")]
 
     }
-    
+
   }else{
     w_ika <- prev_w_ika
   }
