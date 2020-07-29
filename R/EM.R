@@ -16,12 +16,12 @@ EM <- function(model, preset_iter=NULL){
   }else{
     niter <- preset_iter
   }
+
   w_ika <- NULL
   for(i in seq(niter)){
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model,w_ika)
-
-    if(i >= 1){
+    if(i>1){
       model <- m_step_beta(model,gammas)
     }
     model$params <- m_step_mu_tau(model,w_ika)

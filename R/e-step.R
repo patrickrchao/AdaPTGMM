@@ -58,7 +58,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
     # Fill in w_ika table
     w_ika$i <- rep(1:n, num_a * nclasses)
     w_ika$a <- rep(all_a,each = n * nclasses)
-    w_ika$class <- rep(rep(0:(nclasses - 1),each=n), num_a)
+    w_ika$class <- rep(rep(1:nclasses,each=n), num_a)
 
     # Add corresponding z to each row
     # Unmasked hypotheses use true z
@@ -82,7 +82,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   # Fill in w_ika values
   count <- 0
   for(a in args$all_a){
-    for(k in 0:(nclasses-1)){
+    for(k in 1:nclasses){
       start_i <- 1 + count * n
       end_i <- (1 + count) * n
       w_ika[start_i:end_i,"value"] <- w_ika_helper(a, k, data, params$mu, params$var, args$zeta, args$jacobian)
@@ -122,24 +122,22 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
 #' @noRd
 w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
   mask <- data$mask
-  # Add one since class k has parameters at index k+1 (classes begin at 0)
-  class_ind <- class + 1
+
 
   prob <- rep(0,length(data$pvals))
 
   sign <- ifelse(a == "s_neg" | a == "b_neg", -1, 1)
 
   if(a == "b" | a == "b_neg"){
-    prob[mask]  <- jacobian(sign * data$big_z[mask],   mu[class_ind], var[class_ind]) * zeta
+    prob[mask]  <- jacobian(sign * data$big_z[mask],   mu[class], var[class]) * zeta
   }else if(a == "s_neg" | a == "s"){
-    prob[mask]  <- jacobian(sign * data$small_z[mask], mu[class_ind], var[class_ind])
+    prob[mask]  <- jacobian(sign * data$small_z[mask], mu[class], var[class])
     if(a == "s"){
-      prob[!mask] <- jacobian(data$z[!mask], mu[class_ind], var[class_ind])
+      prob[!mask] <- jacobian(data$z[!mask], mu[class], var[class])
     }
   }
 
   # Scale by class probability
-  prob <- prob * data$class_prob[, class_ind]
-
+  prob <- prob * data$class_prob[, class]
   return(prob)
 }

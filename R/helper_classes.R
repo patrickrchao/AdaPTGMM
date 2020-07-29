@@ -109,7 +109,7 @@ construct_data <- function(x,pvals,z,args){
 #' @return params class containing beta, mu, var
 #' @noRd
 initialize_params <- function(data,nclasses,initialization){
-  set.seed(1)
+
   mask <- data$mask
   a <- data$a
 
@@ -135,6 +135,13 @@ initialize_params <- function(data,nclasses,initialization){
     # If a class only has one observation, the empirical variance will be zero
     # Set NA values to 1
     var[is.na(var)] <- 1
+  }else if(initialization == "uniform"){
+    all_z <- c(true_z,true_z,small_z,big_z)
+
+    mu <- unlist(quantile(all_z, seq(0.2,1,length.out = nclasses+2)[2:(nclasses+1)]))
+    unname(mu)
+    var <- runif(nclasses,2,10)
+
   }else{
     stop("Unknown initialization scheme inputted.")
   }

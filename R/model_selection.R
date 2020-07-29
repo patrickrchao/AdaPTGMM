@@ -13,7 +13,7 @@
 model_selection <- function(data,args,beta_formulas,nclasses_list,selection,intercept_model,initialization,training_proportion=0.6){
 
   n <- args$n
-  #cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
+  cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
   if(intercept_model){
     beta_formulas <- c("intercept",beta_formulas)
   }
@@ -50,7 +50,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(train, new_args,init_params[[row$nclasses]])
-    model <- try(EM(model, preset_iter = args$niter_ms),silent=TRUE)
+    model <- EM(model, preset_iter = args$niter_ms)#,silent=TRUE)
     if (class(model)[1] == "try-error"){
       param_grid[row_index, "log_like"] <- -Inf
       param_grid[row_index, "penalty"] <- 0
@@ -76,7 +76,8 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   args$beta_formula <- beta_formulas[beta_formula_ind]
   args$nclasses <- nclasses_list[nclasses_ind]
 
-  #cat("Model selection completed.\n")
+  cat("Model selection completed.\n")
+  print(args$beta_formula)
   # If using cross_validation, model needs to be reinitialized with full data and pretrained
   if(selection == "cross_validation"){
     params <- model_list[[max_index]]$params

@@ -7,7 +7,7 @@ select_masking_params <- function(n,alpha_m,zeta,lambda){
     if(is.null(alpha_m) | is.null(zeta) | is.null(lambda)){
       warning("Masking parameter alpha_m, zeta, or lambda found to be NULL. Automatically selecting masking function. See documentation for details.")
       if(is.null(zeta)){
-        zeta <- min(20,max(10000/n,2))
+        zeta <- min(20,max(6000/n,2))
       }
       if(zeta>8){
         alpha_m <- 0.8 / zeta
@@ -36,13 +36,13 @@ data_preprocessing <- function(data,args){
 
   # Initialize z and pvals if uninitialized
   if(is.null(data$z)){
-    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
+    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-30), 1e-30)
     data$z <- args$p_to_z(data$pvals)
   }else if(is.null(data$pvals) | args$testing == "interval"){
     data$pvals <- args$z_to_p(data$z)
   }
   # Clamp p-values
-  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
+  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-30), 1e-30)
 
   pvals <- data$pvals
   z <- data$z

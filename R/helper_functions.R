@@ -69,8 +69,8 @@
 #' @param f function
 #'
 #' @noRd
-.inverse = function (f, lower = 0, upper = 200) {
-  return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper,tol=.Machine$double.eps^2)[1])
+.inverse = function (f, lower = 0, upper = 50) {
+  return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper, tol=.Machine$double.eps^2)[1])
 }
 
 

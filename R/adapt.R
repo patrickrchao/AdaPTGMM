@@ -63,7 +63,7 @@ adapt_gmm <- function(x = NULL,
                       initialization = "kmeans",
                       intercept_model = TRUE,
                       return_all_models = FALSE){
-
+  #set.seed(1)
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
   n=nrow(x)
   beta_formulas <- unlist(lapply(beta_formulas,complete_pkg))
@@ -122,6 +122,7 @@ adapt_gmm <- function(x = NULL,
 
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
+        #model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
         model$data <- data
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
@@ -139,6 +140,7 @@ adapt_gmm <- function(x = NULL,
 
       values <- compute_fdphat(data,args)
       min_fdp <- min(min_fdp,values$fdphat)
+      cat(paste0(min_fdp,values$R_t,"\n"))
     }
     R_t <- values$R_t
     nrejs[sorted_indices[index]] <- R_t
@@ -153,9 +155,9 @@ adapt_gmm <- function(x = NULL,
     if(return_all_models){
       all_params[[sorted_indices[index]]] <- model$params
     }
-    # cat(paste0("alpha = " , alpha,
-    #            ": FDPhat ",round(min_fdp, 4),
-    #             ", Number of Rej. ",R_t,"\n"))
+    cat(paste0("alpha = " , alpha,
+               ": FDPhat ",round(min_fdp, 4),
+                ", Number of Rej. ",R_t,"\n"))
   }
   cat("Complete.\n")
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,

@@ -15,7 +15,7 @@ create_model <- function(data,args,params=NULL){
   if(is.null(params)){
     params <- initialize_params(data,nclasses,args$initialization)
   }
-  base_prob <- c(0.9,rep(0.1/(nclasses-1),nclasses-1))
+  base_prob <- rep(1/(nclasses),nclasses)
   data$class_prob <- t(replicate(n=args$n,base_prob))
 
   model <- list(data=data, args=args, params=params)

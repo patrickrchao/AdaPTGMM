@@ -1,7 +1,7 @@
 #' Perform Maximization step for beta
 #'
 #' @param model model variable containing data, args, params
-#' @param gammas Estimated gammas from e_step_gammas, dataframe where columns correspond to classes
+#' @param gammas Estimated gammas from e_step_gammas use as weights, dataframe where columns correspond to classes
 #' and rows correspond to hypotheses. Each row sums to 1.
 #'
 #' @details Performs a multinomial logistic regression from nnet class
@@ -47,12 +47,12 @@ m_step_mu_tau <- function(model,w_ika){
   data <- model$data
 
   z <- w_ika$z
-  for (k in 0:(args$nclasses-1)){
+  for (k in 1:args$nclasses){
   #for (k in 1:(args$nclasses-1)){
     subset <- w_ika[w_ika$class == k,]
-    params$mu[k+1] <- .weighted_mean(subset$z,subset$value)
+    params$mu[k] <- .weighted_mean(subset$z,subset$value)
     # Minimum variance for convolved Gaussian is 1
-    params$var[k+1] <- max(.weighted_mean((subset$z-params$mu[k+1])^2,subset$value), 1)
+    params$var[k] <- max(.weighted_mean((subset$z-params$mu[k])^2,subset$value), 1)
   }
   return(params)
 }
