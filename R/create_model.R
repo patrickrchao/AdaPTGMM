@@ -17,7 +17,6 @@ create_model <- function(data,args,params=NULL){
   }
   base_prob <- rep(1/(nclasses),nclasses)
   data$class_prob <- t(replicate(n=args$n,base_prob))
-
   model <- list(data=data, args=args, params=params)
 
   testing <- args$testing

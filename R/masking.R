@@ -36,13 +36,13 @@ data_preprocessing <- function(data,args){
 
   # Initialize z and pvals if uninitialized
   if(is.null(data$z)){
-    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-30), 1e-30)
+    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
     data$z <- args$p_to_z(data$pvals)
   }else if(is.null(data$pvals) | args$testing == "interval"){
     data$pvals <- args$z_to_p(data$z)
   }
   # Clamp p-values
-  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-30), 1e-30)
+  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
 
   pvals <- data$pvals
   z <- data$z

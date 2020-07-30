@@ -113,13 +113,14 @@ adapt_gmm <- function(x = NULL,
   odds_per_alpha <- rep(Inf,n_alphas)
 
   reveal_hypo <- NULL
-
+  rejection_set <- data$mask & (data$pvals < args$alpha_m)
+  A_t <-  sum(data$mask & data$pvals > args$lambda)
+  R_t <-  sum(rejection_set)
+  fdphat <- (A_t + 1) / max(R_t, 1)/args$zeta
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
 
-    while (min_fdp > alpha & values$R_t > 0) {
-
-
+    while (min_fdp > alpha & R_t > 0) {
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
         #model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
@@ -134,18 +135,22 @@ adapt_gmm <- function(x = NULL,
 
       if(data$a[reveal_hypo] == "s" | data$a[reveal_hypo] == "s_neg"){
         qvals[reveal_hypo] <- min_fdp
+        R_t <- R_t - 1
+
+      }else{
+        A_t <- A_t - 1
       }
+
       nrevealed <- nrevealed + 1
       reveal_order_index <- reveal_order_index + 1
 
-      values <- compute_fdphat(data,args)
-      min_fdp <- min(min_fdp,values$fdphat)
-      cat(paste0(min_fdp,values$R_t,"\n"))
+      fdphat <- (A_t + 1) / max(R_t, 1)/args$zeta
+      min_fdp <- min(min_fdp,fdphat)
     }
-    R_t <- values$R_t
+    rejection_set <- data$mask & (data$pvals < args$alpha_m)
     nrejs[sorted_indices[index]] <- R_t
-    rejs[[sorted_indices[index]]] <- values$rejs
-    qvals[values$rejs] <- min(min_fdp,qvals[values$rejs])
+    rejs[[sorted_indices[index]]] <- rejection_set
+    qvals[rejection_set] <- min(min_fdp,qvals[rejection_set])
     if(is.null(reveal_hypo)){
       odds_per_alpha[sorted_indices[index]] <- Inf
     }else{

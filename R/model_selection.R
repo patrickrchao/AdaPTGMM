@@ -50,7 +50,9 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(train, new_args,init_params[[row$nclasses]])
-    model <- EM(model, preset_iter = args$niter_ms)#,silent=TRUE)
+
+    model <- EM(model, preset_iter = args$niter_ms,save_model=(selection=="cross_validation"))#,silent=TRUE)
+
     if (class(model)[1] == "try-error"){
       param_grid[row_index, "log_like"] <- -Inf
       param_grid[row_index, "penalty"] <- 0
@@ -140,9 +142,12 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     valid_args <- model$args
     valid_args$n <- as.integer(total_n - model$args$n)
     model <- create_model(valid, valid_args,trained_params)
-
-    prob <- class_prob(model$params$beta,model$args$nclasses,model$data$x)
+    #fix this
+    #prob <- class_prob(model$params$beta,model$args$nclasses,valid_args$n,model$data$x)
+    prob <- class_prob(model$params$beta_model,model$args$nclasses,valid_args$n,model$data$x)
+   # prob <- .format_class_prob(prob,valid_args$n,model$args$nclasses)
     model$data$class_prob <- prob
+    model$params$beta_model <- NULL
     penalty <- 0
   } else {
     # df degrees of freedom in beta
@@ -150,7 +155,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     if(model$args$beta_formula == "intercept"){
       df <- 1
     }else{
-      df <- model$params$beta$edf
+      df <- model$params$df
     }
 
     d <-  (model$args$nclasses - 1) * (df + 2)
@@ -163,6 +168,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     } else{
       stop("Invalid model selection method.")
     }
+
   }
   return(list(model=model,penalty=penalty))
 }

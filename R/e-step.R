@@ -81,6 +81,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
 
   # Fill in w_ika values
   count <- 0
+
   for(a in args$all_a){
     for(k in 1:nclasses){
       start_i <- 1 + count * n
@@ -138,6 +139,7 @@ w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
   }
 
   # Scale by class probability
+
   prob <- prob * data$class_prob[, class]
   return(prob)
 }
