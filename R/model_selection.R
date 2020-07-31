@@ -17,8 +17,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   if(intercept_model){
     beta_formulas <- c("intercept",beta_formulas)
   }
-
-  beta_formulas <- .check_formulas(data$x,beta_formulas)
+  #beta_formulas <- .check_formulas(data$x,beta_formulas)
   # Construct train/validation splits for cross_validation
   if(selection == "cross_validation"){
     datasets <- .split_data(data,n,training_proportion)
@@ -26,8 +25,8 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     valid <- datasets$valid
     new_args <- args
     new_args$n <- as.integer(n * training_proportion)
-    beta_formulas <- .check_formulas(train$x,beta_formulas)
-    beta_formulas <- .check_formulas(valid$x,beta_formulas)
+    #beta_formulas <- .check_formulas(train$x,beta_formulas)
+    #beta_formulas <- .check_formulas(valid$x,beta_formulas)
   }else{
     train <- data
     new_args <- args
@@ -46,14 +45,18 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
 
   for(row_index in 1:n_permutations){
     row <- param_grid[row_index,]
-    new_args$beta_formula <- beta_formulas[row$formula]
+    new_args$beta_formula <- beta_formulas[[row$formula]]
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(train, new_args,init_params[[row$nclasses]])
 
-    model <- EM(model, preset_iter = args$niter_ms,save_model=(selection=="cross_validation"))#,silent=TRUE)
+    model <- try(EM(model, preset_iter = args$niter_ms,save_model=(selection=="cross_validation")),silent=TRUE)
 
     if (class(model)[1] == "try-error"){
+      #If this is the first time this formula has been encountered
+      if(row$nclasses == 1){
+        warning(paste0("Invalid beta formula found: ",paste(format(beta_formulas[[3]])),". Ignoring formula."))
+      }
       param_grid[row_index, "log_like"] <- -Inf
       param_grid[row_index, "penalty"] <- 0
     }else{
@@ -75,9 +78,8 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
   max_index <- which(param_grid$value == max(param_grid$value), arr.ind = TRUE)
   beta_formula_ind <- param_grid[max_index,"formula"]
   nclasses_ind <- param_grid[max_index,"nclasses"]
-  args$beta_formula <- beta_formulas[beta_formula_ind]
+  args$beta_formula <- beta_formulas[[beta_formula_ind]]
   args$nclasses <- nclasses_list[nclasses_ind]
-
   cat("Model selection completed.\n")
   print(args$beta_formula)
   # If using cross_validation, model needs to be reinitialized with full data and pretrained
@@ -151,14 +153,14 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
     penalty <- 0
   } else {
     # df degrees of freedom in beta
-    # (class-1)*2 degrees of freedom in mu and tau^2+1
+    # nclasses*2 degrees of freedom in mu and tau^2+1
     if(model$args$beta_formula == "intercept"){
       df <- 1
     }else{
       df <- model$params$df
     }
 
-    d <-  (model$args$nclasses - 1) * (df + 2)
+    d <-  (model$args$nclasses ) * (df + 2)
     # BIC is divided by -2 so that large values are desirable
     if(selection == "BIC"){
       penalty <- log(total_n)*d/2

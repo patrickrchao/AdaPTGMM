@@ -99,11 +99,8 @@
 }
 
 .evaluate_formula <- function(x,formula){
-  if(formula == "intercept"){
-    return(x)
-  }else{
+  if(formula != "intercept"){
     new_x <- eval(parse(text=formula),x)
-    colnames(new_x)
   }
 }
 
@@ -126,5 +123,7 @@ complete_pkg <- function(formula){
     }
     formula <- gsub("([^:a-z])s\\(", "\\1mgcv::s\\(", formula)
   }
+  formula <- paste0("class ~ ",formula)
+  formula <- as.formula(formula)
   return(formula)
 }

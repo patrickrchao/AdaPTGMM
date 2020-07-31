@@ -50,10 +50,10 @@ adapt_gmm <- function(x = NULL,
                       rendpoint = NULL,
                       lendpoint = NULL,
                       beta_formulas = NULL,
-                      nclasses = c(2,3,4),
+                      nclasses = c(2,3,4,5),
                       niter_fit = 3,
-                      niter_ms = 10, #change to 5
-                      nfit = 20, # change to 5
+                      niter_ms = 5,
+                      nfit = 5,
                       alpha_m = NULL,
                       zeta = NULL,
                       lambda = NULL,
@@ -65,6 +65,7 @@ adapt_gmm <- function(x = NULL,
                       return_all_models = FALSE){
   #set.seed(1)
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
+
   n=nrow(x)
   beta_formulas <- unlist(lapply(beta_formulas,complete_pkg))
 
