@@ -25,8 +25,9 @@ m_step_beta <- function(model,gammas,save_beta=FALSE){
     }
   }else{
     x <- model$data$x
+    rownames(x) <- NULL
     multinom_data <- data.frame(x,gammas)
-    formula <- paste0("class ~ ",beta_formula)
+    formula <- beta_formula
     # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
     if(!is.null(model$params$beta)){
       est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta)

@@ -160,7 +160,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,selection,inte
       df <- model$params$df
     }
 
-    d <-  (model$args$nclasses ) * (df + 2)
+    d <-  model$args$nclasses * 2 + df
     # BIC is divided by -2 so that large values are desirable
     if(selection == "BIC"){
       penalty <- log(total_n)*d/2
