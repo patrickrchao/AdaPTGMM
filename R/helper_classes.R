@@ -15,12 +15,13 @@
 #' @param nfit Number of model updates in AdaPT procedure
 #' @param n Number of hypotheses
 #' @param initialization Initialization procedure, kmeans or random
+#' @param tol EM early stopping tolerance
 #' @param beta_formula Beta formula for model
 #' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization,tol,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing=="one_sided"){
@@ -62,7 +63,8 @@ construct_args <- function(testing,rendpoint,lendpoint,masking_params,masking_sh
                all_a = all_a,
                n  = n,
                initialization = initialization,
-               jacobian = jacobian
+               jacobian = jacobian,
+               tol = tol
                )
   class(args) <- "args"
   return(args)

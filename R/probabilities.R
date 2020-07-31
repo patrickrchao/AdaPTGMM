@@ -9,22 +9,13 @@
 class_prob <- function(beta_model,nclasses,n,x=NULL){
 
   # If model is an intercept model
-    if(typeof(beta_model) == "double"){
-      prob <- data.frame(t(beta_model))
-    } else if(!is.null(x)){
-
-
-
-        prob <- predict(beta_model,type="probs",newdata=x)
-    }else{
-
-
-      prob <- fitted(beta_model)
-    }
+  if(typeof(beta_model) == "double"){
+    prob <- data.frame(t(beta_model))
+  }else{
+    prob <- fitted(beta_model)
+  }
     # Divide by the number of classes since the input data uses n*nclasses data points
     # fitted(beta) repeats predictions for various classes
-
-
   prob <- .format_class_prob(prob,n,nclasses)
   return(prob)
 }

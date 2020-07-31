@@ -8,7 +8,7 @@
 #' @param model Model class with data, args, and initialize parameters
 #'
 #' @return Model class with updated parameters.
-EM <- function(model, preset_iter=NULL,save_model=FALSE){
+EM <- function(model, preset_iter=NULL){
 
 
   if(is.null(preset_iter)){
@@ -18,13 +18,24 @@ EM <- function(model, preset_iter=NULL,save_model=FALSE){
   }
 
   w_ika <- NULL
+
   for(i in seq(niter)){
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model,w_ika)
     if(i>1){
-      model <- m_step_beta(model,gammas,save_beta=((i==niter)&save_model))
+      model <- m_step_beta(model,gammas)
     }
+
     model$params <- m_step_mu_tau(model,w_ika)
   }
   return(model)
 }
+
+
+#
+# .early_stopping_like <- function(new_log_like,prev_log_like,tol){
+#   diff <- new_log_like -prev_log_like
+#   #cat(diff)
+#   #cat("\n")
+#   return(diff < tol)
+# }

@@ -12,7 +12,7 @@
 #' Perform checks for valid parameters
 #'
 #' @noRd
-.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas){
+.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas, tol){
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
@@ -60,6 +60,9 @@
     if(lendpoint > rendpoint){
       stop("Invalid input for endpoints. Right endpoint must be greater than left endpoint.")
     }
+  }
+  if(tol<= 0 ){
+    stop("tol must be greater than 0.")
   }
 }
 

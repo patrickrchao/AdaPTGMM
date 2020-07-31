@@ -29,7 +29,8 @@
 #' This is the most expensive part of the procedure, we recommend smaller number (<5) of iterations for larger problems. Default is 10.
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
-#' @param selection Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{cross_validation}".
+#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{BIC}".
+#' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
 #' @param initialization Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
 #' "\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".
 #' @param return_all_models Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
@@ -50,16 +51,17 @@ adapt_gmm <- function(x = NULL,
                       rendpoint = NULL,
                       lendpoint = NULL,
                       beta_formulas = NULL,
-                      nclasses = c(2,3,4,5),
-                      niter_fit = 3,
-                      niter_ms = 5,
+                      nclasses = c(2,4,6),
+                      niter_fit = 5,
+                      niter_ms = 10,
                       nfit = 5,
                       alpha_m = NULL,
                       zeta = NULL,
                       lambda = NULL,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
-                      selection = "cross_validation",
+                      cr = "BIC",
+                      tol = 1e-4,
                       initialization = "kmeans",
                       intercept_model = TRUE,
                       return_all_models = FALSE){
@@ -70,13 +72,13 @@ adapt_gmm <- function(x = NULL,
   beta_formulas <- unlist(lapply(beta_formulas,complete_pkg))
 
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
-  .input_checks(x, pvals, z, testing, rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas)
+  .input_checks(x, pvals, z, testing, rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas,tol)
 
-  args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
+  args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization,tol)
   data <- construct_data(x,pvals,z,args)
 
 
-  model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
+  model <- model_selection(data,args,beta_formulas,nclasses,cr,intercept_model,initialization)
 
 
   data <- model$data
@@ -117,14 +119,15 @@ adapt_gmm <- function(x = NULL,
   rejection_set <- data$mask & (data$pvals < args$alpha_m)
   A_t <-  sum(data$mask & data$pvals > args$lambda)
   R_t <-  sum(rejection_set)
-  fdphat <- (A_t + 1) / max(R_t, 1)/args$zeta
+  fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
+
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
-
+    print(paste(min_fdp,mean(data$x$theta[data$mask & data$a == "s"]<=0)))
     while (min_fdp > alpha & R_t > 0) {
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
-        #model <- model_selection(data,args,beta_formulas,nclasses,selection,intercept_model,initialization)
+        #model <- model_selection(data,args,beta_formulas,nclasses,cr,intercept_model,initialization)
         model$data <- data
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
@@ -144,10 +147,14 @@ adapt_gmm <- function(x = NULL,
 
       nrevealed <- nrevealed + 1
       reveal_order_index <- reveal_order_index + 1
+      #print(paste(R_t,A_t,sum(data$mask),R_t+A_t))
+      #test <- compute_fdphat(data,model$args)
+      #print(paste("Real",test$R_t,test$A_t,test$R_t+test$A_t))
+      fdphat <- (A_t + 1)/args$zeta / max(R_t, 1)
 
-      fdphat <- (A_t + 1) / max(R_t, 1)/args$zeta
       min_fdp <- min(min_fdp,fdphat)
     }
+    model$data <- data
     rejection_set <- data$mask & (data$pvals < args$alpha_m)
     nrejs[sorted_indices[index]] <- R_t
     rejs[[sorted_indices[index]]] <- rejection_set

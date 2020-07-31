@@ -7,7 +7,7 @@
 #' @details Performs a multinomial logistic regression from nnet class
 #' @return model
 #' @noRd
-m_step_beta <- function(model,gammas,save_beta=FALSE){
+m_step_beta <- function(model,gammas){
 
 
   nclasses <- model$args$nclasses
@@ -20,9 +20,6 @@ m_step_beta <- function(model,gammas,save_beta=FALSE){
     beta <- beta/sum(beta)
     model$data$class_prob <-  class_prob(beta,nclasses,model$args$n)
     model$params$df <- length(beta)
-    if(save_beta){
-      model$params$beta_model <-beta
-    }
   }else{
     x <- model$data$x
     rownames(x) <- NULL
@@ -38,13 +35,8 @@ m_step_beta <- function(model,gammas,save_beta=FALSE){
     model$params$df <- est_beta$edf
     model$data$class_prob <- class_prob(est_beta,nclasses,model$args$n)#.format_class_prob(fitted(est_beta),model$args$n,nclasses)
     beta <- est_beta$wts
-
-    if(save_beta){
-      model$params$beta_model <- est_beta
-    }
   }
 
-  # Update class probabilities
 
   # Update beta
   model$params$beta <- beta
