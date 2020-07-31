@@ -123,7 +123,7 @@ adapt_gmm <- function(x = NULL,
 
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
-    print(paste(min_fdp,mean(data$x$theta[data$mask & data$a == "s"]<=0)))
+   # print(paste(min_fdp,mean(data$x$theta[data$mask & data$a == "s"]<=0)))
     while (min_fdp > alpha & R_t > 0) {
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
