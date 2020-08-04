@@ -23,7 +23,10 @@ EM <- function(model, preset_iter=NULL){
 
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model,w_ika)
-    if(i>1){
+    # Do not update beta for the first iteration
+    # if in model selection
+    # This is to initialize the model with an intercept only model
+    if(i>1 & is.null(model$params$beta)){
       model <- m_step_beta(model,gammas)
     }
     model$params  <- m_step_mu_tau(model,w_ika)
