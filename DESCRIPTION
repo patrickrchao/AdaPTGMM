@@ -8,6 +8,5 @@ Description: adaptgmm is a FDR framework that creates Gaussian Mixture Models fo
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
-Imports: splines, nnet, tidyr, dplyr, magrittr, ggvoronoi, ggplot2
-  
+RoxygenNote: 7.1.1
+Imports: splines, nnet, tidyr, dplyr, magrittr, ggvoronoi, ggplot2, data.table

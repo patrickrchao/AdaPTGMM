@@ -15,8 +15,7 @@ m_step_beta <- function(model,gammas){
   if(beta_formula == "intercept"){
     # If there is only a single degree of freedom (intercept only model),
     # we may estimate the class probabilities by considering the mean for each class.
-    grouped <- dplyr::group_by(gammas,class)
-    beta <- dplyr::ungroup(dplyr::summarise(grouped, value=mean(value)))$value
+    beta <- gammas[,.(value=sum(value)),by=class]$value
     beta <- beta/sum(beta)
     model$data$class_prob <-  class_prob(beta,nclasses,model$args$n)
     model$params$df <- length(beta)
@@ -25,6 +24,7 @@ m_step_beta <- function(model,gammas){
     rownames(x) <- NULL
     multinom_data <- data.frame(x,gammas)
     formula <- beta_formula
+
     # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
     if(!is.null(model$params$beta)){
       est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta)
@@ -32,8 +32,9 @@ m_step_beta <- function(model,gammas){
     }else{
       est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
     }
+
     model$params$df <- est_beta$edf
-    model$data$class_prob <- class_prob(est_beta,nclasses,model$args$n)#.format_class_prob(fitted(est_beta),model$args$n,nclasses)
+    model$data$class_prob <- class_prob(est_beta,nclasses,model$args$n)
     beta <- est_beta$wts
   }
 

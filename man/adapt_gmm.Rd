@@ -12,21 +12,24 @@ adapt_gmm(
   rendpoint = NULL,
   lendpoint = NULL,
   beta_formulas = NULL,
-  nclasses = c(2, 3, 4),
-  niter_fit = 3,
+  nclasses = c(2, 4, 6),
+  niter_fit = 5,
   niter_ms = 10,
-  nfit = 20,
-  alpha_m = 0.05,
-  zeta = 0.1,
-  lambda = 0.4,
+  nfit = 5,
+  alpha_m = NULL,
+  zeta = NULL,
+  lambda = NULL,
   masking_shape = "tent",
   alphas = seq(0.01, 1, 0.01),
-  selection = "cross_validation",
-  intercept_model = TRUE
+  cr = "BIC",
+  tol = 1e-04,
+  initialization = "kmeans",
+  intercept_model = TRUE,
+  return_all_models = FALSE
 )
 }
 \arguments{
-\item{x}{Vector of covariates TODO: (specify type)}
+\item{x}{Dataframe of covariates TODO: (specify type)}
 
 \item{pvals}{Vector of p-values (supply either pvals or test statistics)}
 
@@ -52,9 +55,6 @@ longer the list of possible values, the longer the model selection procedure tak
 
 \item{alpha_m}{The maximum possible rejected p-value. We recommend \eqn{0.01\le \alpha_m \le 0.1}, default is 0.1.}
 
-\item{zeta}{Controls minimum possible number of rejections, we recommend small values of zeta with low total number of samples.
-If \code{zeta}=\eqn{\alpha}, the desired FDR level, any number of rejections is possible.}
-
 \item{lambda}{Controls where p-values are mirrored, boundary of blue region. TODO: Fix wording. We recommend \eqn{0.3\le\lambda\le 0.5}, default is 0.4
 This is the most expensive part of the procedure, we recommend smaller number (<5) of iterations for larger problems. Default is 10.}
 
@@ -62,7 +62,17 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{alphas}{Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].}
 
-\item{selection}{Type of selection procedure in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{cross_validation}". Default is "\code{cross_validation}".}
+\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{BIC}".}
+
+\item{tol}{Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.}
+
+\item{initialization}{Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
+"\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".}
+
+\item{intercept_model}{Boolean.Include intercept only model in the model selection, default is \code{TRUE}.}
+
+\item{return_all_models}{Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
+Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.}
 
 \item{ndf}{Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. The vector corresponds to the possible
 degrees of freedom to select in the model selection procedure. Minimum degrees of freedom is 1, representing no relationship
@@ -78,6 +88,6 @@ returns rejections and fitted parameters.
 }
 \details{
 The constraint on these masking function parameters is
-\deqn{0< \alpha_m \le \lambda <\lambda+ \alpha_m/\zeta\le 1.}
+\deqn{0< \alpha_m \le \lambda <\lambda+ \alpha_m\zeta\le 1.}
 Setting \code{alpha_m} to 0.5, \code{lambda} to 0.5, \code{zeta} to 1, and \code{masking_shape} to "\code{tent}" results in the AdaPT masking function.
 }

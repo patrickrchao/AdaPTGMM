@@ -79,9 +79,9 @@ marginalize <- function(w_ika, margin_vars){
 
   all_vars <- c("i","class","a")
   group_by_vars <- setdiff(all_vars,margin_vars)
-
-  groups <-   dplyr::group_by(w_ika,.dots=group_by_vars)
-  new_w_ika <- dplyr::ungroup(dplyr::summarise(groups,value=sum(value)))
+  new_w_ika <- w_ika[, .(value=sum(value)), by = group_by_vars]
+  #groups <-   dplyr::group_by(w_ika,.dots=group_by_vars)
+  #new_w_ika <- dplyr::ungroup(dplyr::summarise(groups,value=sum(value)))
 
   # Avoid piping for speed
   # Equivalent to

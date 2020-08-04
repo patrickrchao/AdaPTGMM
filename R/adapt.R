@@ -116,19 +116,19 @@ adapt_gmm <- function(x = NULL,
   odds_per_alpha <- rep(Inf,n_alphas)
 
   reveal_hypo <- NULL
-  rejection_set <- data$mask & (data$pvals < args$alpha_m)
+  rejection_set <- which(data$mask & (data$pvals < args$alpha_m))
   A_t <-  sum(data$mask & data$pvals > args$lambda)
-  R_t <-  sum(rejection_set)
+  R_t <-  length(rejection_set)
   fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
 
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
-   # print(paste(min_fdp,mean(data$x$theta[data$mask & data$a == "s"]<=0)))
     while (min_fdp > alpha & R_t > 0) {
 
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
-        #model <- model_selection(data,args,beta_formulas,nclasses,cr,intercept_model,initialization)
+
         model$data <- data
+        #model <- model_selection(data,args,beta_formulas,nclasses,cr,intercept_model,initialization)
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
         to_reveal_order <- order(big_odds, decreasing=TRUE)
@@ -155,7 +155,7 @@ adapt_gmm <- function(x = NULL,
       min_fdp <- min(min_fdp,fdphat)
     }
     model$data <- data
-    rejection_set <- data$mask & (data$pvals < args$alpha_m)
+    rejection_set <- which(data$mask & (data$pvals < args$alpha_m))
     nrejs[sorted_indices[index]] <- R_t
     rejs[[sorted_indices[index]]] <- rejection_set
     qvals[rejection_set] <- min(min_fdp,qvals[rejection_set])

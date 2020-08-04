@@ -9,7 +9,7 @@
 #'
 #' @return Initialized and pretrained model with best performance based on selection criterion
 #' @keywords Internal
-model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_model,initialization){
+model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_model,initialization,param_grid=NULL){
   n <- args$n
   niter_ms <- args$niter_ms
   cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
@@ -19,13 +19,17 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 
   # Construct grid of all parameter combinations
   # corresponds to indices in beta_formulas and nclasses_list
-  param_grid <-  expand.grid(1:length(beta_formulas),1:length(nclasses_list))
-  colnames(param_grid) <- c("formula","nclasses")
+  if(is.null(param_grid)){
+    param_grid <-  expand.grid(1:length(beta_formulas),1:length(nclasses_list))
+    colnames(param_grid) <- c("formula","nclasses")
+  }
+
+
   n_permutations <- nrow(param_grid)
   #model_list <- vector("list",n_permutations)
 
   init_params <- lapply(nclasses_list,function(x)initialize_params(data,x,initialization))
-  best_value <- -Inf
+  best_value <- Inf
   best_index <- 0
 
   pb <- txtProgressBar(min = 1, max = n_permutations, style = 3, width = 50)
@@ -37,7 +41,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 
     model <- create_model(data, new_args,init_params[[row$nclasses]])
 
-    model <- try(EM(model, preset_iter = niter_ms),silent=TRUE)
+    model <-EM(model, preset_iter = niter_ms)#,silent=TRUE)
 
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
@@ -56,14 +60,14 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 
       param_grid[row_index, "log_like"] <- log_like
       param_grid[row_index, "value"] <- value
-      if( value > best_value){
+      if( value < best_value){
         best_model <- model
         best_value <- value
       }
     }
     setTxtProgressBar(pb, row_index)
   }
-  if(best_value == -Inf){
+  if(best_value == Inf){
     stop("All beta formula models are invalid.")
   }
   cat("\n")
@@ -89,15 +93,16 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 #' @return list of model and penalty
 #' @noRd
 .selection_helper <- function(cr, model){
+  nclasses <- model$args$nclasses
   # df degrees of freedom in beta
   log_like <- log_likelihood(model)
   if(model$args$beta_formula == "intercept"){
-    df <- 1
+    df <- nclasses - 1
   }else{
     df <- model$params$df
   }
   # nclasses*2 degrees of freedom in mu and tau^2+1
-  d <-  model$args$nclasses * 2 + df
+  d <-  nclasses * 2 + df
   n <- model$args$n
   value <- info_cr(log_like,cr,d,n)
 

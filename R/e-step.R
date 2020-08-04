@@ -1,13 +1,11 @@
 #' Perform Expectation step for gamma
 #'
-#' We just need to sum over a in the w_ika computation
+#' We need to sum over a in the w_ika computation
 #' @return gamma probability
 #' P[\gamma_i = k | x_i, \tilde p_i]=
 #' \sum_{a} P[\gamma_i = k | x_i] P[a_i=a_ia,\tilde p_i | \gamma_i=k]/\sum_{a',k'} P[\gamma_i = k' | x_i] P[a_i=a_ia',\tilde p_i | \gamma_i=k']
-#' @importFrom magrittr "%>%"
 #' @noRd
 e_step_gamma <- function(model,w_ika){
-
   gammas <- subset(marginalize(w_ika,"a"),select=-c(i))
   gammas <- gammas[order(gammas$class),]
   return(gammas)
@@ -51,9 +49,8 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   # if previous w_ika exists, use previous w_ika
   if(is.null(prev_w_ika)){
     # 5 columns corresponding to a, class, i, value, z
-    w_ika <- data.frame(matrix(0,nrow=num_a*nclasses*n,ncol=5))
-    colnames(w_ika) <- c("a","class","i","value","z")
-
+    w_ika <- data.table::data.table(matrix(0,nrow=num_a*nclasses*n,ncol=5))
+    setnames(w_ika,c("a","class","i","value","z"))
 
     # Fill in w_ika table
     w_ika$i <- rep(1:n, num_a * nclasses)
@@ -92,12 +89,17 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   }
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
-  groups <- dplyr::group_by(w_ika,i) #groupby hypotheses
+
+  #groups <- dplyr::group_by(w_ika,i) #groupby hypotheses
+
   if(!agg_over_hypotheses){
     #sum over a and gamma and divide by the total
-    w_ika <- dplyr::ungroup(dplyr::mutate(groups,value = value / sum(value)))
+    w_ika <- w_ika[,total := sum(value),by=i]
+    w_ika <- w_ika[,value := value/total]
+    #w_ika <- dplyr::ungroup(dplyr::mutate(groups,value = value / sum(value)))
   }else{
-    w_ika <-  dplyr::summarise(groups,value = sum(value))# sum over a and gamma
+    w_ika <-  w_ika[,.(value=sum(value)),by=i]
+    #w_ika <-  dplyr::summarise(groups,value = sum(value))# sum over a and gamma
   }
 
   return(w_ika)
@@ -139,7 +141,6 @@ w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
   }
 
   # Scale by class probability
-
   prob <- prob * data$class_prob[, class]
   return(prob)
 }
