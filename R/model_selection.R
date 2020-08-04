@@ -41,7 +41,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 
     model <- create_model(data, new_args,init_params[[row$nclasses]])
 
-    model <-EM(model, preset_iter = niter_ms)#,silent=TRUE)
+    model <-try(EM(model, preset_iter = niter_ms),silent=TRUE)
 
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
@@ -95,16 +95,23 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 .selection_helper <- function(cr, model){
   nclasses <- model$args$nclasses
   # df degrees of freedom in beta
-  log_like <- log_likelihood(model)
+
   if(model$args$beta_formula == "intercept"){
     df <- nclasses - 1
   }else{
     df <- model$params$df
   }
+  var <- NULL
+  log_like <- NA
+  if(cr == "var"){
+    var <- var(big_over_small_prob(model))
+  }else{
+    log_like <- log_likelihood(model)
+  }
   # nclasses*2 degrees of freedom in mu and tau^2+1
   d <-  nclasses * 2 + df
   n <- model$args$n
-  value <- info_cr(log_like,cr,d,n)
+  value <- info_cr(log_like,cr,d,n,var)
 
   return(list(log_like=log_like,value=value))
 }
@@ -112,7 +119,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 
 # From Lihua Lei adaptMT
 # https://github.com/lihualei71/adaptMT/blob/34d2f183e6cbb9842ce329da250a1de1d586b648/R/EM-mix-ms.R
-info_cr <- function(log_like, cr, df, n){
+info_cr <- function(log_like, cr, df, n,var=NULL){
   switch(cr,
          "AIC" = 2 * df - 2 * log_like,
          "AICC" = 2 * df * n / (n - df - 1),
