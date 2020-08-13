@@ -6,22 +6,15 @@
 #' @param class_probabilities
 #' @return Dataframe of class probabilities, columns represent classes and rows represent each hypothesis
 #' @noRd
-class_prob <- function(beta_model,nclasses,n,x=NULL){
-
-  # If model is an intercept model
-  if(typeof(beta_model) == "double"){
-    prob <- data.frame(t(beta_model))
-  }else{
+class_prob <- function(beta_model,nclasses,n,model_type){
+  #
+  if(model_type == "glm"){
     prob <- fitted(beta_model)
+  }else if(model_type == "gam"){
+    prob <- predict(beta_model,type="response")
   }
     # Divide by the number of classes since the input data uses n*nclasses data points
     # fitted(beta) repeats predictions for various classes
-  prob <- .format_class_prob(prob,n,nclasses)
-  return(prob)
-}
-
-
-.format_class_prob <- function(prob,n,nclasses){
   if(nclasses == 2){
     prob <- cbind(1-prob,prob)
   }
@@ -31,6 +24,7 @@ class_prob <- function(beta_model,nclasses,n,x=NULL){
   prob <- pmax(pmin(prob,1 - 1e-12), 1e-12)
   return(prob)
 }
+
 #' Helper function to compute probability of big/small and masked p-value conditioned on class in one sided case
 #' for specific hypothesis
 #'

@@ -4,18 +4,14 @@
 #' @param beta_formulas List of formulas for beta expansion
 #' @param nclasses_list Vector for possible number of classes
 #' @param cr Criterion for model selection
-#' @param intercept_model Boolean whether to include intercept model
 #' @param initialization Initialization procedure, either kmeans or random
 #'
 #' @return Initialized and pretrained model with best performance based on selection criterion
 #' @keywords Internal
-model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_model,initialization,param_grid=NULL){
+model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initialization,param_grid=NULL){
   n <- args$n
   niter_ms <- args$niter_ms
   cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
-  if(intercept_model){
-    beta_formulas <- c("intercept",beta_formulas)
-  }
 
   # Construct grid of all parameter combinations
   # corresponds to indices in beta_formulas and nclasses_list
@@ -40,8 +36,9 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(data, new_args,init_params[[row$nclasses]])
-
-    model <-try(EM(model, preset_iter = niter_ms),silent=TRUE)
+   # print(row_index)
+   # browser()
+    model <- EM(model, preset_iter = niter_ms)#,silent=TRUE)
 
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
@@ -95,23 +92,21 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 .selection_helper <- function(cr, model){
   nclasses <- model$args$nclasses
   # df degrees of freedom in beta
-
-  if(model$args$beta_formula == "intercept"){
-    df <- nclasses - 1
-  }else{
-    df <- model$params$df
-  }
-  var <- NULL
-  log_like <- NA
-  if(cr == "var"){
-    var <- var(big_over_small_prob(model))
+  if(cr == "spread"){
+    probs <- big_over_small_prob(model)
+    probs <- probs/(probs+1)
+    # Multiply by negative 1 since smaller values are more desirable
+    value <- -1 * mean(abs(probs-0.5))
+    log_like <- NA
   }else{
     log_like <- log_likelihood(model)
+    df <- model$params$df
+    # nclasses*2 degrees of freedom in mu and tau^2+1
+    d <-  nclasses * 2 + df
+    n <- model$args$n
+    value <- info_cr(log_like,cr,d,n)
   }
-  # nclasses*2 degrees of freedom in mu and tau^2+1
-  d <-  nclasses * 2 + df
-  n <- model$args$n
-  value <- info_cr(log_like,cr,d,n,var)
+
 
   return(list(log_like=log_like,value=value))
 }
@@ -119,12 +114,13 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,intercept_m
 
 # From Lihua Lei adaptMT
 # https://github.com/lihualei71/adaptMT/blob/34d2f183e6cbb9842ce329da250a1de1d586b648/R/EM-mix-ms.R
-info_cr <- function(log_like, cr, df, n,var=NULL){
+info_cr <- function(log_like, cr, df, n){
   switch(cr,
          "AIC" = 2 * df - 2 * log_like,
          "AICC" = 2 * df * n / (n - df - 1),
          "BIC" = log(n) * df - 2 * log_like,
-         "HIC" = 2 * log(log(n)) * df - 2 * log_like)
+         "HIC" = 2 * log(log(n)) * df - 2 * log_like,
+         NULL)
 }
 
 

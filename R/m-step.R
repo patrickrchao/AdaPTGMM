@@ -4,43 +4,44 @@
 #' @param gammas Estimated gammas from e_step_gammas use as weights, dataframe where columns correspond to classes
 #' and rows correspond to hypotheses. Each row sums to 1.
 #'
-#' @details Performs a multinomial logistic regression from nnet class
+#' @details Performs a multinomial logistic regression
 #' @return model
 #' @noRd
 m_step_beta <- function(model,gammas){
 
-
+  model_type <- model$args$model_type
   nclasses <- model$args$nclasses
   beta_formula <- model$args$beta_formula
-  if(beta_formula == "intercept"){
-    # If there is only a single degree of freedom (intercept only model),
-    # we may estimate the class probabilities by considering the mean for each class.
-    beta <- gammas[,.(value=sum(value)),by=class]$value
-    beta <- beta/sum(beta)
-    model$data$class_prob <-  class_prob(beta,nclasses,model$args$n)
-    model$params$df <- length(beta)
-  }else{
-    x <- model$data$x
-    rownames(x) <- NULL
-    multinom_data <- data.frame(x,gammas)
-    formula <- beta_formula
 
-    # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
-    if(!is.null(model$params$beta)){
-      est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta)
+  x <- model$data$x
+  rownames(x) <- NULL
+  multinom_data <- data.frame(x,gammas)
+  multinom_data$class <- multinom_data$class - 1
 
-    }else{
-      est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
-    }
-
-    model$params$df <- est_beta$edf
-    model$data$class_prob <- class_prob(est_beta,nclasses,model$args$n)
-    beta <- est_beta$wts
+  if(model_type == "glm"){
+    formula <- as.formula(paste("class",beta_formula))
+  }else if(model_type == "gam"){
+   formulas <- lapply(c(paste("class",beta_formula),rep(beta_formula,nclasses-2)),as.formula)
   }
 
-
-  # Update beta
-  model$params$beta <- beta
+  # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
+  if(!is.null(model$params$beta)){
+    if(model_type == "glm"){
+      est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta,optimizer = c("outer","bfgs"))
+    }else if(model_type == "gam"){
+       est_beta <- gam(formulas, family=mgcv::multinom(K=nclasses-1), data=multinom_data,weights = value)
+    }
+  }else{
+    if(model_type == "glm"){
+      est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
+    }else if(model_type == "gam"){
+      est_beta <- gam(formulas, family=mgcv::multinom(K=nclasses-1), data=multinom_data,weights = value,optimizer = c("outer","bfgs"))
+    }
+  }
+  model$params$df <- sum(est_beta$edf)
+  model$data$class_prob <- class_prob(est_beta,nclasses,model$args$n,model_type)
+  #model$params$beta <- est_beta$wts
+  model$params$beta <- est_beta$wts
 
   return(model)
 }

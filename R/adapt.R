@@ -10,11 +10,8 @@
 #' @param rendpoint Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.
 #' @param lendpoint Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
 #' \code{lendpoint} will be assumed to be \code{-rendpoint}.
-#' @param ndf Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. The vector corresponds to the possible
-#' degrees of freedom to select in the model selection procedure. Minimum degrees of freedom is 1, representing no relationship
-#' between covariates and hypotheses. Note: Recommended to use <7 degrees of freedom.
-#' Default is c(1,3,5). The greater the number of degrees of freedom the longer it takes the beta model to fit, and the
-#' longer the list of possible values, the longer the model selection procedure takes.
+#' @param beta_formulas TODO: Fill this in
+#' @param model_type Type of model used for modeling beta, options include \code{gam} and \code{glm}. Default is \code{glm}.
 #' @param nclasses Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 #' number of classes to select in the model selection procedure. Minimum number of classes is 2.
 #' Note: recommended to use <5 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
@@ -51,6 +48,7 @@ adapt_gmm <- function(x = NULL,
                       rendpoint = NULL,
                       lendpoint = NULL,
                       beta_formulas = NULL,
+                      model_type = "glm",
                       nclasses = c(2,3,4),
                       niter_fit = 5,
                       niter_ms = 10,
@@ -69,16 +67,16 @@ adapt_gmm <- function(x = NULL,
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
 
   n=nrow(x)
-  beta_formulas <- unlist(lapply(beta_formulas,complete_pkg))
+  beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
 
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
-  .input_checks(x, pvals, z, testing, rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas,tol)
+  .input_checks(x, pvals, z, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas,cr)
 
-  args <- construct_args(testing,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization,tol)
+  args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
   data <- construct_data(x,pvals,z,args)
 
 
-  model <- model_selection(data,args,beta_formulas,nclasses,cr,intercept_model,initialization)
+  model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
 
 
   data <- model$data

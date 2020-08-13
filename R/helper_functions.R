@@ -12,7 +12,7 @@
 #' Perform checks for valid parameters
 #'
 #' @noRd
-.input_checks <- function(x,pvals,z,testing,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas, tol){
+.input_checks <- function(x,pvals,z,testing,model_type,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas,cr){
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
@@ -61,8 +61,9 @@
       stop("Invalid input for endpoints. Right endpoint must be greater than left endpoint.")
     }
   }
-  if(tol<= 0 ){
-    stop("tol must be greater than 0.")
+
+  if(!(cr  %in% c("AIC","BIC","HIC","AICC","spread"))){
+    stop("Invalid criterion inputted. Valid criterion are AIC, BIC, HIC, AICC, spread")
   }
 }
 
@@ -76,36 +77,16 @@
   return(function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper, tol=.Machine$double.eps^2)[1])
 }
 
-
-#' Helper function to ensure all formulas are valid
-#'
-#' @param x dataframe of covariates
-#' @param beta_formulas list of all beta formulas
-.check_formulas <- function(x,beta_formulas){
-  new_formulas <- lapply(beta_formulas,function(formula){
-  tryCatch({
-        .evaluate_formula(x,formula)
-        return(formula)
-      }, error = function(e) {
-        warning(paste0("Invalid beta_formula found: ",formula,". Ignoring formula."))
-        return("invalid")
-      })
-  })
-
-  new_formulas <- unlist(new_formulas[new_formulas!="invalid"])
-  if(length(new_formulas)==0){
-    stop("All formulas are invalid. Stopping.")
-  }else if(length(new_formulas) == 1 & new_formulas[1] == "intercept"){
-    warning("Only using intercept model.")
+clean_beta_formulas <- function(beta_formulas,include_intercept_model){
+  if(include_intercept_model & !("+1" %in% beta_formulas)){
+    beta_formulas <- c("+1",beta_formulas)
   }
-  return(new_formulas)
+  return(unlist(lapply(beta_formulas,complete_pkg)))
 }
 
-.evaluate_formula <- function(x,formula){
-  if(formula != "intercept"){
-    new_x <- eval(parse(text=formula),x)
-  }
-}
+
+
+
 
 # From Lihua Lei's AdaPTMT Package
 # https://github.com/lihualei71/adaptMT/blob/master/R/helpers.R
@@ -124,9 +105,41 @@ complete_pkg <- function(formula){
     if (!requireNamespace("mgcv", quietly = TRUE)){
       stop("package \'mgcv\' not found. Please install.")
     }
-    formula <- gsub("([^:a-z])s\\(", "\\1mgcv::s\\(", formula)
   }
-  formula <- paste0("class ~ ",formula)
-  formula <- as.formula(formula)
+  if (grepl("([^:a-z])mgcv::s\\(", formula)){
+    formula <- gsub( "([^:a-z])mgcv::s\\(","\\1s\\(", formula)
+  }
+  formula <- paste0(" ~ ",formula)
+  #formula <- as.formula(formula)
   return(formula)
 }
+
+
+
+#' #' Helper function to ensure all formulas are valid
+#' #'
+#' #' @param x dataframe of covariates
+#' #' @param beta_formulas list of all beta formulas
+#' .check_formulas <- function(x,beta_formulas){
+#'   new_formulas <- lapply(beta_formulas,function(formula){
+#'   tryCatch({
+#'         .evaluate_formula(x,formula)
+#'         return(formula)
+#'       }, error = function(e) {
+#'         warning(paste0("Invalid beta_formula found: ",formula,". Ignoring formula."))
+#'         return("invalid")
+#'       })
+#'   })
+#'
+#'   new_formulas <- unlist(new_formulas[new_formulas!="invalid"])
+#'   if(length(new_formulas)==0){
+#'     stop("All formulas are invalid. Stopping.")
+#'   }else if(length(new_formulas) == 1 & new_formulas[1] == "+1"){
+#'     warning("Only using intercept model.")
+#'   }
+#'   return(new_formulas)
+#' }
+#'
+#' .evaluate_formula <- function(x,formula){
+#'   new_x <- eval(parse(text=formula),x)
+#' }
