@@ -20,7 +20,6 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     colnames(param_grid) <- c("formula","nclasses")
   }
 
-
   n_permutations <- nrow(param_grid)
   #model_list <- vector("list",n_permutations)
 
@@ -38,7 +37,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     model <- create_model(data, new_args,init_params[[row$nclasses]])
    # print(row_index)
    # browser()
-    model <- EM(model, preset_iter = niter_ms)#,silent=TRUE)
+    model <- try(EM(model, preset_iter = niter_ms),silent=TRUE)
 
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered

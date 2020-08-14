@@ -29,19 +29,39 @@ m_step_beta <- function(model,gammas){
     if(model_type == "glm"){
       est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=5,Wts=model$params$beta,optimizer = c("outer","bfgs"))
     }else if(model_type == "gam"){
-       est_beta <- gam(formulas, family=mgcv::multinom(K=nclasses-1), data=multinom_data,weights = value)
+
+     # if(nclasses ==2 ){
+    #    est_beta <- bam(formulas, family=quasibinomial(), data=multinom_data,
+   #                    weights = value,control=gam.control(maxit=1),coef=model$params$beta)
+     # }else{
+        est_beta <- gam(formulas, family=mgcv::multinom(K=nclasses-1), data=multinom_data,optimizer = c("efs"),
+                        weights = value,control=gam.control(maxit=1),outer=gam.outer(start=model$params$beta))
+      #}
     }
   }else{
     if(model_type == "glm"){
       est_beta <- nnet::multinom(formula, multinom_data, weights = value, trace = FALSE,maxit=100)
     }else if(model_type == "gam"){
-      est_beta <- gam(formulas, family=mgcv::multinom(K=nclasses-1), data=multinom_data,weights = value,optimizer = c("outer","bfgs"))
+      #if(nclasses ==2 ){
+      #  est_beta <- bam(formulas, family=quasibinomial(), data=multinom_data,
+      #                  weights = value,control=gam.control(maxit=3,trace=T))
+      #}else{
+
+        est_beta <- gam(formulas, family=mgcv::multinom(K=nclasses-1), data=multinom_data,weights = value,
+                        optimizer = c("efs"),control=gam.control(maxit=3))
+      #}
+
     }
   }
   model$params$df <- sum(est_beta$edf)
   model$data$class_prob <- class_prob(est_beta,nclasses,model$args$n,model_type)
   #model$params$beta <- est_beta$wts
-  model$params$beta <- est_beta$wts
+  if(model_type == "glm"){
+    model$params$beta <- est_beta$wts
+  }else if(model_type == "gam"){
+    model$params$beta <- est_beta$coefficients
+  }
+
 
   return(model)
 }
