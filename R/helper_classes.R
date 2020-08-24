@@ -124,7 +124,7 @@ initialize_params <- function(data,nclasses,initialization){
     # Use true_z twice to count as double the weight
     all_z <- c(true_z,true_z,small_z,big_z)
 
-    out <- kmeans(all_z, nclasses, nstart=5)
+    out <- kmeans(all_z, nclasses, nstart=20)
 
     mu <- as.numeric(out$centers)
     pred <- data.frame(z=all_z,class=out$cluster)

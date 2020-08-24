@@ -126,7 +126,7 @@ adapt_gmm <- function(x = NULL,
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
 
         model$data <- data
-        #model <- model_selection(data,args,beta_formulas,nclasses,cr,intercept_model,initialization)
+       # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
         to_reveal_order <- order(big_odds, decreasing=TRUE)
@@ -145,9 +145,6 @@ adapt_gmm <- function(x = NULL,
 
       nrevealed <- nrevealed + 1
       reveal_order_index <- reveal_order_index + 1
-      #print(paste(R_t,A_t,sum(data$mask),R_t+A_t))
-      #test <- compute_fdphat(data,model$args)
-      #print(paste("Real",test$R_t,test$A_t,test$R_t+test$A_t))
       fdphat <- (A_t + 1)/args$zeta / max(R_t, 1)
 
       min_fdp <- min(min_fdp,fdphat)

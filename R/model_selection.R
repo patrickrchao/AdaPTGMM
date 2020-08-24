@@ -27,7 +27,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
   best_value <- Inf
   best_index <- 0
 
-  pb <- txtProgressBar(min = 1, max = n_permutations, style = 3, width = 50)
+  pb <- txtProgressBar(min = 0, max = n_permutations, style = 3, width = 50)
   for(row_index in 1:n_permutations){
     row <- param_grid[row_index,]
     new_args <- args
@@ -53,19 +53,25 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
       #Update grid loglikelihood and penalty
       log_like <- out$log_like
       value <- out$value
-
+      df <- out$df
       param_grid[row_index, "log_like"] <- log_like
       param_grid[row_index, "value"] <- value
+      param_grid[row_index, "df"] <- df
       if( value < best_value){
         best_model <- model
         best_value <- value
+        best_df <- df
       }
+
     }
     setTxtProgressBar(pb, row_index)
   }
+
   if(best_value == Inf){
     stop("All beta formula models are invalid.")
   }
+  best_model$params$value <- best_value
+  best_model$params$full_df <- best_df
   cat("\n")
   return(best_model)
 }
@@ -90,12 +96,31 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
 #' @noRd
 .selection_helper <- function(cr, model){
   nclasses <- model$args$nclasses
+  d <- NULL
   # df degrees of freedom in beta
   if(cr == "spread"){
     probs <- big_over_small_prob(model)
     probs <- probs/(probs+1)
+    probs <- probs[model$data$mask]
+    hist(probs,xlim = c(0,1))
     # Multiply by negative 1 since smaller values are more desirable
-    value <- -1 * mean(abs(probs-0.5))
+    value <- -1 * mean((probs-0.5)^2)
+    log_like <- NA
+  }else if(cr == "c entropy"){
+    probs <- big_over_small_prob(model)
+    probs <- probs/(probs+1)
+    probs <- probs[model$data$mask]
+    #hist(probs,xlim = c(0,1))
+    value <- -1* mean(round(probs)*log(probs))#mean((probs-0.5)^2)
+    log_like <- NA
+  }else if(cr == "cheating"){
+    probs <- big_over_small_prob(model)
+    probs <- probs/(probs+1)
+
+    probs <- probs[model$data$mask]
+    labels <-(model$data$a == "b")[model$data$mask]
+    hist(probs,xlim = c(0,1))
+    value <- -1 * mean(labels*log(probs))#mean((probs-0.5)^2)
     log_like <- NA
   }else{
     log_like <- log_likelihood(model)
@@ -107,7 +132,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
   }
 
 
-  return(list(log_like=log_like,value=value))
+  return(list(log_like=log_like,value=value,df=d))
 }
 
 

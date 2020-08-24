@@ -62,9 +62,9 @@
     }
   }
 
-  if(!(cr  %in% c("AIC","BIC","HIC","AICC","spread"))){
-    stop("Invalid criterion inputted. Valid criterion are AIC, BIC, HIC, AICC, spread")
-  }
+  #if(!(cr  %in% c("AIC","BIC","HIC","AICC","spread"))){
+  #  stop("Invalid criterion inputted. Valid criterion are AIC, BIC, HIC, AICC, spread")
+  #}
 }
 
 #' Helper function to find inverse of a function
@@ -109,8 +109,8 @@ complete_pkg <- function(formula){
   if (grepl("([^:a-z])mgcv::s\\(", formula)){
     formula <- gsub( "([^:a-z])mgcv::s\\(","\\1s\\(", formula)
   }
-  formula <- paste0(" ~ ",formula)
-  #formula <- as.formula(formula)
+  formula <- paste0("class  ~ ",formula)
+  formula <- as.formula(formula)
   return(formula)
 }
 

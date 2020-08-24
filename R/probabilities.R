@@ -6,10 +6,15 @@
 #' @param class_probabilities
 #' @return Dataframe of class probabilities, columns represent classes and rows represent each hypothesis
 #' @noRd
-class_prob <- function(beta_model,nclasses,n,model_type){
+class_prob <- function(beta_model,nclasses,n,model_type,x=NULL){
   #
   if(model_type == "glm"){
-    prob <- fitted(beta_model)
+    if(is.null(x)){
+      prob <- fitted(beta_model)
+    }else{
+
+      prob <- predict(beta_model,type="probs",newdata=x)
+    }
   }else if(model_type == "gam"){
     prob <- predict(beta_model,type="response")
   }
@@ -93,7 +98,9 @@ marginalize <- function(w_ika, margin_vars){
 #' @return Returns log likelihood of data given model
 #' @noRd
 log_likelihood <- function(model){
+
   w_ika_sums <- e_step_w_ika(model, include_z = FALSE, agg_over_hypotheses = TRUE)
+  # w_ika_sums corresponds to sum_{k,a} {P[a_ia=a,\tilde p_i|\gamma_i=k] P[\gamma_i=k|x_i]*\zeta^1{a_ia=b}}
   log_like <- sum(log(w_ika_sums$value))
   return(log_like)
 }

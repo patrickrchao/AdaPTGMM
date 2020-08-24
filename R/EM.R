@@ -33,11 +33,3 @@ EM <- function(model, preset_iter=NULL){
   return(model)
 }
 
-
-#
-# .early_stopping_like <- function(new_log_like,prev_log_like,tol){
-#   diff <- new_log_like -prev_log_like
-#   #cat(diff)
-#   #cat("\n")
-#   return(diff < tol)
-# }

@@ -31,7 +31,7 @@ e_step_gamma <- function(model,w_ika){
 #' Rows correspond to hypotheses
 #'
 #' P[gamma_i=k,a_i=a_ia | x_i, \tilde p_i]=
-#' {P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i]/\zeta^1{a_ia=b}}/ {\sum_{a',k'} P[a_i=a',\tilde p_i | \gamma=k']P[\gamma=k' | x_i] / \zeta^1{a_ia'=b}}
+#' {P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i]\zeta^1{a_ia=b}}/ {\sum_{a',k'} P[a_i=a',\tilde p_i | \gamma=k']P[\gamma=k' | x_i]  \zeta^1{a_ia'=b}}
 #' @noRd
 e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hypotheses = FALSE){
 
@@ -96,10 +96,10 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
     #sum over a and gamma and divide by the total
     w_ika <- w_ika[,total := sum(value),by=i]
     w_ika <- w_ika[,value := value/total]
-    #w_ika <- dplyr::ungroup(dplyr::mutate(groups,value = value / sum(value)))
   }else{
+    # sum over a and gamma
     w_ika <-  w_ika[,.(value=sum(value)),by=i]
-    #w_ika <-  dplyr::summarise(groups,value = sum(value))# sum over a and gamma
+
   }
 
   return(w_ika)

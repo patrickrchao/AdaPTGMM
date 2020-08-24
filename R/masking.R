@@ -118,6 +118,8 @@ masking <- function(data,args){
   data$mask <- mask
   data$a <- a
 
+  data$mask[data$small_pvals > quantile(data$small_pvals,0.90,na.rm = T)] <- FALSE
+
   return(data)
 }
 
