@@ -15,9 +15,13 @@ m_step_beta <- function(model,gammas){
 
   x <- model$data$x
   rownames(x) <- NULL
+
   multinom_data <- data.frame(x,gammas)
   multinom_data$class <- multinom_data$class - 1
-
+  multinom_data <- multinom_data[multinom_data$class == 1,]
+  if(model_type == "mgcv"){
+    multinom_data$class <- multinom_data$value
+  }
   #if(model_type == "glm"){
   #}else if(model_type == "gam"){
    #formulas <- lapply(c(paste("class",beta_formula),rep(beta_formula,nclasses-2)),as.formula)
@@ -30,13 +34,19 @@ m_step_beta <- function(model,gammas){
     }else if(model_type == "gam"){
       browser()
       est_beta <- VGAM::vgam(beta_formula,multinomial,multinom_data,weights = value,coefstart=model$params$beta,control=vgam.control(maxit=5,bf.maxit = 5,trace=F))
-    }
+    }else if(model_type == "mgcv"){
+     # est_beta <- mgcv::gam(beta_formula,quasibinomial,multinom_data,weights = value,control=vgam.control(maxit=5,bf.maxit = 5,trace=F))
+      est_beta <- mgcv::gam(beta_formula, family=quasibinomial, data=multinom_data,
+                      control=gam.control(maxit=1),outer=gam.outer(start=model$params$beta))
+      }
   }else{
     if(model_type == "glm"){
       est_beta <- nnet::multinom(beta_formula, multinom_data, weights = value, trace = F,maxit=100,reltol=1e-8)
     }else if(model_type == "gam"){
       browser()
       est_beta <- vgam(beta_formula,multinomial,multinom_data,weights = value,control=vgam.control(maxit=15,bf.maxit = 15,trace=F))
+    }else if(model_type == "mgcv"){
+      est_beta <- mgcv::gam(beta_formula, family=quasibinomial, data=multinom_data)
     }
   }
 
@@ -48,6 +58,9 @@ m_step_beta <- function(model,gammas){
   }else if(model_type == "gam"){
     model$params$beta <- coef(est_beta)
     model$params$df <- nobs(est_beta,type="vlm") -df.residual(est_beta)
+  }else if(model_type == "mgcv"){
+    model$params$df <- sum(est_beta$edf)
+    model$params$beta <- est_beta$coefficients
   }
 
 

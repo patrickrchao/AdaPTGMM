@@ -17,6 +17,8 @@ class_prob <- function(beta_model,nclasses,n,model_type,x=NULL){
     }
   }else if(model_type == "gam"){
     prob <- predict(beta_model,type="response")
+  }else if(model_type == "mgcv"){
+    prob <- predict(beta_model,type="response")
   }
     # Divide by the number of classes since the input data uses n*nclasses data points
     # fitted(beta) repeats predictions for various classes
