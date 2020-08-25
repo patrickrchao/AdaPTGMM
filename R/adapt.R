@@ -62,7 +62,7 @@ adapt_gmm <- function(x = NULL,
                       tol = 1e-4,
                       initialization = "kmeans",
                       intercept_model = TRUE,
-                      return_all_models = FALSE,
+                      return_all_models = FALSE
                       #coerce_categorical = TRUE
                       ){
   #set.seed(1)
