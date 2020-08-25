@@ -84,12 +84,14 @@ construct_data <- function(x,pvals,z,args){
     center <- (args$rendpoint + args$lendpoint)/2
     z <- z-center
   }
-
-  for(column in colnames(x)){
-    if(length(unique(x[[column]]))/nrow(x)<0.01){
-      x[[column]] <- as.factor(x[[column]])
-    }
-  }
+  # if(args$coerce_categorical){
+  #   for(column in colnames(x)){
+  #     num_unique <- length(unique(x[[column]]))
+  #     if(num_unique/nrow(x)<0.10 & num_unique < 100){
+  #       x[[column]] <- as.factor(x[[column]])
+  #     }
+  #   }
+  # }
   x <- .scale_data(x)
   data <- list(x = x,
                pvals = pvals,
