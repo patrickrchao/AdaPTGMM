@@ -26,7 +26,7 @@
 #' This is the most expensive part of the procedure, we recommend smaller number (<5) of iterations for larger problems. Default is 10.
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
-#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{BIC}".
+#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{aIC}".
 #' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
 #' @param initialization Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
 #' "\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".
@@ -58,7 +58,7 @@ adapt_gmm <- function(x = NULL,
                       lambda = NULL,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
-                      cr = "BIC",
+                      cr = "AIC",
                       tol = 1e-4,
                       initialization = "kmeans",
                       intercept_model = TRUE,

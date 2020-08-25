@@ -18,8 +18,9 @@ m_step_beta <- function(model,gammas){
 
   multinom_data <- data.frame(x,gammas)
   multinom_data$class <- multinom_data$class - 1
-  multinom_data <- multinom_data[multinom_data$class == 1,]
+
   if(model_type == "mgcv"){
+    multinom_data <- multinom_data[multinom_data$class == 1,]
     multinom_data$class <- multinom_data$value
   }
   #if(model_type == "glm"){

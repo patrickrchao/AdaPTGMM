@@ -12,7 +12,8 @@ adapt_gmm(
   rendpoint = NULL,
   lendpoint = NULL,
   beta_formulas = NULL,
-  nclasses = c(2, 4, 6),
+  model_type = "glm",
+  nclasses = c(2, 3, 4),
   niter_fit = 5,
   niter_ms = 10,
   nfit = 5,
@@ -21,7 +22,7 @@ adapt_gmm(
   lambda = NULL,
   masking_shape = "tent",
   alphas = seq(0.01, 1, 0.01),
-  cr = "BIC",
+  cr = "AIC",
   tol = 1e-04,
   initialization = "kmeans",
   intercept_model = TRUE,
@@ -41,6 +42,10 @@ adapt_gmm(
 
 \item{lendpoint}{Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
 \code{lendpoint} will be assumed to be \code{-rendpoint}.}
+
+\item{beta_formulas}{TODO: Fill this in}
+
+\item{model_type}{Type of model used for modeling beta, options include \code{gam} and \code{glm}. Default is \code{glm}.}
 
 \item{nclasses}{Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 number of classes to select in the model selection procedure. Minimum number of classes is 2.
@@ -62,7 +67,7 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{alphas}{Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].}
 
-\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{BIC}".}
+\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{aIC}".}
 
 \item{tol}{Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.}
 
@@ -73,12 +78,6 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{return_all_models}{Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
 Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.}
-
-\item{ndf}{Vector of degrees of freedom in the spline basis for estimating \eqn{\beta}. The vector corresponds to the possible
-degrees of freedom to select in the model selection procedure. Minimum degrees of freedom is 1, representing no relationship
-between covariates and hypotheses. Note: Recommended to use <7 degrees of freedom.
-Default is c(1,3,5). The greater the number of degrees of freedom the longer it takes the beta model to fit, and the
-longer the list of possible values, the longer the model selection procedure takes.}
 
 \item{verbose}{Boolean. Include print statements at each stage of the procedure.}
 }

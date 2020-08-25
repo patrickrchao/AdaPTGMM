@@ -1,8 +1,9 @@
-plot_1d_thresh <- function(res,x,pvals,alpha,title,grid_density=200,xlab=""){
-
+plot_1d_thresh <- function(res,x,pvals,alpha,title=NULL,grid_density=200,xlab="x"){
+  # Include code to load grid and lattice
   if(!("model" %in% names(res))){
     stop("Missing model outputs. Must specify `return_all_models=TRUE` in AdaPTGMM.")
   }
+
 
   # Preset Colors
   colors <-  list(s= "#FADEDE",
@@ -19,9 +20,14 @@ plot_1d_thresh <- function(res,x,pvals,alpha,title,grid_density=200,xlab=""){
   colnames(orig_df)[1] <- x_name
 
   #Extract model and odds threshold at alpha level
-  out <- .select_model_and_odds(res$model,res$odds_per_alpha,alpha,res$alphas)
+  out <- .select_model_and_odds(res$model,res$odds_per_alpha,alpha,res$alphas,res$nrejs)
   model <- out$model
   odds_threshold <- out$odds_threshold
+  nrejs <- out$nrejs
+  if(is.null(title)){
+    title <- paste("alpha =",alpha,", nrejs =",nrejs)
+  }
+
 
 
   data <- model$data
@@ -49,17 +55,17 @@ plot_1d_thresh <- function(res,x,pvals,alpha,title,grid_density=200,xlab=""){
 
   pdf("Images/Intermediate_Thresholds.pdf",width=7,height=5)
   fig <- levelplot(a_level~x*pvals,grid, at=0:3,col.regions = c(colors[["s"]],colors[["n"]],colors[["n"]],colors[["b"]]),colorkey=F,contour=T,
-                   xlab = x_name, ylab = "p-values", scales=list(y=list(at=c(0,0.5,1))),
+                   xlab = list(xlab,cex=1.5), ylab = list("p-values",cex=1.5),main=list(title,cex=1.5), scales=list(y=list(at=c(0,0.5,1))),
                    panel=function(...){
                      panel.levelplot(...)
                      grid.points(orig_df$x,orig_df$pvals, pch=16,size=unit(0.2,"char"),gp=gpar(col=orig_df$a_col))
 
-                   },border="black",interpolate=T)
-  fig
+                   },interpolate=T)
+  print(fig)
   dev.off()
   return(fig)
 }
-.select_model_and_odds <- function(all_models,odds_per_alpha,alpha,all_alphas){
+.select_model_and_odds <- function(all_models,odds_per_alpha,alpha,all_alphas,nrejs){
   model <- all_models
   #Check within 1e-5 since doubles are not stored exactly
   index <-abs(all_alphas-alpha) < 1e-5
@@ -69,7 +75,9 @@ plot_1d_thresh <- function(res,x,pvals,alpha,title,grid_density=200,xlab=""){
   model$params <- model$params[index][[1]]
 
   odds_threshold <- odds_per_alpha[index]
-  out <- list(model=model,odds_threshold = odds_threshold)
+
+  nrejs <- nrejs[index]
+  out <- list(model=model,odds_threshold = odds_threshold, nrejs = nrejs)
   return(out)
 }
 

@@ -10,8 +10,8 @@ model_selection(
   beta_formulas,
   nclasses_list,
   cr,
-  intercept_model,
-  initialization
+  initialization,
+  param_grid = NULL
 )
 }
 \arguments{
@@ -24,8 +24,6 @@ model_selection(
 \item{nclasses_list}{Vector for possible number of classes}
 
 \item{cr}{Criterion for model selection}
-
-\item{intercept_model}{Boolean whether to include intercept model}
 
 \item{initialization}{Initialization procedure, either kmeans or random}
 }
