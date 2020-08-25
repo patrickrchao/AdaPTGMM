@@ -22,7 +22,7 @@ e_step_gamma <- function(model,w_ika){
 #' @param agg_over_hypotheses boolean corresponding to whether to sum over a and class,
 #' TRUE for likelihood computation
 #'
-#' @return Dataframe, columns include a, i, k, value
+#' @return DataTable, columns include a, i, k, value
 #' a corresponds to big/small
 #' i corresponds to hypothesis number
 #' k corresponds to which gaussian class
@@ -50,7 +50,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   if(is.null(prev_w_ika)){
     # 5 columns corresponding to a, class, i, value, z
     w_ika <- data.table::data.table(matrix(0,nrow=num_a*nclasses*n,ncol=5))
-    setnames(w_ika,c("a","class","i","value","z"))
+    setNames(w_ika,c("a","class","i","value","z"))
 
     # Fill in w_ika table
     w_ika$i <- rep(1:n, num_a * nclasses)

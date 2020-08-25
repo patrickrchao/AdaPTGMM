@@ -85,6 +85,11 @@ construct_data <- function(x,pvals,z,args){
     z <- z-center
   }
 
+  for(column in colnames(x)){
+    if(length(unique(x[[column]]))/nrow(x)<0.01){
+      x[[column]] <- as.factor(x[[column]])
+    }
+  }
   x <- .scale_data(x)
   data <- list(x = x,
                pvals = pvals,
@@ -164,7 +169,13 @@ initialize_params <- function(data,nclasses,initialization){
 #' @return dataframe of x with scaled data
 #' @noRd
 .scale_data <- function(x){
-  y <- data.frame(apply(x,2,function(x){(x-min(x))/(max(x)-min(x))}) )
+  y <- data.frame(apply(x,2,function(x){
+    if(is.factor(x)){
+      return(x)
+    }else{
+      (x-min(x))/(max(x)-min(x))
+    }
+  }) )
   colnames(y) <- colnames(x)
   return(y)
 }
