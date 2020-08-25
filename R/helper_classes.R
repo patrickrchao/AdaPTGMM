@@ -169,11 +169,12 @@ initialize_params <- function(data,nclasses,initialization){
 #' @return dataframe of x with scaled data
 #' @noRd
 .scale_data <- function(x){
-  y <- data.frame(apply(x,2,function(x){
-    if(is.factor(x)){
-      return(x)
+
+  y <- data.frame(apply(x,2,function(z){
+    if(is.numeric(z)){
+      return((z-min(z))/(max(z)-min(z)))
     }else{
-      (x-min(x))/(max(x)-min(x))
+      return(z)
     }
   }) )
   colnames(y) <- colnames(x)
