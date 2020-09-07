@@ -9,12 +9,8 @@ select_masking_params <- function(n,alpha_m,zeta,lambda){
       if(is.null(zeta)){
         zeta <- min(20,max(6000/n,2))
       }
-      if(zeta>8){
-        alpha_m <- 0.8 / zeta
-      }else{
-        alpha_m <- 0.9 / (zeta + 1)
-      }
-      lambda <- max(alpha_m,0.1)
+      alpha_m <- 0.9 / (zeta + 1)
+      lambda <- alpha_m
     }
     masking_params <- list(alpha_m=alpha_m, zeta=zeta, lambda=lambda)
     return(masking_params)

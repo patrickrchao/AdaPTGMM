@@ -66,6 +66,7 @@ adapt_gmm <- function(x = NULL,
                       #coerce_categorical = TRUE
                       ){
   #set.seed(1)
+
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
 
   n=nrow(x)
@@ -147,7 +148,7 @@ adapt_gmm <- function(x = NULL,
 
       nrevealed <- nrevealed + 1
       reveal_order_index <- reveal_order_index + 1
-      fdphat <- (A_t + 1)/args$zeta / max(R_t, 1)
+      fdphat <- (A_t + 1) / args$zeta / max(R_t, 1)
 
       min_fdp <- min(min_fdp,fdphat)
     }
