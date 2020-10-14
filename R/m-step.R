@@ -33,7 +33,6 @@ m_step_beta <- function(model,gammas){
     if(model_type == "glm"){
       est_beta <- nnet::multinom(beta_formula, multinom_data, weights = value, trace = F,maxit=10,reltol=1e-7,Wts=model$params$beta)
     }else if(model_type == "gam"){
-      browser()
       est_beta <- VGAM::vgam(beta_formula,multinomial,multinom_data,weights = value,coefstart=model$params$beta,control=vgam.control(maxit=5,bf.maxit = 5,trace=F))
     }else if(model_type == "mgcv"){
      # est_beta <- mgcv::gam(beta_formula,quasibinomial,multinom_data,weights = value,control=vgam.control(maxit=5,bf.maxit = 5,trace=F))
@@ -44,7 +43,6 @@ m_step_beta <- function(model,gammas){
     if(model_type == "glm"){
       est_beta <- nnet::multinom(beta_formula, multinom_data, weights = value, trace = F,maxit=100,reltol=1e-8)
     }else if(model_type == "gam"){
-      browser()
       est_beta <- vgam(beta_formula,multinomial,multinom_data,weights = value,control=vgam.control(maxit=15,bf.maxit = 15,trace=F))
     }else if(model_type == "mgcv"){
       est_beta <- mgcv::gam(beta_formula, family=quasibinomial, data=multinom_data)
