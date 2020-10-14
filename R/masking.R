@@ -3,11 +3,11 @@
 #' zeta influences the minimum possible number of rejections. The minimum number of possible rejections
 #' at FDR level \code{alpha} is \code{1/(\zeta\alpha)}. Thus for \code{alpha}=0.05, this corresponds to
 #' \code{20/\zeta}.
-select_masking_params <- function(n,alpha_m,zeta,lambda){
+select_masking_params <- function(n,alpha_m,zeta,lambda,alpha_level=0.05){
     if(is.null(alpha_m) | is.null(zeta) | is.null(lambda)){
       warning("Masking parameter alpha_m, zeta, or lambda found to be NULL. Automatically selecting masking function. See documentation for details.")
       if(is.null(zeta)){
-        zeta <- min(20,max(6000/n,2))
+        zeta <- min(1 / alpha_level, max( 300 / (alpha_level * n), 2) )
       }
       alpha_m <- 0.9 / (zeta + 1)
       lambda <- alpha_m

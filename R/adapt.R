@@ -26,6 +26,7 @@
 #' This is the most expensive part of the procedure, we recommend smaller number (<5) of iterations for larger problems. Default is 10.
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
+#' @param target_alpha_level Desired FDR level to optimize the procedure over, i.e.
 #' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{aIC}".
 #' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
 #' @param initialization Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
@@ -58,27 +59,25 @@ adapt_gmm <- function(x = NULL,
                       lambda = NULL,
                       masking_shape = "tent",
                       alphas = seq(0.01, 1, 0.01),
+                      target_alpha_level = NULL,
                       cr = "AIC",
                       tol = 1e-4,
                       initialization = "kmeans",
                       intercept_model = TRUE,
                       return_all_models = FALSE
-                      #coerce_categorical = TRUE
                       ){
-  #set.seed(1)
-
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
 
-  n=nrow(x)
-  beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
+  n = nrow(x)
 
-  masking_params <- select_masking_params(n,alpha_m,zeta,lambda)
+  masking_params <- select_masking_params(n,alpha_m,zeta,lambda,set_default_target(target_alpha_level,alphas))
   .input_checks(x, pvals, z, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas,cr)
 
   args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
   data <- construct_data(x,pvals,z,args)
 
 
+  beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
   model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
 
 

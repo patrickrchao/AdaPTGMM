@@ -114,7 +114,16 @@ complete_pkg <- function(formula){
   return(formula)
 }
 
-
+set_default_target <- function(target_alpha_level,alphas,default_value=0.05){
+  if(is.null(target_alpha_level)){
+    if(length(alphas) == 1){
+      target_alpha_level = alphas
+    }else{
+      target_alpha_level = default_value
+    }
+  }
+  return(target_alpha_level)
+}
 
 #' #' Helper function to ensure all formulas are valid
 #' #'
