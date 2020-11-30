@@ -125,6 +125,17 @@ set_default_target <- function(target_alpha_level,alphas,default_value=0.05){
   return(target_alpha_level)
 }
 
+select_initialization <- function(masking_params, initialization){
+  if(masking_params$zeta == 1 &
+     ((0.5 - masking_params$alpha_m ) == (masking_params$lambda - 0.5)) &
+     initialization == "kmeans"){
+
+    warning("Symmetric masking function found, possible unstable performance with k-means. Setting initialization scheme to `random`.")
+    initialization = "random"
+  }
+  return(initialization)
+}
+
 #' #' Helper function to ensure all formulas are valid
 #' #'
 #' #' @param x dataframe of covariates

@@ -2,7 +2,7 @@
 #'
 #' We need to sum over a in the w_ika computation
 #' @return gamma probability
-#' P[\gamma_i = k | x_i, \tilde p_i]=
+#' P[\gamma_i = k | x_i, \tilde p_i]= \sum_a w_{ika}
 #' \sum_{a} P[\gamma_i = k | x_i] P[a_i=a_ia,\tilde p_i | \gamma_i=k]/\sum_{a',k'} P[\gamma_i = k' | x_i] P[a_i=a_ia',\tilde p_i | \gamma_i=k']
 #' @noRd
 e_step_gamma <- function(model,w_ika){

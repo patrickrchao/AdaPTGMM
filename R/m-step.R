@@ -27,7 +27,6 @@ m_step_beta <- function(model,gammas){
   #}else if(model_type == "gam"){
    #formulas <- lapply(c(paste("class",beta_formula),rep(beta_formula,nclasses-2)),as.formula)
   #}
-
   # if the multinom beta model exists, use the previous weights as the starting point for faster convergence
   if(!is.null(model$params$beta)){
     if(model_type == "glm"){

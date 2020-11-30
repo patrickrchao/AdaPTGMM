@@ -78,6 +78,7 @@ adapt_gmm <- function(x = NULL,
 
 
   beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
+  initialization <- select_initialization(masking_params, initialization)
   model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
 
 
