@@ -46,11 +46,12 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   n <- args$n
   testing <- args$testing
 
+
   # if previous w_ika exists, use previous w_ika
   if(is.null(prev_w_ika)){
     # 5 columns corresponding to a, class, i, value, z
     w_ika <- data.table::data.table(matrix(0,nrow=num_a*nclasses*n,ncol=5))
-    setNames(w_ika,c("a","class","i","value","z"))
+    w_ika <- setNames(w_ika,c("a","class","i","value","z"))
 
     # Fill in w_ika table
     w_ika$i <- rep(1:n, num_a * nclasses)
@@ -83,10 +84,30 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
     for(k in 1:nclasses){
       start_i <- 1 + count * n
       end_i <- (1 + count) * n
+
       w_ika[start_i:end_i,"value"] <- w_ika_helper(a, k, data, params$mu, params$var, args$zeta, args$jacobian)
       count <- count + 1
     }
   }
+  if(length(args$all_a) == 4){
+
+    masked_i <- data$mask[w_ika$i]
+    unmasked_i <- !masked_i
+
+    # Pairwise Reveal
+    # subset <- (data$z > 0 & data$a == "s") | (data$z < 0 & data$a == "b")
+    # w_ika$value[subset & (w_ika$a == "b" | w_ika$a=="s_neg") & masked_i] <- 0
+    #
+    # subset <- (data$z < 0 & data$a == "s") | (data$z > 0 & data$a == "b")
+    # w_ika$value[subset & (w_ika$a == "b_neg" | w_ika$a=="s") & masked_i] <- 0
+
+
+
+    # Sign Reveal
+  w_ika$value[((w_ika$z<0 ) & masked_i)& data$z>0 ] <-  0
+  w_ika$value[((w_ika$z>0 ) & masked_i)& data$z<0 ] <-  0
+  }
+
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
 

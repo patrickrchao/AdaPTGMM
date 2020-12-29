@@ -74,6 +74,7 @@ adapt_gmm <- function(x = NULL,
   .input_checks(x, pvals, z, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas,cr)
 
   args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
+
   data <- construct_data(x,pvals,z,args)
 
 
@@ -117,10 +118,75 @@ adapt_gmm <- function(x = NULL,
   odds_per_alpha <- rep(Inf,n_alphas)
 
   reveal_hypo <- NULL
-  rejection_set <- which(data$mask & (data$pvals < args$alpha_m))
+  rejection_set <- which(data$mask & (data$pvals <= args$alpha_m))
   A_t <-  sum(data$mask & data$pvals > args$lambda)
   R_t <-  length(rejection_set)
   fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
+  min_fdp <- fdphat
+
+  # while (min_fdp > 0 & R_t > 0 & sum(data$mask) > 0) {
+  #
+  #   #if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
+  #
+  #   model$data <- data
+  #  # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
+  #   model <- EM(model)
+  #   big_odds <-  big_over_small_prob(model)
+  #   to_reveal_order <- order(big_odds, decreasing=TRUE)[1:sum(data$mask)]
+  #   #browser()
+  #   future_A_t <- A_t - cumsum(data$pvals[to_reveal_order] > args$lambda)
+  #   future_R_t <- R_t - cumsum(data$pvals[to_reveal_order] < args$alpha_m)
+  #   future_fdphat <- (future_A_t + 1)/args$zeta / pmax(future_R_t,1)
+  #     #reveal_order_index <- 1
+  #   #}
+  #   n_reveal <- min(refitting_constant, length(to_reveal_order))
+  #   reveal_hypo <- to_reveal_order[1:n_reveal]
+  #   A_t <- future_A_t[n_reveal]
+  #   R_t <- future_R_t[n_reveal]
+  #   data$mask[reveal_hypo] <- FALSE
+  #   #fdphat <- min(future_fdphat[1:length(reveal_hypo)])
+  #   for(reveal_index in seq(1:n_reveal)){
+  #
+  #     hypo_index <- to_reveal_order[reveal_index]
+  #     if(data$a[hypo_index] == "s" | data$a[hypo_index] == "s_neg"){
+  #       qvals[reveal_hypo] <- min_fdp
+  #     }
+  #     min_fdp <- min(min_fdp,future_fdphat[reveal_index])
+  #   }
+  # }
+  #
+  #
+  #    # nrevealed <- nrevealed + 1
+  #   #  reveal_order_index <- reveal_order_index + 1
+  #   #  fdphat <- (A_t + 1) / args$zeta / max(R_t, 1)
+  #
+  #    # min_fdp <- min(min_fdp,fdphat)
+  #  # }
+  # #model$data <- data
+  # for (index in seq(1:n_alphas)) {
+  #   alpha <- sorted_alphas[index]
+  #   rejection_set <- which(data$pvals < args$alpha_m & qvals < alpha)
+  #   nrejs[sorted_indices[index]] <- length(rejection_set)
+  #   rejs[[sorted_indices[index]]] <- rejection_set
+  #   #qvals[rejection_set] <- min(min_fdp,qvals[rejection_set])
+  # }
+  # # if(is.null(reveal_hypo)){
+  # #   odds_per_alpha[sorted_indices[index]] <- Inf
+  # # }else{
+  # #   odds_per_alpha[sorted_indices[index]] <- big_odds[reveal_hypo]
+  # # }
+  #
+  # if(return_all_models){
+  #   all_params[[sorted_indices[index]]] <- model$params
+  # }
+  # cat(paste0("alpha = " , alpha,
+  #            ": FDPhat ",round(min_fdp, 4),
+  #             ", Number of Rej. ",R_t,"\n"))
+
+
+
+
+
 
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
@@ -129,7 +195,7 @@ adapt_gmm <- function(x = NULL,
       if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
 
         model$data <- data
-       # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
+        # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
         to_reveal_order <- order(big_odds, decreasing=TRUE)
@@ -168,8 +234,13 @@ adapt_gmm <- function(x = NULL,
     }
     cat(paste0("alpha = " , alpha,
                ": FDPhat ",round(min_fdp, 4),
-                ", Number of Rej. ",R_t,"\n"))
+               ", Number of Rej. ",R_t,"\n"))
   }
+
+
+
+
+
   cat("Complete.\n")
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,
                  odds_per_alpha=odds_per_alpha, args = model$args)
