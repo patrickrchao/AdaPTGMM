@@ -8,6 +8,7 @@ adapt_gmm(
   x = NULL,
   pvals = NULL,
   z = NULL,
+  se = NULL,
   testing = "one_sided",
   rendpoint = NULL,
   lendpoint = NULL,
@@ -22,6 +23,7 @@ adapt_gmm(
   lambda = NULL,
   masking_shape = "tent",
   alphas = seq(0.01, 1, 0.01),
+  target_alpha_level = NULL,
   cr = "AIC",
   tol = 1e-04,
   initialization = "kmeans",
@@ -35,6 +37,8 @@ adapt_gmm(
 \item{pvals}{Vector of p-values (supply either pvals or test statistics)}
 
 \item{z}{Vector of test statistics, required if \code{testing}='\code{interval}'.}
+
+\item{se}{Vector of standard errors, if left blank when given test statistics, the standard errors are assumed to be 1.}
 
 \item{testing}{The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".}
 
@@ -66,6 +70,8 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 \item{masking_shape}{Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".}
 
 \item{alphas}{Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].}
+
+\item{target_alpha_level}{Desired FDR level to optimize the procedure over, i.e.}
 
 \item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{aIC}".}
 

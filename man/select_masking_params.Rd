@@ -4,7 +4,7 @@
 \alias{select_masking_params}
 \title{Select masking parameters}
 \usage{
-select_masking_params(n, alpha_m, zeta, lambda)
+select_masking_params(n, alpha_m, zeta, lambda, alpha_level = 0.05)
 }
 \description{
 zeta influences the minimum possible number of rejections. The minimum number of possible rejections
