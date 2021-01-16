@@ -16,7 +16,7 @@ adapt_gmm(
   nclasses = c(2, 3, 4),
   niter_fit = 5,
   niter_ms = 10,
-  nfit = 5,
+  nfits = 5,
   alpha_m = NULL,
   zeta = NULL,
   lambda = NULL,
@@ -56,7 +56,7 @@ longer the list of possible values, the longer the model selection procedure tak
 
 \item{niter_ms}{Number of iterations of EM in model selection.}
 
-\item{nfit}{Number of model fitting steps.}
+\item{nfits}{Number of model fitting steps.}
 
 \item{alpha_m}{The maximum possible rejected p-value. We recommend \eqn{0.01\le \alpha_m \le 0.1}, default is 0.1.}
 
