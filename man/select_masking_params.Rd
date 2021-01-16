@@ -8,6 +8,6 @@ select_masking_params(n, alpha_m, zeta, lambda, alpha_level = 0.05)
 }
 \description{
 zeta influences the minimum possible number of rejections. The minimum number of possible rejections
-at FDR level \code{alpha} is \code{1/(\zeta\alpha)}. Thus for \code{alpha}=0.05, this corresponds to
-\code{20/\zeta}.
+at FDR level \code{alpha} is \code{1/(zeta alpha)}. Thus for \code{alpha}=0.05, this corresponds to
+\code{20/zeta}.
 }

@@ -1,8 +1,8 @@
 #' Select masking parameters
 #'
 #' zeta influences the minimum possible number of rejections. The minimum number of possible rejections
-#' at FDR level \code{alpha} is \code{1/(\zeta\alpha)}. Thus for \code{alpha}=0.05, this corresponds to
-#' \code{20/\zeta}.
+#' at FDR level \code{alpha} is \code{1/(zeta alpha)}. Thus for \code{alpha}=0.05, this corresponds to
+#' \code{20/zeta}.
 select_masking_params <- function(n,alpha_m,zeta,lambda,alpha_level=0.05){
     if(is.null(alpha_m) | is.null(zeta) | is.null(lambda)){
       warning("Masking parameter alpha_m, zeta, or lambda found to be NULL. Automatically selecting masking function. See documentation for details.")

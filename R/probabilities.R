@@ -74,12 +74,13 @@ prob_jacobian_interval <- function(z, mean, var, se,radius) {
 #' @param margin_vars variables to marginalize over
 #'
 #' @return w_ika data frame marginalized over variables
+#' @import data.table
 #' @noRd
 marginalize <- function(w_ika, margin_vars){
 
   all_vars <- c("i","class","a")
   group_by_vars <- setdiff(all_vars,margin_vars)
-  new_w_ika <- w_ika[, .(value=sum(value)), by = group_by_vars]
+  new_w_ika <- w_ika[,.(value=sum(value)), by = group_by_vars]
   #groups <-   dplyr::group_by(w_ika,.dots=group_by_vars)
   #new_w_ika <- dplyr::ungroup(dplyr::summarise(groups,value=sum(value)))
 
@@ -97,10 +98,12 @@ marginalize <- function(w_ika, margin_vars){
 #' @param model model class
 #'
 #' @return Returns log likelihood of data given model
+#' @import data.table
 #' @noRd
 log_likelihood <- function(model){
 
-  w_ika_sums <- e_step_w_ika(model, include_z = FALSE, agg_over_hypotheses = TRUE)
+  w_ika <- e_step_w_ika(model, include_z = FALSE)
+  w_ika_sums <-  w_ika[,.(value=sum(value)),by=i]
   # w_ika_sums corresponds to sum_{k,a} {P[a_ia=a,\tilde p_i|\gamma_i=k] P[\gamma_i=k|x_i]*\zeta^1{a_ia=b}}
   log_like <- sum(log(w_ika_sums$value))
   return(log_like)

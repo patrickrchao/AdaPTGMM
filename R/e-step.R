@@ -111,18 +111,10 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
 
-  #groups <- dplyr::group_by(w_ika,i) #groupby hypotheses
 
-  if(!agg_over_hypotheses){
-    #sum over a and gamma and divide by the total
-    w_ika <- w_ika[,total := sum(value),by=i]
-    w_ika <- w_ika[,value := value/total]
-  }else{
-    # sum over a and gamma
-    w_ika <-  w_ika[,.(value=sum(value)),by=i]
 
-  }
-
+  #sum over a and gamma and divide by the total
+  w_ika$new_val <- ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
 }
 
