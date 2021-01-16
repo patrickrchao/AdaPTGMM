@@ -41,15 +41,11 @@ m_step_mu_tau <- function(model,w_ika){
   se <- data$se
   z <- w_ika$z
   for (k in 1:args$nclasses){
-   # print(k)
-  #  print(" ")
     subset <- w_ika[w_ika$class == k,]
-    if(length(unique(se))==1 & se[1]==1){
+    if(length(unique(se)) == 1 & se[1] == 1){
       params$mu[k] <- .weighted_mean(subset$z,subset$value)
       params$var[k] <- max(.weighted_mean((subset$z-params$mu[k])^2,subset$value), 0)
     }else{
-
-
       params$mu[k] <- .weighted_mean(subset$z,subset$value/(params$var[k]+se^2))
 
       for(iter in 1:5){
