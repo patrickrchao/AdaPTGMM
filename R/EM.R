@@ -20,7 +20,6 @@ EM <- function(model, preset_iter=NULL){
   w_ika <- NULL
 
   for(i in seq(niter)){
-
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model, w_ika)
     # Do not update beta for the first iteration if in model selection

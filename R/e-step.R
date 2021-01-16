@@ -6,6 +6,7 @@
 #' \sum_{a} P[\gamma_i = k | x_i] P[a_i=a_ia,\tilde p_i | \gamma_i=k]/\sum_{a',k'} P[\gamma_i = k' | x_i] P[a_i=a_ia',\tilde p_i | \gamma_i=k']
 #' @noRd
 e_step_gamma <- function(model,w_ika){
+
   gammas <- subset(marginalize(w_ika,"a"),select=-c(i))
   gammas <- gammas[order(gammas$class),]
   return(gammas)
@@ -95,19 +96,18 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
     unmasked_i <- !masked_i
 
     # Pairwise Reveal
-    # subset <- (data$z > 0 & data$a == "s") | (data$z < 0 & data$a == "b")
-    # w_ika$value[subset & (w_ika$a == "b" | w_ika$a=="s_neg") & masked_i] <- 0
-    #
-    # subset <- (data$z < 0 & data$a == "s") | (data$z > 0 & data$a == "b")
-    # w_ika$value[subset & (w_ika$a == "b_neg" | w_ika$a=="s") & masked_i] <- 0
+    subset <- (data$z > 0 & data$a == "s") | (data$z < 0 & data$a == "b")
+    w_ika$value[subset & (w_ika$a == "b" | w_ika$a=="s_neg") & masked_i] <- 0
+
+    subset <- (data$z < 0 & data$a == "s") | (data$z > 0 & data$a == "b")
+    w_ika$value[subset & (w_ika$a == "b_neg" | w_ika$a=="s") & masked_i] <- 0
 
 
 
     # Sign Reveal
-  w_ika$value[((w_ika$z<0 ) & masked_i)& data$z>0 ] <-  0
-  w_ika$value[((w_ika$z>0 ) & masked_i)& data$z<0 ] <-  0
+ #  w_ika$value[((w_ika$z<0 ) & masked_i)& data$z>0 ] <-  0
+  # w_ika$value[((w_ika$z>0 ) & masked_i)& data$z<0 ] <-  0
   }
-
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
 
@@ -146,18 +146,18 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
 #' @noRd
 w_ika_helper <- function(a,class,data,mu,var,zeta,jacobian){
   mask <- data$mask
-
+  se <- data$se
 
   prob <- rep(0,length(data$pvals))
 
   sign <- ifelse(a == "s_neg" | a == "b_neg", -1, 1)
 
   if(a == "b" | a == "b_neg"){
-    prob[mask]  <- jacobian(sign * data$big_z[mask],   mu[class], var[class]) * zeta
+    prob[mask]  <- jacobian(sign * data$big_z[mask],   mu[class], var[class], se=se[mask]) * zeta
   }else if(a == "s_neg" | a == "s"){
-    prob[mask]  <- jacobian(sign * data$small_z[mask], mu[class], var[class])
+    prob[mask]  <- jacobian(sign * data$small_z[mask], mu[class], var[class], se=se[mask])
     if(a == "s"){
-      prob[!mask] <- jacobian(data$z[!mask], mu[class], var[class])
+      prob[!mask] <- jacobian(data$z[!mask], mu[class], var[class], se=se[!mask])
     }
   }
 

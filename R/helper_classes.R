@@ -12,7 +12,7 @@
 #' @param masking_shape "\code{tent}" or "\code{comb}".
 #' @param niter_fit Number of iterations in EM procedure for model update
 #' @param niter_ms Number of iterations in EM procedure for model selection
-#' @param nfit Number of model updates in AdaPT procedure
+#' @param nfits Number of model updates in AdaPT procedure
 #' @param n Number of hypotheses
 #' @param initialization Initialization procedure, kmeans or random
 #' @param beta_formula Beta formula for model
@@ -20,16 +20,20 @@
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,initialization,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
-  if(testing=="one_sided"){
+  if(testing == "one_sided"){
     z_to_p <- function(z) pnorm(z,lower.tail = FALSE)
     p_to_z <- function(p) -qnorm(p)
     jacobian <- prob_jacobian_one_sided
-  }else if(testing=="interval"){
+  }else if(testing == "interval"){
     if(is.null(lendpoint)){
       lendpoint <- -1 * rendpoint
+    }
+    if(masking_shape == "tent"){
+      warning("For interval testing the masking function is automatically set to a comb masking.")
+      masking_shape <- "comb"
     }
     radius <-  (rendpoint-lendpoint)/2
     z_to_p <- function(z) pnorm(abs(z)+radius,lower.tail=FALSE)+pnorm(-abs(z)+radius)
@@ -37,7 +41,7 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
     p_to_z <- function(z) unlist(mapply(p_to_z_inv,z))
     all_a <- c(all_a,"s_neg","b_neg")
 
-    jacobian <- function(z,mean,var)prob_jacobian_interval(z,mean,var,radius=radius)
+    jacobian <- function(z,mean,var,se)prob_jacobian_interval(z,mean,var,se,radius=radius)
   }else{
     stop("Invalid testing type inputted. Valid forms of testing: `one_sided` and `interval`.")
   }
@@ -54,7 +58,7 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
                lambda = lambda,
                niter_fit = niter_fit,
                niter_ms = niter_ms,
-               nfit = nfit,
+               nfits = nfits,
                masking_shape = masking_shape,
                p_to_z = p_to_z,
                z_to_p = z_to_p,
@@ -73,13 +77,14 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
 #'
 #' Class containing all relevant data inputs from user
 #' @param x Vector of covariates
-#' @param z Vector of test statistics
 #' @param pvals Vector of pvals
+#' @param z Vector of test statistics
+#' @param se Vector of standard errors
 #' @param args args class containing masking function arguments
 #'
 #' @return data class
 #' @noRd
-construct_data <- function(x,pvals,z,args){
+construct_data <- function(x,pvals,z,se,args){
   if(args$testing == "interval"){
     center <- (args$rendpoint + args$lendpoint)/2
     z <- z-center
@@ -92,10 +97,15 @@ construct_data <- function(x,pvals,z,args){
   #     }
   #   }
   # }
+
   x <- .scale_data(x)
+  if(is.null(se)){
+    se <- rep(1,nrow(x))
+  }
   data <- list(x = x,
                pvals = pvals,
-               z = z
+               z = z,
+               se = se
                )
   class(data) <- "data"
 

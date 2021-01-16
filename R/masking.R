@@ -29,13 +29,13 @@ data_preprocessing <- function(data,args){
   # set mask to true
   # preprocess pvals and test_statistics
   # preprocess masking
-
+  se <- data$se
   # Initialize z and pvals if uninitialized
   if(is.null(data$z)){
     data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
-    data$z <- args$p_to_z(data$pvals)
+    data$z <- args$p_to_z(data$pvals) * se
   }else if(is.null(data$pvals) | args$testing == "interval"){
-    data$pvals <- args$z_to_p(data$z)
+    data$pvals <- args$z_to_p(data$z / se)
   }
   # Clamp p-values
   data$pvals <- pmax(pmin(data$pvals, 1 - 1e-15), 1e-15)
@@ -67,6 +67,7 @@ masking <- function(data,args){
 
   pvals <- data$pvals
   z <- data$z
+  se <- data$se
   num_hypo <- length(pvals)
 
   # Determine if hypothesis corresponds to big or small
@@ -97,14 +98,14 @@ masking <- function(data,args){
   small_z <- rep(NA, length(pvals))
   big_z <- rep(NA, length(pvals))
 
-  small_z[a!="NONE"] <-  args$p_to_z(small_pvals[a!="NONE"])
+  small_z[a!="NONE"] <-  args$p_to_z(small_pvals[a!="NONE"]) * se[a!="NONE"]
 
   if(alpha_m == 0.5 & lambda == 0.5 & zeta == 1 & args$masking_shape == "tent" & args$testing == "one_sided"){
     big_z[a!="NONE"] <-  - small_z[a!="NONE"]
     # Reveal pvals between 0.45 and 0.55 for symmetric masking to mimic AdaPT
     mask[abs(pvals-0.5) < 0.05] <- FALSE
   }else{
-    big_z[a!="NONE"] <-  args$p_to_z(big_pvals[a!="NONE"])
+    big_z[a!="NONE"] <-  args$p_to_z(big_pvals[a!="NONE"]) * se[a!="NONE"]
   }
   # Add to data class
   data$small_z <- small_z

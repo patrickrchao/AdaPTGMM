@@ -12,7 +12,7 @@
 #' Perform checks for valid parameters
 #'
 #' @noRd
-.input_checks <- function(x,pvals,z,testing,model_type,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfit,masking_params,masking_shape,alphas,cr){
+.input_checks <- function(x,pvals,z,se,testing,model_type,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfits,masking_params,masking_shape,alphas,cr){
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
@@ -40,6 +40,16 @@
         stop("Invalid p-values, p-values must be in range [0,1].")
      }
   }
+  if(!is.null(se)){
+    if((min(se<=0))){
+      stop("Invalid standard errors, standard errors must be at least 0.")
+    }
+  }
+  if(!is.null(se)){
+    if(length(se) != nrow(x) & length(se) != 1){
+      stop("Invalid standard errors, the standard errors are the wrong length.")
+    }
+  }
 
   if(alpha_m<0 | alpha_m>1 | alpha_m>lambda | lambda<0 | lambda>1 | zeta<0  | lambda+alpha_m*zeta>1){
     stop("Invalid input for alpha_m and lambda, must all be between 0 and 1 and 0<alpha_m<=lambda<lambda+alpha_m*zeta<=1.")
@@ -50,8 +60,8 @@
   if(min(alphas) < 0 | max(alphas) > 1){
     stop("Invalid alphas inputted, alphas must be in range [0,1].")
   }
-  if(niter_fit <= 0 | niter_ms <= 0 | nfit <= 0){
-    stop("Invalid number of iterations for niter_fit, niter_ms, or nfit, must be an integer greater than 0.")
+  if(niter_fit <= 0 | niter_ms <= 0 | nfits <= 0){
+    stop("Invalid number of iterations for niter_fit, niter_ms, or nfits, must be an integer greater than 0.")
   }
   if(min(nclasses) < 2){
     stop("Invalid number of classes, minimum 2 classes.")
@@ -125,13 +135,13 @@ set_default_target <- function(target_alpha_level,alphas,default_value=0.05){
   return(target_alpha_level)
 }
 
-select_initialization <- function(masking_params, initialization){
-  if(masking_params$zeta == 1 &
-     ((0.5 - masking_params$alpha_m ) == (masking_params$lambda - 0.5)) &
-     initialization == "kmeans"){
+select_initialization <- function(masking_params, initialization, testing){
+  if(((masking_params$zeta == 1 & ((0.5 - masking_params$alpha_m ) == (masking_params$lambda - 0.5))) |
+     (testing == "interval") ) &
+     initialization == "kmeans" ){
 
-    warning("Symmetric masking function found, possible unstable performance with k-means. Setting initialization scheme to `random`.")
-    initialization = "random"
+    warning("Symmetric masking function or interval null testing found, possible unstable performance with k-means. Setting initialization scheme to `random`.")
+    initialization <-  "random"
   }
   return(initialization)
 }

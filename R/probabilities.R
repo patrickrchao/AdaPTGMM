@@ -41,11 +41,11 @@ class_prob <- function(beta_model,nclasses,n,model_type,x=NULL){
 #'
 #' @return P[a_i=a,\tilde p_i | \gamma=k]
 #'
-#' @details Computation is equivalent to phi(z,mean,var)/phi(z,0,1) where phi(z,mu,tau) is the density of a Gaussian
+#' @details Computation is phi(z,mean,var+se^2)/phi(z,0,1) where phi(z,mu,tau) is the density of a Gaussian
 #' random variable with mean mu and variance tau at z.
 #' @noRd
-prob_jacobian_one_sided <- function(z, mean, var) {
-  return(exp(z^2/2-(z-mean)^2/(2*var))/sqrt(var))
+prob_jacobian_one_sided <- function(z, mean, var,se) {
+  return(dnorm(z,mean,sqrt(var+se^2))/dnorm(z,0,se))
 }
 
 
@@ -55,13 +55,12 @@ prob_jacobian_one_sided <- function(z, mean, var) {
 #' @param z Test statistic value
 #' @param mean mean of Gaussian mixture model class k
 #' @param var variance of Gaussian mixture model class k
-#'
 #' @return P[a_i=a,\tilde p_i | \gamma=k]
 #'
-#' @details Computation is  phi(z,mean,var)/[phi(-abs(z)+r,0,1)-phi(abs(z)+r,0,1)] where phi(z,mu,tau) is
+#' @details Computation is phi(z,mean,var)/[phi(-abs(z)+r,0,1)-phi(abs(z)+r,0,1)] where phi(z,mu,tau) is
 #' the density of a Gaussian random variable with mean mu and variance tau at z.
 #' @noRd
-prob_jacobian_interval <- function(z, mean, var, radius) {
+prob_jacobian_interval <- function(z, mean, var, se,radius) {
     return(dnorm(z,mean,sqrt(var))/
             (dnorm(-abs(z) + radius,0,1) -
              dnorm(abs(z) + radius,0,1))

@@ -6,6 +6,7 @@
 #' @param x Dataframe of covariates TODO: (specify type)
 #' @param pvals Vector of p-values (supply either pvals or test statistics)
 #' @param z Vector of test statistics, required if \code{testing}='\code{interval}'.
+#' @param se Vector of standard errors, if left blank when given test statistics, the standard errors are assumed to be 1.
 #' @param testing The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".
 #' @param rendpoint Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.
 #' @param lendpoint Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
@@ -18,7 +19,7 @@
 #' longer the list of possible values, the longer the model selection procedure takes.
 #' @param niter_fit Number of iterations of EM per model update.
 #' @param niter_ms Number of iterations of EM in model selection.
-#' @param nfit Number of model fitting steps.
+#' @param nfits Number of model fitting steps.
 #' @param alpha_m The maximum possible rejected p-value. We recommend \eqn{0.01\le \alpha_m \le 0.1}, default is 0.1.
 #' @param zeta Controls minimum possible number of rejections. We recommend large values of zeta, \code{\zeta>1}, for situations with low numbers of rejections.
 #' If \code{zeta}\ge 1/\alpha}, the desired FDR level, any number of rejections is possible.
@@ -45,6 +46,7 @@
 adapt_gmm <- function(x = NULL,
                       pvals = NULL,
                       z = NULL,
+                      se = NULL,
                       testing = "one_sided",
                       rendpoint = NULL,
                       lendpoint = NULL,
@@ -53,7 +55,7 @@ adapt_gmm <- function(x = NULL,
                       nclasses = c(2,3,4),
                       niter_fit = 5,
                       niter_ms = 10,
-                      nfit = 5,
+                      nfits = 5,
                       alpha_m = NULL,
                       zeta = NULL,
                       lambda = NULL,
@@ -71,15 +73,15 @@ adapt_gmm <- function(x = NULL,
   n = nrow(x)
 
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda,set_default_target(target_alpha_level,alphas))
-  .input_checks(x, pvals, z, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfit, masking_params, masking_shape, alphas,cr)
+  initialization <- select_initialization(masking_params, initialization, testing)
+  .input_checks(x, pvals, z, se, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfits, masking_params, masking_shape, alphas,cr)
 
-  args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfit,n,initialization)
+  args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,initialization)
 
-  data <- construct_data(x,pvals,z,args)
-
+  data <- construct_data(x,pvals,z,se,args)
 
   beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
-  initialization <- select_initialization(masking_params, initialization)
+
   model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
 
 
@@ -105,7 +107,7 @@ adapt_gmm <- function(x = NULL,
   sorted_alphas <- sorted$x
   sorted_indices <- sorted$ix
 
-  refitting_constant <- max(floor(sum(data$mask)/(nfit+1)),1)
+  refitting_constant <- max(floor(sum(data$mask)/(nfits+1)),1)
   nrevealed <- 0
   big_odds <-  big_over_small_prob(model)
   to_reveal_order <- order(big_odds,decreasing=TRUE)
@@ -198,8 +200,10 @@ adapt_gmm <- function(x = NULL,
         # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
+
         to_reveal_order <- order(big_odds, decreasing=TRUE)
         reveal_order_index <- 1
+
       }
       reveal_hypo <- to_reveal_order[reveal_order_index]
       data$mask[reveal_hypo] <- FALSE
@@ -235,10 +239,8 @@ adapt_gmm <- function(x = NULL,
     cat(paste0("alpha = " , alpha,
                ": FDPhat ",round(min_fdp, 4),
                ", Number of Rej. ",R_t,"\n"))
+
   }
-
-
-
 
 
   cat("Complete.\n")
