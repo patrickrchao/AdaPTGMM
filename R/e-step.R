@@ -76,7 +76,6 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
     w_ika <- prev_w_ika
   }
 
-
   # Fill in w_ika values
   count <- 0
 
@@ -109,11 +108,9 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   }
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
-
-
-
   #sum over a and gamma and divide by the total
-  w_ika$value <- ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
+  w_ika[, value:= value/sum(value), by=i]
+  #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
 }
 

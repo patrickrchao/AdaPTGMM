@@ -18,11 +18,12 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
 
 m_step_glm <- function(formula, data, model_weights){
   if(is.null(model_weights)){
-    est_beta <- nnet::multinom(formula, data, weights = weights, trace = F,maxit=100,reltol=1e-7)
+    est_beta <- nnet::multinom(formula, data, weights = weights, trace = F)
   }else{
-    est_beta <- nnet::multinom(formula, data, weights = weights, trace = F,maxit=10,reltol=1e-7,Wts=model_weights)
+    est_beta <- nnet::multinom(formula, data, weights = weights, trace = F,Wts=model_weights)
 
   }
+
 
   fitted_prob <- fitted(est_beta)
   new_model_weights <- est_beta$wts

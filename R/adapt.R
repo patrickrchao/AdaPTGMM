@@ -28,13 +28,13 @@
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
 #' @param target_alpha_level Desired FDR level to optimize the procedure over, i.e.
-#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{aIC}".
+#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{AIC}".
 #' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
 #' @param initialization Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
 #' "\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".
 #' @param return_all_models Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
 #' Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.
-#' @param intercept_model Boolean.Include intercept only model in the model selection, default is \code{TRUE}.
+#' @param intercept_model Boolean. Include intercept only model in the model selection, default is \code{TRUE}.
 #' @param verbose Boolean. Include print statements at each stage of the procedure.
 #' @details
 #'  The constraint on these masking function parameters is
@@ -201,9 +201,13 @@ adapt_gmm <- function(x = NULL,
         model <- EM(model)
         big_odds <-  big_over_small_prob(model)
 
+
         to_reveal_order <- order(big_odds, decreasing=TRUE)
         reveal_order_index <- 1
 
+      }
+      if(abs(alpha-0.1)<1e-3){
+        save_odds <- big_odds
       }
       reveal_hypo <- to_reveal_order[reveal_order_index]
       data$mask[reveal_hypo] <- FALSE
@@ -241,11 +245,10 @@ adapt_gmm <- function(x = NULL,
                ", Number of Rej. ",R_t,"\n"))
 
   }
-
-
+ # browser()
   cat("Complete.\n")
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,
-                 odds_per_alpha=odds_per_alpha, args = model$args)
+                 odds_per_alpha=odds_per_alpha, args = model$args, big_odds = save_odds)
   if(return_all_models){
     output$model <- model
     output$model$params <- all_params
