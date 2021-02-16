@@ -8,6 +8,7 @@
 e_step_gamma <- function(model,w_ika){
   gammas <- subset(marginalize(w_ika,"a"),select=-c(i))
   gammas <- gammas[order(gammas$class),]
+
   return(gammas)
 }
 
@@ -45,6 +46,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
   num_a <- length(all_a)
   n <- args$n
   testing <- args$testing
+
 
 
   # if previous w_ika exists, use previous w_ika
@@ -109,7 +111,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, include_z = TRUE, agg_over_hy
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
   #sum over a and gamma and divide by the total
-  w_ika[, value:= value/sum(value), by=i]
+  w_ika <- w_ika[, value:= value/sum(value), by=i]
   #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
 }

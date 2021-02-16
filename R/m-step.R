@@ -15,12 +15,13 @@ m_step_beta <- function(model,gammas){
 
   x <- model$data$x
   rownames(x) <- NULL
+
   out <- m_step_beta_defaults(model_type,beta_formula,x,gammas,model$params$beta)
 
   model$params$beta <- out$model_weights
   model$params$df <- out$df
   prob <-  out$fitted_prob
-  if(nclasses == 2){
+  if(nclasses == 2 & ncol(prob) == 1){
     prob <- cbind(1-prob,prob)
   }
   if(model$args$n != nrow(prob)){
@@ -42,9 +43,9 @@ m_step_mu_tau <- function(model,w_ika){
   z <- w_ika$z
   for (k in 1:args$nclasses){
     subset <- w_ika[w_ika$class == k,]
-    if(length(unique(se)) == 1 & se[1] == 1){
+    if(length(unique(se)) == 1){
       params$mu[k] <- .weighted_mean(subset$z,subset$value)
-      params$var[k] <- max(.weighted_mean((subset$z-params$mu[k])^2,subset$value)-1, 0)
+      params$var[k] <- max(.weighted_mean((subset$z-params$mu[k])^2,subset$value)-se[1], 0)
     }else{
       params$mu[k] <- .weighted_mean(subset$z,subset$value/(params$var[k]+se^2))
 
@@ -60,6 +61,10 @@ m_step_mu_tau <- function(model,w_ika){
     }
 
 
+  }
+  if(any(is.na(params$mu)) | any(is.na(params$var))){
+
+    stop("NA value for mu or variance found. Stopping.")
   }
   return(params)
 }

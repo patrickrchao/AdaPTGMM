@@ -53,9 +53,9 @@ adapt_gmm <- function(x = NULL,
                       beta_formulas = NULL,
                       model_type = "glm",
                       nclasses = c(2,3,4),
-                      niter_fit = 5,
+                      niter_fit = 3,
                       niter_ms = 10,
-                      nfits = 5,
+                      nfits = 10,
                       alpha_m = NULL,
                       zeta = NULL,
                       lambda = NULL,
@@ -126,6 +126,7 @@ adapt_gmm <- function(x = NULL,
   fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
   min_fdp <- fdphat
 
+
   # while (min_fdp > 0 & R_t > 0 & sum(data$mask) > 0) {
   #
   #   #if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
@@ -194,7 +195,7 @@ adapt_gmm <- function(x = NULL,
     alpha <- sorted_alphas[index]
     while (min_fdp > alpha & R_t > 0) {
 
-      if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
+      if((nrevealed %% refitting_constant) == 0){ #& nrevealed > 0){
 
         model$data <- data
         # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
@@ -205,9 +206,6 @@ adapt_gmm <- function(x = NULL,
         to_reveal_order <- order(big_odds, decreasing=TRUE)
         reveal_order_index <- 1
 
-      }
-      if(abs(alpha-0.1)<1e-3){
-        save_odds <- big_odds
       }
       reveal_hypo <- to_reveal_order[reveal_order_index]
       data$mask[reveal_hypo] <- FALSE
@@ -247,8 +245,12 @@ adapt_gmm <- function(x = NULL,
   }
  # browser()
   cat("Complete.\n")
+ # data$mask <- rep(FALSE,length(data$mask))
+#  model$data <- data
+
+#  model <- EM(model)
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,
-                 odds_per_alpha=odds_per_alpha, args = model$args, big_odds = save_odds)
+                 odds_per_alpha=odds_per_alpha, args = model$args)
   if(return_all_models){
     output$model <- model
     output$model$params <- all_params
@@ -271,7 +273,7 @@ compute_fdphat <- function(data,args){
   rejs <- mask & pvals < args$alpha_m
   A_t <-  sum(mask & pvals > args$lambda)
   R_t <-  sum(rejs)
-  fdphat <- (A_t + 1) / max(R_t, 1)/args$zeta
+  fdphat <- (A_t + 1) / max(R_t, 1) / args$zeta
   output <- list(A_t=A_t, R_t=R_t, rejs = which(as.logical(rejs)), fdphat=fdphat)
   return(output)
 }

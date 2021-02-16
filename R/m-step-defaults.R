@@ -17,14 +17,20 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
 }
 
 m_step_glm <- function(formula, data, model_weights){
+
   if(is.null(model_weights)){
-    est_beta <- nnet::multinom(formula, data, weights = weights, trace = F)
+    est_beta <- nnet::multinom(formula=formula, data=data, weights = weights, trace = F)
   }else{
     est_beta <- nnet::multinom(formula, data, weights = weights, trace = F,Wts=model_weights)
 
   }
+  # plot(test_data$x,filter(test_data$weights,rep(1/1000,1000),sides=2),ylim=c(0,1))
+  # abline(0,1,lwd=3,col="black")
+  # plot(seq(0,1,length.out = 100),predict(est_beta,data.frame(x=seq(0,1,length.out = 100)),type="probs"))
+  #temp <- data[data$x>0.95,]
+ # print(mean(temp[temp$class==1,]$weights))
 
-
+  #print(predict(est_beta,data.frame(x=seq(0.9,1,length.out = 10)),type="probs"))
   fitted_prob <- fitted(est_beta)
   new_model_weights <- est_beta$wts
   df <- sum(est_beta$edf)
@@ -37,7 +43,7 @@ m_step_glm <- function(formula, data, model_weights){
 m_step_glmnet <- function(formula, data,model_weights){
 
  # if(is.null(model_weights)){
-    est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial", nfolds=3,maxit=1e3,nlambda=5)
+    est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial", nfolds=3,maxit=1e5,nlambda=5)
     #est_beta <- glm(formula=formula, data=data, weights = weights,family=multinomial())
   #}else{
    # est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial")

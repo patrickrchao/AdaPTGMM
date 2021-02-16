@@ -45,6 +45,9 @@ class_prob <- function(beta_model,nclasses,n,model_type,x=NULL){
 #' random variable with mean mu and variance tau at z.
 #' @noRd
 prob_jacobian_one_sided <- function(z, mean, var,se) {
+  #return(
+    #exp(-(mean^2-2*mean*z-(sqrt(var+se^2)-1)*z^2)/(2*sqrt(var+se^2)))/sqrt(var+se^2)
+  #)
   return(dnorm(z,mean,sqrt(var+se^2))/dnorm(z,0,se))
 }
 
@@ -61,9 +64,9 @@ prob_jacobian_one_sided <- function(z, mean, var,se) {
 #' the density of a Gaussian random variable with mean mu and variance tau at z.
 #' @noRd
 prob_jacobian_interval <- function(z, mean, var, se,radius) {
-    return(dnorm(z,mean,sqrt(var))/
-            (dnorm(-abs(z) + radius,0,1) -
-             dnorm(abs(z) + radius,0,1))
+    return(dnorm(z,mean,sqrt(var+se^2))/
+            (dnorm(-abs(z) + radius,0,se) -
+             dnorm(abs(z) + radius,0,se))
           )
 }
 

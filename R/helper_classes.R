@@ -135,8 +135,8 @@ initialize_params <- function(data,nclasses,initialization){
   small_z <- data$small_z[mask]
   big_z <- data$big_z[mask]
   if(initialization == "random"){
-    mu <- c(0,runif(nclasses-1,2,6))
-    var <- c(1,runif(nclasses-1,2,10))
+    mu <- c(0,runif(nclasses-1,1,4))
+    var <- c(0,runif(nclasses-1,1,6))
   }else if (initialization == "kmeans"){
     # Use true_z twice to count as double the weight
     all_z <- c(true_z,true_z,small_z,big_z)
@@ -145,14 +145,14 @@ initialize_params <- function(data,nclasses,initialization){
 
     mu <- as.numeric(out$centers)
     pred <- data.frame(z=all_z,class=out$cluster)
-    var <- aggregate(pred$z,list(pred$class),"var")
+    var <- aggregate(pred$z,list(pred$class),"var")-1
 
     colnames(var) <- c("group","value")
     var <- var[order(var$group),]
-    var <- pmax(var$value,1)
+    var <- pmax(var$value,0)
     # If a class only has one observation, the empirical variance will be zero
-    # Set NA values to 1
-    var[is.na(var)] <- 1
+    # Set NA values to 0
+    var[is.na(var)] <- 0
   }else if(initialization == "uniform"){
     all_z <- c(true_z,true_z,small_z,big_z)
 
