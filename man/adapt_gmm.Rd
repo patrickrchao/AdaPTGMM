@@ -15,9 +15,9 @@ adapt_gmm(
   beta_formulas = NULL,
   model_type = "glm",
   nclasses = c(2, 3, 4),
-  niter_fit = 5,
+  niter_fit = 3,
   niter_ms = 10,
-  nfits = 5,
+  nfits = 10,
   alpha_m = NULL,
   zeta = NULL,
   lambda = NULL,
@@ -73,14 +73,14 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{target_alpha_level}{Desired FDR level to optimize the procedure over, i.e.}
 
-\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{aIC}".}
+\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{AIC}".}
 
 \item{tol}{Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.}
 
 \item{initialization}{Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
 "\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".}
 
-\item{intercept_model}{Boolean.Include intercept only model in the model selection, default is \code{TRUE}.}
+\item{intercept_model}{Boolean. Include intercept only model in the model selection, default is \code{TRUE}.}
 
 \item{return_all_models}{Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
 Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.}

@@ -20,8 +20,6 @@ EM <- function(model, preset_iter=NULL){
   w_ika <- NULL
 
   for(i in seq(niter)){
-    #model$params$mu <- c(0,3)
-    #model$params$var <- c(0,0)
     w_ika <- e_step_w_ika(model, w_ika)
     gammas <- e_step_gamma(model, w_ika)
     # Do not update beta for the first iteration if in model selection
@@ -31,8 +29,7 @@ EM <- function(model, preset_iter=NULL){
     }
     model$params  <- m_step_mu_tau(model,w_ika)
   }
-  #model$params$mu <- c(0,3)
-  #model$params$var <- c(0,0)
+
   return(model)
 }
 
