@@ -195,12 +195,14 @@ adapt_gmm <- function(x = NULL,
     alpha <- sorted_alphas[index]
     while (min_fdp > alpha & R_t > 0) {
 
-      if((nrevealed %% refitting_constant) == 0){ #& nrevealed > 0){
+      if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
 
         model$data <- data
         # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
-        model <- EM(model)
-        big_odds <-  big_over_small_prob(model)
+        em_out <- EM(model,return_w_ika = TRUE)
+        model <- em_out$model
+        w_ika <- em_out$w_ika
+        big_odds <-  big_over_small_prob(model,w_ika)
 
 
         to_reveal_order <- order(big_odds, decreasing=TRUE)
@@ -243,12 +245,9 @@ adapt_gmm <- function(x = NULL,
                ", Number of Rej. ",R_t,"\n"))
 
   }
- # browser()
-  cat("Complete.\n")
- # data$mask <- rep(FALSE,length(data$mask))
-#  model$data <- data
 
-#  model <- EM(model)
+  cat("Complete.\n")
+
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,
                  odds_per_alpha=odds_per_alpha, args = model$args)
   if(return_all_models){

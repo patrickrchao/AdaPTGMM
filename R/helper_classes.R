@@ -26,7 +26,8 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
   if(testing == "one_sided"){
     z_to_p <- function(z) pnorm(z,lower.tail = FALSE)
     p_to_z <- function(p) -qnorm(p)
-    jacobian <- prob_jacobian_one_sided
+    base_prob <- base_prob_one_sided
+    #jacobian <- prob_jacobian_one_sided
   }else if(testing == "interval"){
     if(is.null(lendpoint)){
       lendpoint <- -1 * rendpoint
@@ -41,7 +42,8 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
     p_to_z <- function(z) unlist(mapply(p_to_z_inv,z))
     all_a <- c(all_a,"s_neg","b_neg")
 
-    jacobian <- function(z,mean,var,se)prob_jacobian_interval(z,mean,var,se,radius=radius)
+    base_prob <- function(z,se) base_prob_interval(z,radius,se)
+    #jacobian <- function(z,mean,var,se)prob_jacobian_interval(z,mean,var,se,radius=radius)
   }else{
     stop("Invalid testing type inputted. Valid forms of testing: `one_sided` and `interval`.")
   }
@@ -67,7 +69,7 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
                all_a = all_a,
                n  = n,
                initialization = initialization,
-               jacobian = jacobian
+               base_prob = base_prob
                )
   class(args) <- "args"
   return(args)
@@ -141,7 +143,7 @@ initialize_params <- function(data,nclasses,initialization){
     # Use true_z twice to count as double the weight
     all_z <- c(true_z,true_z,small_z,big_z)
 
-    out <- kmeans(all_z, nclasses, nstart=20)
+    out <- kmeans(all_z, nclasses, nstart=50)
 
     mu <- as.numeric(out$centers)
     pred <- data.frame(z=all_z,class=out$cluster)

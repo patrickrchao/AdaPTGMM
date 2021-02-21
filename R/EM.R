@@ -8,7 +8,7 @@
 #' @param model Model class with data, args, and initialize parameters
 #'
 #' @return Model class with updated parameters.
-EM <- function(model, preset_iter=NULL){
+EM <- function(model, w_ika=NULL,preset_iter=NULL,return_w_ika = FALSE){
 
 
   if(is.null(preset_iter)){
@@ -21,7 +21,7 @@ EM <- function(model, preset_iter=NULL){
 
   for(i in seq(niter)){
     w_ika <- e_step_w_ika(model, w_ika)
-    gammas <- e_step_gamma(model, w_ika)
+    gammas <- e_step_gamma(w_ika)
     # Do not update beta for the first iteration if in model selection
     # This is to initialize the model with an intercept only model
     if( i > 1 | !is.null(model$params$beta)){
@@ -30,6 +30,12 @@ EM <- function(model, preset_iter=NULL){
     model$params  <- m_step_mu_tau(model,w_ika)
   }
 
-  return(model)
+  if(return_w_ika){
+    output <- list(model=model,w_ika=w_ika)
+  }else{
+    output <- model
+  }
+
+  return(output)
 }
 

@@ -51,6 +51,14 @@ prob_jacobian_one_sided <- function(z, mean, var,se) {
   return(dnorm(z,mean,sqrt(var+se^2))/dnorm(z,0,se))
 }
 
+base_prob_one_sided <- function(z,se){
+  return(dnorm(z,0,se))
+}
+
+base_prob_interval <- function(z,radius,se){
+  return(dnorm(-abs(z) + radius,0,se) -
+           dnorm(abs(z) + radius,0,se))
+}
 
 #' Helper function to compute probability of big/small and masked p-value conditioned on class in interval case
 #' for specific hypothesis
@@ -105,9 +113,17 @@ marginalize <- function(w_ika, margin_vars){
 #' @noRd
 log_likelihood <- function(model){
 
-  w_ika <- e_step_w_ika(model, include_z = FALSE)
-  w_ika_sums <-  w_ika[,.(value=sum(value)),by=i]
+
+
+
+  w_ika <- e_step_w_ika(model)
+
+  #class_prob <- model$data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
+
+  #w_ika$like <- w_ika$class_density
+  log_like <- sum(log(w_ika[,.(value=sum(class_density)),by=i]))
+  #w_ika_sums <-  w_ika[,.(value=sum(value)),by=i]
   # w_ika_sums corresponds to sum_{k,a} {P[a_ia=a,\tilde p_i|\gamma_i=k] P[\gamma_i=k|x_i]*\zeta^1{a_ia=b}}
-  log_like <- sum(log(w_ika_sums$value))
+  #log_like <- sum(log(w_ika_sums$value))
   return(log_like)
 }
