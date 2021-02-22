@@ -4,7 +4,7 @@
 \alias{EM}
 \title{Perform Expectation Maximization Algorithm on Gaussian Mixture Model}
 \usage{
-EM(model, preset_iter = NULL)
+EM(model, w_ika = NULL, preset_iter = NULL, return_w_ika = FALSE)
 }
 \arguments{
 \item{model}{Model class with data, args, and initialize parameters}

@@ -53,9 +53,9 @@ adapt_gmm <- function(x = NULL,
                       beta_formulas = NULL,
                       model_type = "glm",
                       nclasses = c(2,3,4),
-                      niter_fit = 3,
+                      niter_fit = 2,
                       niter_ms = 10,
-                      nfits = 10,
+                      nfits = 20,
                       alpha_m = NULL,
                       zeta = NULL,
                       lambda = NULL,
@@ -125,6 +125,8 @@ adapt_gmm <- function(x = NULL,
   R_t <-  length(rejection_set)
   fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
   min_fdp <- fdphat
+
+
 
 
   # while (min_fdp > 0 & R_t > 0 & sum(data$mask) > 0) {

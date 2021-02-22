@@ -34,7 +34,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(data, new_args,init_params[[row$nclasses]])
-    model <- EM(model, preset_iter = niter_ms)#,silent=TRUE)
+    model <- try(EM(model, preset_iter = niter_ms),silent=TRUE)
     #TODO: Add shortcircuit if only one model selected
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
@@ -100,7 +100,6 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     probs <- big_over_small_prob(model)
     probs <- probs/(probs+1)
     probs <- probs[model$data$mask]
-    hist(probs,xlim = c(0,1))
     # Multiply by negative 1 since smaller values are more desirable
     value <- -1 * mean((probs-0.5)^2)
     log_like <- NA

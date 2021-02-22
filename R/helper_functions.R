@@ -91,7 +91,7 @@ clean_beta_formulas <- function(beta_formulas,include_intercept_model){
   if(include_intercept_model & !("+1" %in% beta_formulas)){
     beta_formulas <- c("+1",beta_formulas)
   }
-  return(unlist(lapply(beta_formulas,complete_pkg)))
+  return(sapply(beta_formulas,complete_pkg))
 }
 
 
