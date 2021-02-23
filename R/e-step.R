@@ -30,7 +30,7 @@ e_step_gamma <- function(w_ika){
 #' P[gamma_i=k,a_i=a_ia | x_i, \tilde p_i]=
 #' {P[a_i=a,\tilde p_i | \gamma=k]P[\gamma=k | x_i]\zeta^1{a_ia=b}}/ {\sum_{a',k'} P[a_i=a',\tilde p_i | \gamma=k']P[\gamma=k' | x_i]  \zeta^1{a_ia'=b}}
 #' @noRd
-e_step_w_ika <- function(model, prev_w_ika = NULL){
+e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
 
   # need to iterate over a, k
   # use helper in each case
@@ -100,7 +100,10 @@ e_step_w_ika <- function(model, prev_w_ika = NULL){
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
   #sum over a and gamma and divide by the total
-  w_ika <- w_ika[, value:= value/sum(value), by=i]
+  # Does not normalize for log likelihood computation
+  if(normalize){
+    w_ika <- w_ika[, value:= value/sum(value), by=i]
+  }
   #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
 }

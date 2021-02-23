@@ -116,12 +116,12 @@ log_likelihood <- function(model){
 
 
 
-  w_ika <- e_step_w_ika(model)
+  w_ika <- e_step_w_ika(model,normalize=FALSE)
 
   #class_prob <- model$data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
 
   #w_ika$like <- w_ika$class_density
-  log_like <- sum(log(w_ika[,.(value=sum(class_density)),by=i]))
+  log_like <- sum(log(w_ika[,.(value=sum(value)),by=i]))
   #w_ika_sums <-  w_ika[,.(value=sum(value)),by=i]
   # w_ika_sums corresponds to sum_{k,a} {P[a_ia=a,\tilde p_i|\gamma_i=k] P[\gamma_i=k|x_i]*\zeta^1{a_ia=b}}
   #log_like <- sum(log(w_ika_sums$value))

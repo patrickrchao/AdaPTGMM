@@ -44,19 +44,19 @@ m_step_mu_tau <- function(model,w_ika){
   for (k in 1:args$nclasses){
     subset <- w_ika[w_ika$class == k,]
     if(length(unique(se)) == 1){
-      params$mu[k] <- .weighted_mean(subset$z,subset$value)
-      params$var[k] <- max(.weighted_mean((subset$z-params$mu[k])^2,subset$value)-se[1], 0)
+      params$mu[k] <- .weighted_mean(subset$z, subset$value)
+      params$var[k] <- max(.weighted_mean((subset$z - params$mu[k])^2, subset$value) - se[1]^2, 0)
     }else{
       params$mu[k] <- .weighted_mean(subset$z,subset$value/(params$var[k]+se^2))
 
       for(iter in 1:5){
 
-        grad <- - sum(subset$value/(params$var[k]+se^2)) +
-          sum(subset$value*(subset$z-params$mu[k])^2/(params$var[k]+se^2)^2)
-        second_derivative <- sum(subset$value/(params$var[k]+se^2)^2) -
-          2*sum(subset$value*(subset$z-params$mu[k])^2/(params$var[k]+se^2)^3)
+        grad <- - sum(subset$value / (params$var[k] + se^2)) +
+          sum(subset$value*(subset$z-params$mu[k])^2 / (params$var[k]+se^2)^2)
+        second_derivative <- sum(subset$value / (params$var[k]+se^2)^2) -
+          2*sum(subset$value * (subset$z-params$mu[k])^2 / (params$var[k]+se^2)^3)
 
-        params$var[k] <- max(params$var[k] - 0.5*grad/second_derivative,0)
+        params$var[k] <- max(params$var[k] - 0.5*grad/second_derivative, 0)
       }
     }
 

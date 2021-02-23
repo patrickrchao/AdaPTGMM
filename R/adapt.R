@@ -51,7 +51,7 @@ adapt_gmm <- function(x = NULL,
                       rendpoint = NULL,
                       lendpoint = NULL,
                       beta_formulas = NULL,
-                      model_type = "glm",
+                      model_type = "nnet",
                       nclasses = c(2,3,4),
                       niter_fit = 2,
                       niter_ms = 10,
@@ -66,7 +66,7 @@ adapt_gmm <- function(x = NULL,
                       tol = 1e-4,
                       initialization = "kmeans",
                       intercept_model = TRUE,
-                      return_all_models = FALSE
+                      return_all_models = FALSE,
                       ){
   options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
 

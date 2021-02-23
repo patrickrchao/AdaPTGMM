@@ -37,7 +37,7 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
       masking_shape <- "comb"
     }
     radius <-  (rendpoint-lendpoint)/2
-    z_to_p <- function(z) pnorm(abs(z)+radius,lower.tail=FALSE)+pnorm(-abs(z)+radius)
+    z_to_p <- function(z) pnorm(abs(z)+radius,lower.tail=FALSE) + pnorm(-abs(z)+radius)
     p_to_z_inv <- .inverse(z_to_p,lower = 0)
     p_to_z <- function(z) unlist(mapply(p_to_z_inv,z))
     all_a <- c(all_a,"s_neg","b_neg")
@@ -137,7 +137,7 @@ initialize_params <- function(data,nclasses,initialization){
   small_z <- data$small_z[mask]
   big_z <- data$big_z[mask]
   if(initialization == "random"){
-    mu <- c(0,runif(nclasses-1,1,4))
+    mu <- c(0, runif(nclasses-1,1,4))
     var <- c(0,runif(nclasses-1,1,6))
   }else if (initialization == "kmeans"){
     # Use true_z twice to count as double the weight
@@ -147,7 +147,7 @@ initialize_params <- function(data,nclasses,initialization){
 
     mu <- as.numeric(out$centers)
     pred <- data.frame(z=all_z,class=out$cluster)
-    var <- aggregate(pred$z,list(pred$class),"var")-1
+    var <- aggregate(pred$z,list(pred$class),"var") - 1
 
     colnames(var) <- c("group","value")
     var <- var[order(var$group),]
