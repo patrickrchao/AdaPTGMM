@@ -104,6 +104,9 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
   if(normalize){
     w_ika <- w_ika[, value:= value/sum(value), by=i]
   }
+  if(any(is.na(w_ika))){
+      stop("NA value in w_ika table. Stopping.")
+  }
   #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
 }

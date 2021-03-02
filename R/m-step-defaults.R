@@ -97,6 +97,7 @@ m_step_mgcv <- function(formula, data,model_weights){
 
 
   fitted_prob <- data.frame(fitted(est_beta))
+
   new_model_weights <-  est_beta$coefficients
   df <- sum(est_beta$edf)
   return(list(fitted_prob=fitted_prob,

@@ -28,7 +28,7 @@ m_step_beta <- function(model,gammas){
 
     prob <- prob[1:model$args$n,]
   }
-  prob <- pmax(pmin(prob,1 - 1e-12), 1e-12)
+  prob <- as.data.frame(pmax(pmin(as.matrix(prob),1 - 1e-12), 1e-12))
   model$data$class_prob <- prob
   return(model)
 }
