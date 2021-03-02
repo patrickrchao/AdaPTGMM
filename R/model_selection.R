@@ -34,7 +34,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     new_args$nclasses <- nclasses_list[row$nclasses]
 
     model <- create_model(data, new_args,init_params[[row$nclasses]])
-    model <- try(EM(model, preset_iter = niter_ms),silent=TRUE)
+    model <- EM(model, preset_iter = niter_ms)#,silent=TRUE)
     #TODO: Add shortcircuit if only one model selected
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
