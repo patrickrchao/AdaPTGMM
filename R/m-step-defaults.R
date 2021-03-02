@@ -86,7 +86,7 @@ m_step_gam <- function(formula, data,model_weights){
 m_step_mgcv <- function(formula, data,model_weights){
 
   data <- data[data$class == 1,]
-  data$class <- data$weights
+  data$class <- pmax(pmax(data$weights,1-1e-12),1e-12)
 
   if(is.null(model_weights)){
     est_beta <- mgcv::gam(formula, family=quasibinomial, data=data)
@@ -94,6 +94,7 @@ m_step_mgcv <- function(formula, data,model_weights){
     est_beta <- mgcv::gam(formula, family=quasibinomial, data=data,
                           outer=gam.outer(start=model_weights))
   }
+
 
 
   fitted_prob <- data.frame(fitted(est_beta))
