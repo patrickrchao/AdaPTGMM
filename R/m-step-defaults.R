@@ -8,8 +8,8 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
 
   if(model_type == "nnet"){
     out <- m_step_nnet(formula,data,model_weights)
-  }else if(model_type == "gam"){
-    out <- m_step_gam(formula,data,model_weights)
+  }else if(model_type == "rrvglm"){
+    out <- m_step_rrvglm(formula,data,model_weights)
   }else if(model_type == "mgcv"){
     out <- m_step_mgcv(formula,data,model_weights)
   }else if(model_type == "glmnet"){
@@ -67,16 +67,20 @@ m_step_glmnet <- function(formula, data,model_weights){
 
 }
 
-m_step_gam <- function(formula, data,model_weights){
-  if(is.null(model_weights)){
-    est_beta <- vgam(formula,multinomial,data,weights = weights,control=vgam.control(maxit=15,bf.maxit = 15,trace=F))
-  }else{
-    est_beta <- VGAM::vgam(formula,multinomial,data,weights = weights,coefstart=model_weights,control=vgam.control(maxit=5,bf.maxit = 5,trace=F))
-  }
+m_step_rrvglm <- function(formula, data,model_weights){
+
+  data$weights  <- pmax(pmin(data$weights,1-1e-12), 1e-12)
+  est_beta <- VGAM::rrvglm(formula,multinomial,data,weights = weights,Rank=1,control=rrvglm.control(algorithm="derivative",trace=F))
+  # if(is.null(model_weights)){
+  #
+  # }else{
+  #   est_beta <- VGAM::rrvglm(formula,multinomial,data,weights = weights,Rank=2,control=rrvglm.control(algorithm="derivative",trace=T))
+  # }
 
   fitted_prob <- predict(est_beta,type="response")
   new_model_weights <- coef(est_beta)
-  df <- nobs(est_beta,type="vlm") -df.residual(est_beta)
+
+  df <- nobs(est_beta,type="vlm") - df.residual(est_beta)
   return(list(fitted_prob=fitted_prob,
               model_weights = new_model_weights,
               df = df))
@@ -86,7 +90,7 @@ m_step_gam <- function(formula, data,model_weights){
 m_step_mgcv <- function(formula, data,model_weights){
 
   data <- data[data$class == 1,]
-  data$class <- pmin(pmax(data$weights,1-1e-12),1e-12)
+  data$class <- pmax(pmin(data$weights,1-1e-12), 1e-12)
 
   if(is.null(model_weights)){
     est_beta <- mgcv::gam(formula, family=quasibinomial, data=data)
