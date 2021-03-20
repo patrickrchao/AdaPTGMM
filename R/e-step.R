@@ -7,6 +7,7 @@
 #' @noRd
 e_step_gamma <- function(w_ika){
   gammas <- subset(marginalize(w_ika,"a"),select=-c(i))
+
   gammas <- gammas[order(gammas$class),]
 
   return(gammas)
@@ -105,7 +106,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
     w_ika <- w_ika[, value:= value/sum(value), by=i]
   }
   if(any(is.na(w_ika))){
-      stop("NA value in w_ika table. Stopping.")
+    stop("NA value in w_ika table. Stopping.")
   }
   #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
@@ -131,20 +132,18 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
 #' @noRd
 w_ika_helper <- function(w_ika,args,data,params){
 
-
+  # If the data has been unmasked, we only need one value for 'a'
+  # By default we set a to 's'
   subset <- data$mask[w_ika$i] | w_ika$a == "s"
   w_ika <- w_ika[subset,]
 
-  sign <- rep(1,sum(subset))
-  zeta_jacobian <- (w_ika$a == "b" | w_ika$a == "neg_b") * (args$zeta - 1) + 1
-  if(length(args$all_a) == 4){
-    sign <- (w_ika$a == "s" | w_ika$a == "b") * 2 - 1
-  }
 
-  w_ika$class_density <- dnorm(w_ika$z * sign,
-                                       mean = params$mu[w_ika$class],
-                                       sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i])) *
-    zeta_jacobian * data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
+  # zeta_jacobian is zeta for w_ika$a = b or neg_b, and 1 otherwise
+  zeta_jacobian <- (w_ika$a == "b" | w_ika$a == "neg_b") * (args$zeta - 1) + 1
+
+  w_ika$class_density <- dnorm(w_ika$z,mean = params$mu[w_ika$class],
+                                       sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i]^2)) *
+              zeta_jacobian * data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
 
   return(w_ika)
 }

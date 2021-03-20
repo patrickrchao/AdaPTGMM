@@ -13,18 +13,16 @@
 create_model <- function(data,args,params=NULL){
   nclasses <- args$nclasses
   if(is.null(params)){
-    params <- initialize_params(data,nclasses,args$initialization)
+    params <- initialize_params(data,nclasses,args$initialization,args$testing)
   }
   base_prob <- rep(1/(nclasses),nclasses)
   data$class_prob <- t(replicate(n=args$n,base_prob))
   model <- list(data=data, args=args, params=params)
 
   testing <- args$testing
-  if(testing == "one_sided" | testing == "interval"){
-    class(model) <- paste0("adaptgmm_model_",testing)
-  }else{
-    stop("Invalid testing type inputted. Valid forms of testing: `one_sided` and `interval`.")
-  }
+
+  class(model) <- paste0("adaptgmm_model_",testing)
+
 
 
   return(model)

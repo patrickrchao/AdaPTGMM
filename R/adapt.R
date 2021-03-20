@@ -7,7 +7,7 @@
 #' @param pvals Vector of p-values (supply either pvals or test statistics)
 #' @param z Vector of test statistics, required if \code{testing}='\code{interval}'.
 #' @param se Vector of standard errors, if left blank when given test statistics, the standard errors are assumed to be 1.
-#' @param testing The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".
+#' @param testing The form of testing procedure, "\code{one_sided}", "\code{two_sided}", or "\code{interval}". Default is "\code{one_sided}".
 #' @param rendpoint Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.
 #' @param lendpoint Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
 #' \code{lendpoint} will be assumed to be \code{-rendpoint}.

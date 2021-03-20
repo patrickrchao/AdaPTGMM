@@ -39,18 +39,19 @@ m_step_mu_tau <- function(model,w_ika){
   args <- model$args
   params <- model$params
   data <- model$data
-  se <- data$se
   z <- w_ika$z
+
   for (k in 1:args$nclasses){
     subset <- w_ika[w_ika$class == k,]
+    se <- data$se[subset$i]
     if(length(unique(se)) == 1){
-      params$mu[k] <- .weighted_mean(subset$z, subset$value)
-      params$var[k] <- max(.weighted_mean((subset$z - params$mu[k])^2, subset$value) - se[1]^2, 0)
+      params$mu[k] <- weighted.mean(subset$z, subset$value)
+      params$var[k] <- max(weighted.mean((subset$z - params$mu[k])^2, subset$value) - se[1]^2, 0)
     }else{
+
       params$mu[k] <- .weighted_mean(subset$z,subset$value/(params$var[k]+se^2))
 
       for(iter in 1:5){
-
         grad <- - sum(subset$value / (params$var[k] + se^2)) +
           sum(subset$value*(subset$z-params$mu[k])^2 / (params$var[k]+se^2)^2)
         second_derivative <- sum(subset$value / (params$var[k]+se^2)^2) -

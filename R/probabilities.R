@@ -51,8 +51,14 @@ prob_jacobian_one_sided <- function(z, mean, var,se) {
   return(dnorm(z,mean,sqrt(var+se^2))/dnorm(z,0,se))
 }
 
+
+#' TODO: Fill these in
 base_prob_one_sided <- function(z,se){
   return(dnorm(z,0,se))
+}
+
+base_prob_two_sided <- function(z,se){
+  return(2*dnorm(abs(z),0,se))
 }
 
 base_prob_interval <- function(z,radius,se){

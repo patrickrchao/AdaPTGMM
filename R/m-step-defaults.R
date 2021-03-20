@@ -8,14 +8,29 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
   data$class <- as.factor(data$class)
 
   if(model_type == "nnet"){
+    if (!requireNamespace("nnet", quietly = TRUE)){
+      stop("package \'nnet\' not found. Please install.")
+    }
     out <- m_step_nnet(formula,data,model_weights)
   }else if(model_type == "rrvglm"){
+    if (!requireNamespace("VGAM", quietly = TRUE)){
+      stop("package \'VGAM\' not found. Please install.")
+    }
     out <- m_step_rrvglm(formula,data,model_weights)
   }else if(model_type == "mgcv"){
+    if (!requireNamespace("mgcv", quietly = TRUE)){
+      stop("package \'mgcv\' not found. Please install.")
+    }
     out <- m_step_mgcv(formula,data,model_weights)
   }else if(model_type == "glmnet"){
+    if (!requireNamespace("glmnet", quietly = TRUE)){
+      stop("package \'glmnet\' not found. Please install.")
+    }
     out <- m_step_glmnet(formula,data,model_weights)
   }else if(model_type == "neural"){
+    if (!requireNamespace("nnet", quietly = TRUE)){
+      stop("package \'nnet\' not found. Please install.")
+    }
     out <- m_step_neural(formula,data,model_weights)
   }
   else{
@@ -48,12 +63,14 @@ m_step_nnet <- function(formula, data, model_weights){
 
 }
 
+
+
 m_step_neural <- function(formula, data, model_weights){
 
   if(is.null(model_weights)){
-    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, trace = F,size=2)
+    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, trace = F,size=6)
   }else{
-    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, Wts = model_weights, trace = F,size=2)
+    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, Wts = model_weights, trace = F,size=6)
   }
 
   fitted_prob <- fitted(est_beta)
@@ -91,7 +108,9 @@ m_step_glmnet <- function(formula, data,model_weights){
 m_step_rrvglm <- function(formula, data,model_weights){
 
   data$weights  <- pmax(pmin(data$weights,1-1e-12), 1e-12)
-  est_beta <- VGAM::rrvglm(formula,multinomial,data,weights = weights,Rank=1,control=rrvglm.control(algorithm="derivative",trace=F))
+  est_beta <- suppressWarnings(
+    VGAM::rrvglm(formula,multinomial,data,weights = weights,Rank=1,control=rrvglm.control(algorithm="derivative",trace=F))
+    )
   # if(is.null(model_weights)){
   #
   # }else{

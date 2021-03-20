@@ -36,6 +36,7 @@ EM <- function(model, w_ika=NULL,preset_iter=NULL,return_w_ika = FALSE){
     output <- model
   }
 
+
   return(output)
 }
 

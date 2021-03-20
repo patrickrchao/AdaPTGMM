@@ -22,7 +22,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
 
   n_permutations <- nrow(param_grid)
 
-  init_params <- lapply(nclasses_list,function(x)initialize_params(data,x,initialization))
+  init_params <- lapply(nclasses_list,function(x)initialize_params(data,x,initialization,args$testing))
   best_value <- Inf
   best_index <- 0
 
@@ -63,7 +63,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     setTxtProgressBar(pb, row_index)
   }
 
-  print(param_grid)
+#  print(param_grid)
 
   if(best_value == Inf){
     stop("All beta formula models are invalid.")
@@ -71,6 +71,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
   best_model$params$value <- best_value
   best_model$params$full_df <- best_df
   cat("\n")
+  print(best_model$args)
   return(best_model)
 }
 

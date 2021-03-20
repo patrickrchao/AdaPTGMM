@@ -1,14 +1,3 @@
-#' Weighted Mean computation
-#'
-#' @param values Vector of values
-#' @param weights Vector of nonnegative weights
-#'
-#' @return weighted mean
-#' @noRd
-.weighted_mean <- function(values,weights){
-  return(sum(values*weights)/sum(weights))
-}
-
 #' Perform checks for valid parameters
 #'
 #' @noRd
@@ -21,6 +10,9 @@
   }
   if(!is.data.frame(x)){
     stop("Invalid input, x must be a dataframe.")
+  }
+  if(! (testing %in% c("one_sided","interval","two_sided"))){
+    stop("Invalid testing input, valid options are one_sided, interval, two_sided")
   }
   if(testing == "interval"){
     if(is.null(z)){
@@ -137,10 +129,10 @@ set_default_target <- function(target_alpha_level,alphas,default_value=0.05){
 
 select_initialization <- function(masking_params, initialization, testing){
   if(((masking_params$zeta == 1 & ((0.5 - masking_params$alpha_m ) == (masking_params$lambda - 0.5))) |
-     (testing == "interval") ) &
+     testing == "interval" | testing == "two_sided") &
      initialization == "kmeans" ){
 
-    warning("Symmetric masking function or interval null testing found, possible unstable performance with k-means. Setting initialization scheme to `random`.")
+    warning("Symmetric masking function or interval/two sided null testing found, possible unstable performance with k-means. Setting initialization scheme to `random`.")
     initialization <-  "random"
   }
   return(initialization)
