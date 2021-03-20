@@ -49,7 +49,7 @@ m_step_mu_tau <- function(model,w_ika){
       params$var[k] <- max(weighted.mean((subset$z - params$mu[k])^2, subset$value) - se[1]^2, 0)
     }else{
 
-      params$mu[k] <- .weighted_mean(subset$z,subset$value/(params$var[k]+se^2))
+      params$mu[k] <- weighted.mean(subset$z,subset$value/(params$var[k]+se^2))
 
       for(iter in 1:5){
         grad <- - sum(subset$value / (params$var[k] + se^2)) +
