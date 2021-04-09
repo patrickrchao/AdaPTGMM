@@ -86,17 +86,18 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
     unmasked_i <- !masked_i
 
     # Pairwise Reveal
+    # Reveals (s and b_neg) or (b and s_neg)
     subset <- (data$z[w_ika$i] > 0 & data$a[w_ika$i] == "s") |
-                (data$z[w_ika$i] < 0 & data$a[w_ika$i] == "b")
+      (data$z[w_ika$i] < 0 & data$a[w_ika$i] == "b")
     w_ika$value[subset & (w_ika$a == "b" | w_ika$a=="s_neg") & masked_i] <- 0
 
     subset <- (data$z[w_ika$i] < 0 & data$a[w_ika$i] == "s") |
-                (data$z[w_ika$i] > 0 & data$a[w_ika$i] == "b")
+      (data$z[w_ika$i] > 0 & data$a[w_ika$i] == "b")
     w_ika$value[subset & (w_ika$a == "b_neg" | w_ika$a=="s") & masked_i] <- 0
 
     # Sign Reveal
- #  w_ika$value[((w_ika$z<0 ) & masked_i)& data$z>0 ] <-  0
-  # w_ika$value[((w_ika$z>0 ) & masked_i)& data$z<0 ] <-  0
+    #  w_ika$value[((w_ika$z<0 ) & masked_i)& data$z>0 ] <-  0
+    # w_ika$value[((w_ika$z>0 ) & masked_i)& data$z<0 ] <-  0
   }
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
@@ -106,6 +107,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
     w_ika <- w_ika[, value:= value/sum(value), by=i]
   }
   if(any(is.na(w_ika))){
+    browser()
     stop("NA value in w_ika table. Stopping.")
   }
   #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
@@ -142,8 +144,8 @@ w_ika_helper <- function(w_ika,args,data,params){
   zeta_jacobian <- (w_ika$a == "b" | w_ika$a == "neg_b") * (args$zeta - 1) + 1
 
   w_ika$class_density <- dnorm(w_ika$z,mean = params$mu[w_ika$class],
-                                       sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i]^2)) *
-              zeta_jacobian * data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
+                               sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i]^2)) *
+    zeta_jacobian * data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
 
   return(w_ika)
 }

@@ -140,50 +140,46 @@ initialize_params <- function(data,nclasses,initialization,testing){
   mask <- data$mask
   a <- data$a
 
-  true_z <- data$z[!mask]
-  small_z <- data$small_z[mask]
-  big_z <- data$big_z[mask]
-  if(initialization == "random"){
-    if(testing == "one_sided"){
-      mu <- c(0, runif(nclasses-1, 1,4))
-    }else{
-      mu <- c(0, runif(nclasses-1, -4,4))
-    }
+  true_z <- data$z
+  small_z <- data$small_z
+  big_z <- data$big_z
+  unmasked_true_z <- true_z[!mask]
 
-    var <- c(0,runif(nclasses-1, 1, 6))
-  }else if (initialization == "kmeans"){
-    # Use true_z twice to count as double the weight
-    all_z <- c(true_z,true_z,small_z,big_z)
-
-    out <- kmeans(all_z, nclasses, nstart=50)
-
-    mu <- as.numeric(out$centers)
-    pred <- data.frame(z=all_z,class=out$cluster)
-    var <- aggregate(pred$z,list(pred$class),"var") - 1
-
-    colnames(var) <- c("group","value")
-    var <- var[order(var$group),]
-    var <- pmax(var$value,0)
-    # If a class only has one observation, the empirical variance will be zero
-    # Set NA values to 0
-    var[is.na(var)] <- 0
-  }else if(initialization == "uniform"){
-    if(testing == "one_sided"){
-      all_z <- c(true_z,true_z,small_z,big_z)
-    }else{
-      all_z <- c(true_z,true_z,small_z,big_z,-1*small_z,-1*big_z)
-    }
-
-
-    mu <- unlist(quantile(all_z, seq(0.2,1,length.out = nclasses+2)[2:(nclasses+1)]))
-    mu <- unname(mu)
-    var <- runif(nclasses,2,10)
-
+  # need to remove z where they are revealed
+  se <- data$se
+  if(testing == "one_sided"){
+    small_z <- small_z[mask]
+    big_z <- big_z[mask]
+    all_z <- c(small_z,big_z,unmasked_true_z,unmasked_true_z)
+    all_se <- c(se[mask],se[mask],se[!mask],se[!mask])
   }else{
-    stop("Unknown initialization scheme inputted.")
-  }
-  beta <- NULL
 
+    # reveal pairs (s and b_neg) or (b and s_neg)
+    small_neg_z <- small_z * (-1)
+    big_neg_z <- big_z * (-1)
+    subset <- (!((true_z < 0 & a == "b") | (true_z > 0 & a == "s" )) & mask)
+    big_z <-       big_z[subset]
+    small_neg_z <- small_neg_z[subset]
+
+    subset2 <- (!((true_z < 0 & a == "s") | (true_z > 0 & a == "b" ))  & mask)
+    small_z <-     small_z[subset2]
+    big_neg_z <-   big_neg_z[subset2]
+
+    all_z <- c(small_z,big_z,small_neg_z,big_neg_z,unmasked_true_z,unmasked_true_z)
+    all_se <- c(se[subset2],se[subset],se[subset],se[subset2],se[!mask],se[!mask])
+  }
+
+
+  out <- kmeans(all_z, nclasses, nstart=50)
+  mu <- as.numeric(out$centers)
+  pred <- data.frame(z=all_z,class=out$cluster,se=all_se)
+  var <- dplyr::summarise(dplyr::group_by(pred,class),variance = var(z)-mean(se)^2)
+  var <- var[order(var$class),]
+  var <- pmax(var$variance,0)
+  # If a class only has one observation, the empirical variance will be zero
+  # Set NA values to 0
+  var[is.na(var)] <- 0
+  beta <- NULL
 
   params <- list(beta=beta, mu=mu, var=var)
   class(params) <- "params"

@@ -30,6 +30,7 @@ m_step_beta <- function(model,gammas){
   }
   prob <- as.data.frame(pmax(pmin(as.matrix(prob),1 - 1e-12), 1e-12))
   model$data$class_prob <- prob
+
   return(model)
 }
 
@@ -41,32 +42,39 @@ m_step_mu_tau <- function(model,w_ika){
   data <- model$data
   z <- w_ika$z
 
+  old_params <- params
+
   for (k in 1:args$nclasses){
     subset <- w_ika[w_ika$class == k,]
     se <- data$se[subset$i]
-    if(length(unique(se)) == 1){
-      params$mu[k] <- weighted.mean(subset$z, subset$value)
-      params$var[k] <- max(weighted.mean((subset$z - params$mu[k])^2, subset$value) - se[1]^2, 0)
-    }else{
 
-      params$mu[k] <- weighted.mean(subset$z,subset$value/(params$var[k]+se^2))
+    # Optim for mu and tau^2
 
-      for(iter in 1:5){
-        grad <- - sum(subset$value / (params$var[k] + se^2)) +
-          sum(subset$value*(subset$z-params$mu[k])^2 / (params$var[k]+se^2)^2)
-        second_derivative <- sum(subset$value / (params$var[k]+se^2)^2) -
-          2*sum(subset$value * (subset$z-params$mu[k])^2 / (params$var[k]+se^2)^3)
+    computed_optim <- optim(c(params$mu[k],params$var[k]),function(x){
+      mu <- x[1]
+      var <- x[2]
 
-        params$var[k] <- max(params$var[k] - 0.5*grad/second_derivative, 0)
-      }
-    }
-
+      mean(subset$value*(log(se^2+var) + (subset$z-mu)^2/(var+se^2)))
+    },gr <- function(x){
+      mu <- x[1]
+      var <- x[2]
+      c(-mean(subset$value*(subset$z-mu)/(var+se^2)),
+        mean(subset$value / (var + se^2)) -
+          mean(subset$value*(subset$z-mu)^2 / (var+se^2)^2)
+      )
+    },method="L-BFGS-B",control=list(maxit=10,factr=1e-2),lower=c(-Inf,0),upper=c(Inf,Inf))
+    params$mu[k] <- computed_optim$par[1]
+    params$var[k] <- max(computed_optim$par[2],0)
 
   }
+
+
+
   if(any(is.na(params$mu)) | any(is.na(params$var))){
 
     stop("NA value for mu or variance found. Stopping.")
   }
+
   return(params)
 }
 

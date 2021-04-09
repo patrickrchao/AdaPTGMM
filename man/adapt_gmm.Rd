@@ -13,9 +13,9 @@ adapt_gmm(
   rendpoint = NULL,
   lendpoint = NULL,
   beta_formulas = NULL,
-  model_type = "glm",
+  model_type = "nnet",
   nclasses = c(2, 3, 4),
-  niter_fit = 2,
+  niter_fit = 5,
   niter_ms = 10,
   nfits = 20,
   alpha_m = NULL,
@@ -40,7 +40,7 @@ adapt_gmm(
 
 \item{se}{Vector of standard errors, if left blank when given test statistics, the standard errors are assumed to be 1.}
 
-\item{testing}{The form of testing procedure, either "\code{one_sided}" or "\code{interval}". Default is "\code{one_sided}".}
+\item{testing}{The form of testing procedure, "\code{one_sided}", "\code{two_sided}", or "\code{interval}". Default is "\code{one_sided}".}
 
 \item{rendpoint}{Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.}
 

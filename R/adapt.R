@@ -53,7 +53,7 @@ adapt_gmm <- function(x = NULL,
                       beta_formulas = NULL,
                       model_type = "nnet",
                       nclasses = c(2,3,4),
-                      niter_fit = 2,
+                      niter_fit = 5,
                       niter_ms = 10,
                       nfits = 20,
                       alpha_m = NULL,
@@ -73,7 +73,7 @@ adapt_gmm <- function(x = NULL,
   n = nrow(x)
 
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda,set_default_target(target_alpha_level,alphas))
-  initialization <- select_initialization(masking_params, initialization, testing)
+  #initialization <- select_initialization(masking_params, initialization, testing)
   .input_checks(x, pvals, z, se, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfits, masking_params, masking_shape, alphas,cr)
 
   args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,initialization)

@@ -32,13 +32,13 @@ data_preprocessing <- function(data,args){
   se <- data$se
   # Initialize z and pvals if uninitialized
   if(is.null(data$z)){
-    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-10), 1e-24)
+    data$pvals <- pmax(pmin(data$pvals, 1 - 1e-10), 1e-40)
     data$z <- args$p_to_z(data$pvals) * se
   }else if(is.null(data$pvals)){
     data$pvals <- args$z_to_p(data$z / se)
   }
   # Clamp p-values
-  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-10), 1e-24)
+  data$pvals <- pmax(pmin(data$pvals, 1 - 1e-10), 1e-40)
 
   pvals <- data$pvals
   z <- data$z
@@ -114,7 +114,6 @@ masking <- function(data,args){
   data$big_pvals <- big_pvals
   data$mask <- mask
   data$a <- a
-
   #data$mask[data$small_pvals > quantile(data$small_pvals,0.9,na.rm = T)] <- FALSE
 
   return(data)

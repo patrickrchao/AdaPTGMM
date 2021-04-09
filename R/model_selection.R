@@ -71,7 +71,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
   best_model$params$value <- best_value
   best_model$params$full_df <- best_df
   cat("\n")
-  print(best_model$args)
+
   return(best_model)
 }
 
