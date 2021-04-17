@@ -176,11 +176,11 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
     all_z_w_neg <- c(all_z,-all_z)
     all_se_w_neg <- c(all_se,all_se)
 
-    all_kmeans <- lapply(1:20,function(x){
+    all_kmeans <- suppressWarnings(lapply(1:20,function(x){
       init_centers <- sample(all_z,size=nclasses)
-      return(kmeans(all_z_w_neg, centers = c(init_centers,-init_centers) ))
-      })
-    ind <- which.min(lapply(all_kmeans,function(x) x$totss))
+      return(kmeans(all_z_w_neg, centers = c(init_centers,-init_centers),algorithm = "Forgy",iter.max=20))
+      }))
+    ind <- which.min(lapply(all_kmeans,function(x) x$tot.withinss))
     out <- all_kmeans[[ind]]
 
     mu <- sort(as.numeric(out$centers))[(nclasses+1):(nclasses*2)]
