@@ -31,6 +31,11 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
       stop("package \'nnet\' not found. Please install.")
     }
     out <- m_step_neural(formula,data,model_weights)
+  }else if(model_type == "neuralh2o"){
+    if (!requireNamespace("h2o", quietly = TRUE)){
+      stop("package \'h2o\' not found. Please install.")
+    }
+    out <- m_step_neural_h2o(formula,data,model_weights)
   }
   else{
     warning("Invalid beta fitting method found.")
@@ -71,6 +76,22 @@ m_step_neural <- function(formula, data, model_weights){
               df = df))
 
 }
+
+# m_step_neural_h2o <- function(formula, data, model_weights){
+#
+#   if(is.null(model_weights)){
+#     est_beta <- h2o::h2o.deeplearning(formula=formula, data=data, weights = weights, trace = F,size=3)
+#   }else{
+#     est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, Wts = model_weights, trace = F,size=3)
+#   }
+#   fitted_prob <- fitted(est_beta)
+#   new_model_weights <- est_beta$wts
+#   df <- length(new_model_weights)
+#   return(list(fitted_prob=fitted_prob,
+#               model_weights = new_model_weights,
+#               df = df))
+#
+# }
 
 m_step_glmnet <- function(formula, data,model_weights){
 

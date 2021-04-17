@@ -10,7 +10,6 @@ model_selection(
   beta_formulas,
   nclasses_list,
   cr,
-  initialization,
   param_grid = NULL
 )
 }
@@ -24,8 +23,6 @@ model_selection(
 \item{nclasses_list}{Vector for possible number of classes}
 
 \item{cr}{Criterion for model selection}
-
-\item{initialization}{Initialization procedure, either kmeans or random}
 }
 \value{
 Initialized and pretrained model with best performance based on selection criterion

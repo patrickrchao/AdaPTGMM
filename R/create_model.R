@@ -13,7 +13,7 @@
 create_model <- function(data,args,params=NULL){
   nclasses <- args$nclasses
   if(is.null(params)){
-    params <- initialize_params(data,nclasses,args$initialization,args$testing)
+    params <- initialize_params(data,nclasses,args$all_a,args$symmetric_modeling)
   }
   base_prob <- rep(1/(nclasses),nclasses)
   data$class_prob <- t(replicate(n=args$n,base_prob))
@@ -22,8 +22,6 @@ create_model <- function(data,args,params=NULL){
   testing <- args$testing
 
   class(model) <- paste0("adaptgmm_model_",testing)
-
-
 
   return(model)
 }

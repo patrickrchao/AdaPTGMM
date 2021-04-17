@@ -14,13 +14,12 @@
 #' @param niter_ms Number of iterations in EM procedure for model selection
 #' @param nfits Number of model updates in AdaPT procedure
 #' @param n Number of hypotheses
-#' @param initialization Initialization procedure, kmeans or random
 #' @param beta_formula Beta formula for model
 #' @param nclasses Number of classes in Gaussian Mixture Model, minimum 2.
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,initialization,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling,beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing == "one_sided"){
@@ -53,6 +52,9 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
   }else{
     stop("Invalid testing type inputted. Valid forms of testing: `one_sided`, `interval`, and `two_sided`.")
   }
+  if(symmetric_modeling){
+    all_a <- c("s","b")
+  }
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
@@ -74,7 +76,7 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
                nclasses = nclasses,
                all_a = all_a,
                n  = n,
-               initialization = initialization,
+               symmetric_modeling = symmetric_modeling,
                base_prob = base_prob
                )
   class(args) <- "args"
@@ -129,13 +131,12 @@ construct_data <- function(x,pvals,z,se,args){
 #'
 #' @param data data class
 #' @param nclasses number of classes in Gaussian mixture model
-#' @param initialization initialization type, kmeans, uniform, or random
-#' @param testing testing type
+#' @param all_a whether to use (s,b) or (s,b,s neg, b neg)
 #' @details Selects mu and variance by k-means
 #'
 #' @return params class containing beta, mu, var
 #' @noRd
-initialize_params <- function(data,nclasses,initialization,testing){
+initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
 
   mask <- data$mask
   a <- data$a
@@ -147,7 +148,8 @@ initialize_params <- function(data,nclasses,initialization,testing){
 
   # need to remove z where they are revealed
   se <- data$se
-  if(testing == "one_sided"){
+
+  if(length(all_a) == 2){
     small_z <- small_z[mask]
     big_z <- big_z[mask]
     all_z <- c(small_z,big_z,unmasked_true_z,unmasked_true_z)
@@ -169,16 +171,36 @@ initialize_params <- function(data,nclasses,initialization,testing){
     all_se <- c(se[subset2],se[subset],se[subset],se[subset2],se[!mask],se[!mask])
   }
 
+  if(symmetric_modeling){
 
-  out <- kmeans(all_z, nclasses, nstart=50)
-  mu <- as.numeric(out$centers)
-  pred <- data.frame(z=all_z,class=out$cluster,se=all_se)
-  var <- dplyr::summarise(dplyr::group_by(pred,class),variance = var(z)-mean(se)^2)
-  var <- var[order(var$class),]
+    all_z_w_neg <- c(all_z,-all_z)
+    all_se_w_neg <- c(all_se,all_se)
+
+    all_kmeans <- lapply(1:20,function(x){
+      init_centers <- sample(all_z,size=nclasses)
+      return(kmeans(all_z_w_neg, centers = c(init_centers,-init_centers) ))
+      })
+    ind <- which.min(lapply(all_kmeans,function(x) x$totss))
+    out <- all_kmeans[[ind]]
+
+    mu <- sort(as.numeric(out$centers))[(nclasses+1):(nclasses*2)]
+    pred <- data.frame(z=all_z,class=out$cluster[1:length(all_z)],se=all_se)
+    var <- dplyr::summarise(dplyr::group_by(pred,class),variance = var(z)-mean(se)^2)
+    var <- var[order(out$centers)[(nclasses+1):(nclasses*2)],]
+  }else{
+    out <- kmeans(all_z, nclasses, nstart=50)
+
+    mu <- sort(as.numeric(out$centers))
+    pred <- data.frame(z=all_z,class=out$cluster,se=all_se)
+    var <- dplyr::summarise(dplyr::group_by(pred,class),variance = var(z)-mean(se)^2)
+    var <- var[order(out$centers),]
+  }
+
   var <- pmax(var$variance,0)
   # If a class only has one observation, the empirical variance will be zero
   # Set NA values to 0
   var[is.na(var)] <- 0
+
   beta <- NULL
 
   params <- list(beta=beta, mu=mu, var=var)

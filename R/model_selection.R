@@ -4,11 +4,10 @@
 #' @param beta_formulas List of formulas for beta expansion
 #' @param nclasses_list Vector for possible number of classes
 #' @param cr Criterion for model selection
-#' @param initialization Initialization procedure, either kmeans or random
 #'
 #' @return Initialized and pretrained model with best performance based on selection criterion
 #' @keywords Internal
-model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initialization,param_grid=NULL){
+model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=NULL){
   n <- args$n
   niter_ms <- args$niter_ms
   cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
@@ -22,7 +21,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
 
   n_permutations <- nrow(param_grid)
 
-  init_params <- lapply(nclasses_list,function(x)initialize_params(data,x,initialization,args$testing))
+  init_params <- lapply(nclasses_list,function(x)initialize_params(data,x,args$all_a,args$symmetric_modeling))
   best_value <- Inf
   best_index <- 0
 
@@ -62,9 +61,6 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
     }
     setTxtProgressBar(pb, row_index)
   }
-
-#  print(param_grid)
-
   if(best_value == Inf){
     stop("All beta formula models are invalid.")
   }
@@ -97,37 +93,12 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,initializat
   nclasses <- model$args$nclasses
   d <- NULL
   # df degrees of freedom in beta
-  if(cr == "spread"){
-    probs <- big_over_small_prob(model)
-    probs <- probs/(probs+1)
-    probs <- probs[model$data$mask]
-    # Multiply by negative 1 since smaller values are more desirable
-    value <- -1 * mean((probs-0.5)^2)
-    log_like <- NA
-  }else if(cr == "c entropy"){
-    probs <- big_over_small_prob(model)
-    probs <- probs/(probs+1)
-    probs <- probs[model$data$mask]
-    value <- -1* mean(round(probs)*log(probs))#mean((probs-0.5)^2)
-    log_like <- NA
-  }else if(cr == "cheating"){
-    probs <- big_over_small_prob(model)
-    probs <- probs/(probs+1)
-
-    probs <- probs[model$data$mask]
-    labels <-(model$data$a == "b")[model$data$mask]
-    hist(probs,xlim = c(0,1))
-    value <- -1 * mean(labels*log(probs))#mean((probs-0.5)^2)
-    log_like <- NA
-  }else{
-    log_like <- log_likelihood(model)
-    df <- model$params$df
-    # nclasses*2 degrees of freedom in mu and tau^2+1
-    d <-  nclasses * 2 + df
-    n <- model$args$n
-    value <- info_cr(log_like,cr,d,n)
-  }
-
+  log_like <- log_likelihood(model)
+  df <- model$params$df
+  # nclasses*2 degrees of freedom in mu and tau^2
+  d <-  nclasses * 2 + df
+  n <- model$args$n
+  value <- info_cr(log_like,cr,d,n)
 
   return(list(log_like=log_like,value=value,df=d))
 }

@@ -26,7 +26,7 @@ adapt_gmm(
   target_alpha_level = NULL,
   cr = "AIC",
   tol = 1e-04,
-  initialization = "kmeans",
+  symmetric_modeling = FALSE,
   intercept_model = TRUE,
   return_all_models = FALSE
 )
@@ -77,8 +77,8 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{tol}{Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.}
 
-\item{initialization}{Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
-"\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".}
+\item{symmetric_modeling}{Boolean for whether to model the distribution of test statistics with a symmetric model.
+Only valid for two sided or interval testing.}
 
 \item{intercept_model}{Boolean. Include intercept only model in the model selection, default is \code{TRUE}.}
 

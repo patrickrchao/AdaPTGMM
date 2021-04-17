@@ -30,8 +30,8 @@
 #' @param target_alpha_level Desired FDR level to optimize the procedure over, i.e.
 #' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{AIC}".
 #' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
-#' @param initialization Type of initialization procedure to use. Options include "\code{kmeans}" or "\code{random}", where
-#' "\code{random}" corresponds to drawing uniformly from predefined intervals. Default is "\code{kmeans}".
+#' @param symmetric_modeling Boolean for whether to model the distribution of test statistics with a symmetric model.
+#' Only valid for two sided or interval testing.
 #' @param return_all_models Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
 #' Required \code{TRUE} for plot_nn_masking. Warning, can be expensive to store all models for large problems.
 #' @param intercept_model Boolean. Include intercept only model in the model selection, default is \code{TRUE}.
@@ -64,7 +64,7 @@ adapt_gmm <- function(x = NULL,
                       target_alpha_level = NULL,
                       cr = "AIC",
                       tol = 1e-4,
-                      initialization = "kmeans",
+                      symmetric_modeling = FALSE,
                       intercept_model = TRUE,
                       return_all_models = FALSE
                       ){
@@ -73,16 +73,17 @@ adapt_gmm <- function(x = NULL,
   n = nrow(x)
 
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda,set_default_target(target_alpha_level,alphas))
-  #initialization <- select_initialization(masking_params, initialization, testing)
-  .input_checks(x, pvals, z, se, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms, nfits, masking_params, masking_shape, alphas,cr)
+  .input_checks(x, pvals, z, se, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms,
+                nfits, masking_params, masking_shape, alphas, cr, symmetric_modeling)
+  temp <- c(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling)
 
-  args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,initialization)
+  args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling)
 
   data <- construct_data(x,pvals,z,se,args)
 
   beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
 
-  model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
+  model <- model_selection(data,args,beta_formulas,nclasses,cr)
 
 
   data <- model$data
@@ -95,8 +96,8 @@ adapt_gmm <- function(x = NULL,
   fdr_log <- data.frame(matrix(ncol = 3 , nrow = n_alphas))
   rejections <- data.frame(matrix(ncol = 1 + n, nrow = n_alphas))
 
-  colnames(fdr_log) <-c("Alpha","Accepted","Rejected")
-  colnames(rejections) <- c("Alpha",paste("Hypo. ",1:n,sep=""))
+  colnames(fdr_log) <-c("Alpha", "Accepted", "Rejected")
+  colnames(rejections) <- c("Alpha", paste("Hypo. ",1:n,sep=""))
 
   pvals <- data$pvals
   values <- compute_fdphat(data,args)
@@ -125,73 +126,6 @@ adapt_gmm <- function(x = NULL,
   R_t <-  length(rejection_set)
   fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
   min_fdp <- fdphat
-
-
-
-
-  # while (min_fdp > 0 & R_t > 0 & sum(data$mask) > 0) {
-  #
-  #   #if((nrevealed %% refitting_constant) == 0 & nrevealed > 0){
-  #
-  #   model$data <- data
-  #  # model <- model_selection(data,args,beta_formulas,nclasses,cr,initialization)
-  #   model <- EM(model)
-  #   big_odds <-  big_over_small_prob(model)
-  #   to_reveal_order <- order(big_odds, decreasing=TRUE)[1:sum(data$mask)]
-  #   #browser()
-  #   future_A_t <- A_t - cumsum(data$pvals[to_reveal_order] > args$lambda)
-  #   future_R_t <- R_t - cumsum(data$pvals[to_reveal_order] < args$alpha_m)
-  #   future_fdphat <- (future_A_t + 1)/args$zeta / pmax(future_R_t,1)
-  #     #reveal_order_index <- 1
-  #   #}
-  #   n_reveal <- min(refitting_constant, length(to_reveal_order))
-  #   reveal_hypo <- to_reveal_order[1:n_reveal]
-  #   A_t <- future_A_t[n_reveal]
-  #   R_t <- future_R_t[n_reveal]
-  #   data$mask[reveal_hypo] <- FALSE
-  #   #fdphat <- min(future_fdphat[1:length(reveal_hypo)])
-  #   for(reveal_index in seq(1:n_reveal)){
-  #
-  #     hypo_index <- to_reveal_order[reveal_index]
-  #     if(data$a[hypo_index] == "s" | data$a[hypo_index] == "s_neg"){
-  #       qvals[reveal_hypo] <- min_fdp
-  #     }
-  #     min_fdp <- min(min_fdp,future_fdphat[reveal_index])
-  #   }
-  # }
-  #
-  #
-  #    # nrevealed <- nrevealed + 1
-  #   #  reveal_order_index <- reveal_order_index + 1
-  #   #  fdphat <- (A_t + 1) / args$zeta / max(R_t, 1)
-  #
-  #    # min_fdp <- min(min_fdp,fdphat)
-  #  # }
-  # #model$data <- data
-  # for (index in seq(1:n_alphas)) {
-  #   alpha <- sorted_alphas[index]
-  #   rejection_set <- which(data$pvals < args$alpha_m & qvals < alpha)
-  #   nrejs[sorted_indices[index]] <- length(rejection_set)
-  #   rejs[[sorted_indices[index]]] <- rejection_set
-  #   #qvals[rejection_set] <- min(min_fdp,qvals[rejection_set])
-  # }
-  # # if(is.null(reveal_hypo)){
-  # #   odds_per_alpha[sorted_indices[index]] <- Inf
-  # # }else{
-  # #   odds_per_alpha[sorted_indices[index]] <- big_odds[reveal_hypo]
-  # # }
-  #
-  # if(return_all_models){
-  #   all_params[[sorted_indices[index]]] <- model$params
-  # }
-  # cat(paste0("alpha = " , alpha,
-  #            ": FDPhat ",round(min_fdp, 4),
-  #             ", Number of Rej. ",R_t,"\n"))
-
-
-
-
-
 
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]

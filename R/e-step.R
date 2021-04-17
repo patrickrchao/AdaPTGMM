@@ -76,7 +76,12 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
   }
 
   # Fill in w_ika values
-  w_ika <- w_ika_helper(w_ika,args,data,params)
+  if(args$symmetric_modeling){
+    w_ika <- w_ika_symmetric_helper(w_ika,args,data,params)
+  }else{
+    w_ika <- w_ika_helper(w_ika,args,data,params)
+  }
+
   # Normalize by base probability to account for jacobian
   w_ika$value <- w_ika$class_density / w_ika$z_base_prob
 
@@ -99,6 +104,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
     #  w_ika$value[((w_ika$z<0 ) & masked_i)& data$z>0 ] <-  0
     # w_ika$value[((w_ika$z>0 ) & masked_i)& data$z<0 ] <-  0
   }
+
 
   # Normalize by total sum, or P[\tilde p_i | x_i]
   #sum over a and gamma and divide by the total
@@ -145,6 +151,42 @@ w_ika_helper <- function(w_ika,args,data,params){
 
   w_ika$class_density <- dnorm(w_ika$z,mean = params$mu[w_ika$class],
                                sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i]^2)) *
+    zeta_jacobian * data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
+
+  return(w_ika)
+}
+
+#' Computes P[a_i=a,\tilde p_i | \gamma=k]\ for each a,k without the denominator normalization
+#' TODO: Fix this documentation
+#' @param w_ika partially filled out w_ika table
+#' @param args args class
+#' @param data data class
+#' @param param params class
+#'
+#' For symmetric masking, we need to sum the probability of the positive and negative side
+#'
+#' For a=b/neg_z, the probability is multiplied by zeta
+#'
+#' For unmasked p-values, we compute the probability P[p_i | \gamma=k]
+#' and store it in P[a_i=s,\tilde p_i | \gamma=k]
+#' In this way, we do not include the normalization from zeta and set
+#' the probability with a_i=b to zero.
+#' @noRd
+w_ika_symmetric_helper <- function(w_ika,args,data,params){
+
+  # If the data has been unmasked, we only need one value for 'a'
+  # By default we set a to 's'
+  subset <- data$mask[w_ika$i] | w_ika$a == "s"
+  w_ika <- w_ika[subset,]
+
+
+  # zeta_jacobian is zeta for w_ika$a = b or neg_b, and 1 otherwise
+  zeta_jacobian <- (w_ika$a == "b" | w_ika$a == "neg_b") * (args$zeta - 1) + 1
+
+  w_ika$class_density <- (dnorm(w_ika$z,mean = params$mu[w_ika$class],
+                               sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i]^2))+
+                            dnorm(w_ika$z,mean = -1 * params$mu[w_ika$class],
+                                  sd = sqrt(params$var[w_ika$class] + data$se[w_ika$i]^2)))*
     zeta_jacobian * data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
 
   return(w_ika)

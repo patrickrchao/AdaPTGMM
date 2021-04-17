@@ -1,7 +1,7 @@
 #' Perform checks for valid parameters
 #'
 #' @noRd
-.input_checks <- function(x,pvals,z,se,testing,model_type,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfits,masking_params,masking_shape,alphas,cr){
+.input_checks <- function(x,pvals,z,se,testing,model_type,rendpoint,lendpoint,nclasses,niter_fit,niter_ms,nfits,masking_params,masking_shape,alphas,cr,symmetric_modeling){
   alpha_m <- masking_params$alpha_m
   zeta <- masking_params$zeta
   lambda <- masking_params$lambda
@@ -62,6 +62,10 @@
     if(lendpoint > rendpoint){
       stop("Invalid input for endpoints. Right endpoint must be greater than left endpoint.")
     }
+  }
+
+  if(symmetric_modeling & testing == "one_sided"){
+    stop("One sided testing should not use a symmetric model.")
   }
 
   #if(!(cr  %in% c("AIC","BIC","HIC","AICC","spread"))){
@@ -126,42 +130,3 @@ set_default_target <- function(target_alpha_level,alphas,default_value=0.05){
   }
   return(target_alpha_level)
 }
-
-select_initialization <- function(masking_params, initialization, testing){
-  if(((masking_params$zeta == 1 & ((0.5 - masking_params$alpha_m ) == (masking_params$lambda - 0.5))) |
-     testing == "interval" | testing == "two_sided") &
-     initialization == "kmeans" ){
-
-    warning("Symmetric masking function or interval/two sided null testing found, possible unstable performance with k-means. Setting initialization scheme to `random`.")
-    initialization <-  "random"
-  }
-  return(initialization)
-}
-
-#' #' Helper function to ensure all formulas are valid
-#' #'
-#' #' @param x dataframe of covariates
-#' #' @param beta_formulas list of all beta formulas
-#' .check_formulas <- function(x,beta_formulas){
-#'   new_formulas <- lapply(beta_formulas,function(formula){
-#'   tryCatch({
-#'         .evaluate_formula(x,formula)
-#'         return(formula)
-#'       }, error = function(e) {
-#'         warning(paste0("Invalid beta_formula found: ",formula,". Ignoring formula."))
-#'         return("invalid")
-#'       })
-#'   })
-#'
-#'   new_formulas <- unlist(new_formulas[new_formulas!="invalid"])
-#'   if(length(new_formulas)==0){
-#'     stop("All formulas are invalid. Stopping.")
-#'   }else if(length(new_formulas) == 1 & new_formulas[1] == "+1"){
-#'     warning("Only using intercept model.")
-#'   }
-#'   return(new_formulas)
-#' }
-#'
-#' .evaluate_formula <- function(x,formula){
-#'   new_x <- eval(parse(text=formula),x)
-#' }

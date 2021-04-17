@@ -28,7 +28,7 @@ m_step_beta <- function(model,gammas){
 
     prob <- prob[1:model$args$n,]
   }
-  prob <- as.data.frame(pmax(pmin(as.matrix(prob),1 - 1e-12), 1e-12))
+  prob <- as.data.frame(pmax(pmin(as.matrix(prob), 1 - 1e-12), 1e-12))
   model$data$class_prob <- prob
 
   return(model)
@@ -42,32 +42,21 @@ m_step_mu_tau <- function(model,w_ika){
   data <- model$data
   z <- w_ika$z
 
-  old_params <- params
-
   for (k in 1:args$nclasses){
     subset <- w_ika[w_ika$class == k,]
     se <- data$se[subset$i]
 
     # Optim for mu and tau^2
+    if(args$symmetric_modeling){
+      sol <- optim_symmetric_solver(params$mu[k],params$var[k],subset$z,subset$value,se)
+    }else{
+      sol <- optim_solver(params$mu[k],params$var[k],subset$z,subset$value,se)
+    }
 
-    computed_optim <- optim(c(params$mu[k],params$var[k]),function(x){
-      mu <- x[1]
-      var <- x[2]
-
-      mean(subset$value*(log(se^2+var) + (subset$z-mu)^2/(var+se^2)))
-    },gr <- function(x){
-      mu <- x[1]
-      var <- x[2]
-      c(-mean(subset$value*(subset$z-mu)/(var+se^2)),
-        mean(subset$value / (var + se^2)) -
-          mean(subset$value*(subset$z-mu)^2 / (var+se^2)^2)
-      )
-    },method="L-BFGS-B",control=list(maxit=10,factr=1e-2),lower=c(-Inf,0),upper=c(Inf,Inf))
-    params$mu[k] <- computed_optim$par[1]
-    params$var[k] <- max(computed_optim$par[2],0)
+    params$mu[k] <- sol$mu
+    params$var[k] <- sol$var
 
   }
-
 
 
   if(any(is.na(params$mu)) | any(is.na(params$var))){
@@ -77,4 +66,41 @@ m_step_mu_tau <- function(model,w_ika){
 
   return(params)
 }
+
+optim_solver <- function(init_mu,init_var,z,w_ika,se){
+  sol <- optim(c(init_mu,init_var),function(x){
+    mu <- x[1]
+    var <- x[2]
+
+    mean(w_ika*(log(se^2+var) + (z-mu)^2/(var+se^2)))
+  },gr <- function(x){
+    mu <- x[1]
+    var <- x[2]
+    c(-mean(w_ika * 2*(z-mu) / (var+se^2)),
+      mean(w_ika / (var + se^2)) -
+        mean(w_ika * (z-mu)^2 / (var+se^2)^2)
+    )
+  },method="L-BFGS-B",control=list(maxit=10,factr=1e-2),lower=c(-Inf,0),upper=c(10,30))
+  return(list(mu=sol$par[1],var=sol$par[2]))
+}
+
+
+optim_symmetric_solver <- function(init_mu,init_var,z,w_ika,se){
+
+  sol <- optim(c(init_mu,init_var),function(x){
+    mu <- x[1]
+    var <- x[2]
+
+    -mean(w_ika*( log(dnorm(z,mu,sqrt(var+se^2)) + dnorm(z,-mu,sqrt(var+se^2)))))
+  },gr <- function(x){
+    mu <- x[1]
+    var <- x[2]
+    c(-mean(w_ika * ( z * tanh(mu*z/(se^2+var))-mu)/(se^2+var)),
+      -mean(w_ika * (-1/2 / (se^2+var) +
+                       (mu^2 - 2 * mu * z * tanh(mu*z/(se^2+var)) + z^2)/(2*(se^2+var)^2)) )
+    )
+  },method="L-BFGS-B",control=list(maxit=10,factr=1e-2),lower=c(0,0),upper=c(10,30))
+  return(list(mu=sol$par[1],var=sol$par[2]))
+}
+
 
