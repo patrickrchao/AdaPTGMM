@@ -178,7 +178,17 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
 
     all_kmeans <- suppressWarnings(lapply(1:20,function(x){
       init_centers <- sample(all_z,size=nclasses)
-      return(kmeans(all_z_w_neg, centers = c(init_centers,-init_centers),algorithm = "Forgy",iter.max=20))
+      # If any initial centers are the same then kmeans will throw an error
+      init_centers[init_centers == 0] <- 1e-2
+      if(length(unique(abs(init_centers))) != nclasses){
+        init_centers <- init_centers + runif(nclasses,min=0,max=1e-2)
+      }
+      init_centers = c(init_centers,-init_centers)
+      val <- try(kmeans(all_z_w_neg, centers = init_centers,algorithm = "Forgy",iter.max=20))
+      if (class(val)[1] == "try-error"){
+        browser()
+      }
+      return(val)
       }))
     ind <- which.min(lapply(all_kmeans,function(x) x$tot.withinss))
     out <- all_kmeans[[ind]]
