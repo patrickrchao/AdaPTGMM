@@ -94,15 +94,7 @@ m_step_neural <- function(formula, data, model_weights){
 # }
 
 m_step_glmnet <- function(formula, data,model_weights){
-
-
- # if(is.null(model_weights)){
-    est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial", nfolds=3,maxit=1e5,nlambda=5)
-    #est_beta <- glm(formula=formula, data=data, weights = weights,family=multinomial())
-  #}else{
-   # est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial")
-    #est_beta <- glm(formula, data=data, weights = weights,family="multinomial",start=model_weights)
-  #}
+  est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial", nfolds=3,maxit=1e5,nlambda=5)
 
   # Code from https://github.com/lihualei71/adaptMT/blob/master/R/safe-model.R
 
@@ -122,11 +114,6 @@ m_step_rrvglm <- function(formula, data,model_weights){
   est_beta <- suppressWarnings(
     VGAM::rrvglm(formula,multinomial,data,weights = weights,Rank=1,control=rrvglm.control(algorithm="derivative",trace=F))
     )
-  # if(is.null(model_weights)){
-  #
-  # }else{
-  #   est_beta <- VGAM::rrvglm(formula,multinomial,data,weights = weights,Rank=2,control=rrvglm.control(algorithm="derivative",trace=T))
-  # }
 
   fitted_prob <- predict(est_beta,type="response")
   new_model_weights <- coef(est_beta)

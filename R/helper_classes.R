@@ -91,10 +91,10 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
 #' @param z Vector of test statistics
 #' @param se Vector of standard errors
 #' @param args args class containing masking function arguments
-#'
+#' @param randomize_pvals Boolean for whether to randomize blue p-values
 #' @return data class
 #' @noRd
-construct_data <- function(x,pvals,z,se,args){
+construct_data <- function(x,pvals,z,se,args,randomize_pvals){
   if(args$testing == "interval"){
     center <- (args$rendpoint + args$lendpoint)/2
     z <- z - center
@@ -119,7 +119,7 @@ construct_data <- function(x,pvals,z,se,args){
                )
   class(data) <- "data"
 
-  data <- data_preprocessing(data,args)
+  data <- data_preprocessing(data,args,randomize_pvals)
 
   return(data)
 }
@@ -159,16 +159,18 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
     # reveal pairs (s and b_neg) or (b and s_neg)
     small_neg_z <- small_z * (-1)
     big_neg_z <- big_z * (-1)
-    subset <- (!((true_z < 0 & a == "b") | (true_z > 0 & a == "s" )) & mask)
-    big_z <-       big_z[subset]
-    small_neg_z <- small_neg_z[subset]
+    reveal <- xor(true_z > 0, a=="s")
+    subset1 <- reveal & mask
+    big_z <-       big_z[subset1]
+    small_neg_z <- small_neg_z[subset1]
 
-    subset2 <- (!((true_z < 0 & a == "s") | (true_z > 0 & a == "b" ))  & mask)
+    subset2 <- !reveal & mask
     small_z <-     small_z[subset2]
     big_neg_z <-   big_neg_z[subset2]
-
+    #all_z <- true_z
+    #all_se <- se
     all_z <- c(small_z,big_z,small_neg_z,big_neg_z,unmasked_true_z,unmasked_true_z)
-    all_se <- c(se[subset2],se[subset],se[subset],se[subset2],se[!mask],se[!mask])
+    all_se <- c(se[subset2],se[subset1],se[subset1],se[subset2],se[!mask],se[!mask])
   }
 
   if(symmetric_modeling){

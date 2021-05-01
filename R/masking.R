@@ -22,10 +22,10 @@ select_masking_params <- function(n,alpha_m,zeta,lambda,alpha_level=0.05){
 #' Computes pvals and test statistics from dataset
 #' @param data data class
 #' @param args args class
-#'
+#' @param Boolean whether to resample blue p-values as uniform
 #' @return data class augmented with big/small test statistics, pvals, a_i, and boolean mask.
 #' @noRd
-data_preprocessing <- function(data,args){
+data_preprocessing <- function(data,args,randomize_pvals){
   # set mask to true
   # preprocess pvals and test_statistics
   # preprocess masking
@@ -33,6 +33,16 @@ data_preprocessing <- function(data,args){
   # Initialize z and pvals if uninitialized
   if(is.null(data$z)){
     data$pvals <- pmax(pmin(data$pvals, 1 - 1e-10), 1e-40)
+    if(randomize_pvals){
+      lambda <- args$lambda
+      alpha_m <- args$alpha_m
+      zeta <- args$zeta
+      pvals <- data$pvals
+      subset <- (pvals >= lambda) & (pvals <= (lambda + alpha_m*zeta))
+      num <- sum(subset)
+      pvals[subset] <- runif(num,lambda,lambda + alpha_m*zeta)
+      data$pvals <- pvals
+    }
     data$z <- args$p_to_z(data$pvals) * se
   }else if(is.null(data$pvals)){
     data$pvals <- args$z_to_p(data$z / se)
@@ -49,7 +59,9 @@ data_preprocessing <- function(data,args){
   zeta <- args$zeta
 
   data <- masking(data,args)
-
+  if(!randomize_pvals){
+    check_pval_dist(data$pvals,args)
+  }
   return(data)
 }
 

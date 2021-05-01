@@ -8,6 +8,15 @@
   if(is.null(x) | (is.null(pvals) & is.null(z))){
     stop("Invalid inputs for x, pvals, and test_statistics. None were inputted.")
   }
+  if(any(is.na(x))){
+    stop("NA values found for covariates.")
+  }
+  if(any(is.na(pvals))){
+    stop("NA values found for p-values.")
+  }
+  if(any(is.na(z))){
+    stop("NA values found for z.")
+  }
   if(!is.data.frame(x)){
     stop("Invalid input, x must be a dataframe.")
   }
@@ -27,6 +36,7 @@
   #if(length(x) != max(length(pvals), length(z))){
   #  stop("Invalid inputs, x and pvals/test statistics have different length.")
   #}
+
   if(!is.null(pvals)){
      if((min(pvals<0) | max(pvals) > 1)){
         stop("Invalid p-values, p-values must be in range [0,1].")
@@ -129,4 +139,28 @@ set_default_target <- function(target_alpha_level,alphas,default_value=0.05){
     }
   }
   return(target_alpha_level)
+}
+
+#' Bin the p-values in the blue region
+#' Estimate a Poisson GLM for the counts
+#' Check goodness of fit test
+check_pval_dist <- function(pvals,args,cutoff=0.01){
+  lambda <- args$lambda
+  alpha_m <- args$alpha_m
+  zeta <- args$zeta
+  nbins <- 200
+  boundary <- (lambda + (alpha_m*zeta + lambda))/2
+  pval_subset <- pvals[pvals >= boundary]
+  binned <- cut(pval_subset,nbins,labels=F)
+  counts <- data.frame("bin" = 1:nbins)
+  counts$count <- tabulate(binned)
+  model <- glm(count~splines::ns(bin,df=3),data=counts,family="poisson")
+  model_pval <- with(model, cbind(res.deviance = deviance, df = df.residual,
+                 p = pchisq(deviance, df.residual, lower.tail=FALSE)))[1,3]
+  print(model_pval)
+
+  if(model_pval<=cutoff){
+    warning("p-value distribution possibly violates assumptions. We recommend setting `randomize_p=TRUE`.")
+  }
+  return(model_pval)
 }

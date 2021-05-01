@@ -30,6 +30,8 @@
 #' @param target_alpha_level Desired FDR level to optimize the procedure over, i.e.
 #' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{AIC}".
 #' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
+#' @param randomize_pvals Boolean for whether to randomize blue p-values, recommended if p_values violates assumptions.
+#' Replaces blue p-values with uniform draw in the blue interval. Defaults to \code{FALSE}.
 #' @param symmetric_modeling Boolean for whether to model the distribution of test statistics with a symmetric model.
 #' Only valid for two sided or interval testing.
 #' @param return_all_models Boolean, whether to return all models used at various alpha levels. Default \code{FALSE}.
@@ -63,6 +65,7 @@ adapt_gmm <- function(x = NULL,
                       alphas = seq(0.01, 1, 0.01),
                       target_alpha_level = NULL,
                       cr = "AIC",
+                      randomize_pvals = FALSE,
                       tol = 1e-4,
                       symmetric_modeling = FALSE,
                       intercept_model = TRUE,
@@ -79,7 +82,7 @@ adapt_gmm <- function(x = NULL,
 
   args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling)
 
-  data <- construct_data(x,pvals,z,se,args)
+  data <- construct_data(x,pvals,z,se,args,randomize_pvals)
 
   beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
 

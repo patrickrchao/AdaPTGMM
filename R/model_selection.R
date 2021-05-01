@@ -38,7 +38,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
       if(row$nclasses == 1){
-        warning(paste0("Invalid beta formula found: ",paste(format(new_args$beta_formula)),". Ignoring formula."))
+        warning(paste0("Error when running beta formula: ",paste(format(new_args$beta_formula)),". Ignoring formula."))
       }
       param_grid[row_index, "log_like"] <- -Inf
       param_grid[row_index, "penalty"] <- 0
