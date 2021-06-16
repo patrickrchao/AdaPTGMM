@@ -5,9 +5,9 @@
 This package implements AdaPTGMM: [link to be added](https://github.com/patrickrchao/AdaPTGMM/). AdaPTGMM is a flexible multiple testing method that uses arbitrary covariates to model the local false discovery rate.
 
 
-The main method `adapt_gmm` allows flexibility in covariates, testing type, input, and classification model. We include default classification model implementations of using neural networks, multinomial logistic regression, glmnet, Generalized Additive Models (GAM).
+The main method `adapt_gmm()` allows flexibility in covariates, testing type, input, and classification model. We include default classification model implementations using neural networks, multinomial logistic regression, glmnet, and generalized additive models.
 
-Users may use their own custom beta models, read the vignette for more details.
+Users may use their own custom beta models, please read the vignette for more details.
 
 
 ## Installation         
@@ -31,10 +31,10 @@ n <- 3000
 
 x <- rnorm(n)
 expit <- function(x) 1/(1+exp(-x))
-pi1 <-   expit(2*(x-1))
+pi1 <- expit(2*(x-1))
 H <- 1 * (runif(n) < pi1)
 theta <- H * rlogis(n, location=2, scale=1)
-z <- rnorm(n,mean=theta)
+z <- rnorm(n, mean=theta)
 # Two sided testing
 pvals <- 2 * pnorm(abs(z), lower.tail = FALSE)
 
