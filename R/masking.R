@@ -59,9 +59,9 @@ data_preprocessing <- function(data,args,randomize_pvals){
   zeta <- args$zeta
 
   data <- masking(data,args)
-  if(!randomize_pvals){
-    check_pval_dist(data$pvals,args)
-  }
+  # if(!randomize_pvals){
+  #   check_pval_dist(data$pvals,args)
+  # }
   return(data)
 }
 

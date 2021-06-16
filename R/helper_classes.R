@@ -19,7 +19,9 @@
 #'
 #' @return args class
 #' @noRd
-construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling,beta_formula=NULL,nclasses=NULL){
+construct_args <- function(testing,model_type,custom_beta_model,rendpoint,lendpoint,masking_params,
+                           masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling,
+                           beta_formula=NULL,nclasses=NULL){
 
   all_a <- c("s","b")
   if(testing == "one_sided"){
@@ -39,7 +41,8 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
     }
     if(masking_shape == "tent"){
       warning("For interval testing the masking function is automatically set to a comb masking.")
-      masking_shape <- "comb"
+      #warning("For interval testing the masking function is automatically set to a comb masking.")
+      #masking_shape <- "comb"
     }
     radius <-  (rendpoint - lendpoint) / 2
     z_to_p <- function(z) pnorm(abs(z)+radius,lower.tail=FALSE) + pnorm(-abs(z)+radius)
@@ -61,6 +64,7 @@ construct_args <- function(testing,model_type,rendpoint,lendpoint,masking_params
 
   args <- list(testing = testing,
                model_type = model_type,
+               custom_beta_model = custom_beta_model,
                rendpoint = rendpoint,
                lendpoint = lendpoint,
                alpha_m = alpha_m,
@@ -167,8 +171,6 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
     subset2 <- !reveal & mask
     small_z <-     small_z[subset2]
     big_neg_z <-   big_neg_z[subset2]
-    #all_z <- true_z
-    #all_se <- se
     all_z <- c(small_z,big_z,small_neg_z,big_neg_z,unmasked_true_z,unmasked_true_z)
     all_se <- c(se[subset2],se[subset1],se[subset1],se[subset2],se[!mask],se[!mask])
   }
@@ -190,6 +192,7 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
       if (class(val)[1] == "try-error"){
         browser()
       }
+
       return(val)
       }))
     ind <- which.min(lapply(all_kmeans,function(x) x$tot.withinss))

@@ -13,6 +13,7 @@ adapt_gmm(
   rendpoint = NULL,
   lendpoint = NULL,
   beta_formulas = NULL,
+  custom_beta_model = NULL,
   model_type = "nnet",
   nclasses = c(2, 3, 4),
   niter_fit = 5,
@@ -25,6 +26,7 @@ adapt_gmm(
   alphas = seq(0.01, 1, 0.01),
   target_alpha_level = NULL,
   cr = "AIC",
+  randomize_pvals = FALSE,
   tol = 1e-04,
   symmetric_modeling = FALSE,
   intercept_model = TRUE,
@@ -32,7 +34,7 @@ adapt_gmm(
 )
 }
 \arguments{
-\item{x}{Dataframe of covariates TODO: (specify type)}
+\item{x}{Data frame of covariates}
 
 \item{pvals}{Vector of p-values (supply either pvals or test statistics)}
 
@@ -47,9 +49,11 @@ adapt_gmm(
 \item{lendpoint}{Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
 \code{lendpoint} will be assumed to be \code{-rendpoint}.}
 
-\item{beta_formulas}{TODO: Fill this in}
+\item{beta_formulas}{List of formulas for the beta model, e.g.  paste("splines::ns(x, df = ",c(2,4,6)," )")}
 
-\item{model_type}{Type of model used for modeling beta, options include \code{gam} and \code{glm}. Default is \code{glm}.}
+\item{custom_beta_model}{Optional function to use custom beta model instead of one of the defaults. More details in the vignette.}
+
+\item{model_type}{Type of model used for modeling beta, options include \code{gam}, \code{glm}, \code{nnet}. Default is \code{nnet}.}
 
 \item{nclasses}{Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 number of classes to select in the model selection procedure. Minimum number of classes is 2.
@@ -73,7 +77,11 @@ This is the most expensive part of the procedure, we recommend smaller number (<
 
 \item{target_alpha_level}{Desired FDR level to optimize the procedure over, i.e.}
 
-\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{AIC}".}
+\item{cr}{Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICc}", "\code{HIC}", "\code{cross_validation}".
+Default is "\code{AIC}".}
+
+\item{randomize_pvals}{Boolean for whether to randomize blue p-values, recommended if p_values violates assumptions.
+Replaces blue p-values with uniform draw in the blue interval. Defaults to \code{FALSE}.}
 
 \item{tol}{Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.}
 

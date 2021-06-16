@@ -1,7 +1,4 @@
-m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
-  if(model_type == "dirich"){
-    return(m_step_dirich(beta_formula = formula,x = x,gammas=gammas,model_weights = model_weights))
-  }
+m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights,m_step_custom){
   data <- data.frame(x,gammas)
   colnames(data) <- c(colnames(x),"class","weights")
   data$class <- data$class - 1
@@ -31,13 +28,9 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights){
       stop("package \'nnet\' not found. Please install.")
     }
     out <- m_step_neural(formula,data,model_weights)
-  }else if(model_type == "neuralh2o"){
-    if (!requireNamespace("h2o", quietly = TRUE)){
-      stop("package \'h2o\' not found. Please install.")
-    }
-    out <- m_step_neural_h2o(formula,data,model_weights)
-  }
-  else{
+  }else if(model_type == "custom"){
+    out <- m_step_custom(formula,data,model_weights)
+  }else{
     warning("Invalid beta fitting method found.")
   }
   return(out)
@@ -77,23 +70,10 @@ m_step_neural <- function(formula, data, model_weights){
 
 }
 
-# m_step_neural_h2o <- function(formula, data, model_weights){
-#
-#   if(is.null(model_weights)){
-#     est_beta <- h2o::h2o.deeplearning(formula=formula, data=data, weights = weights, trace = F,size=3)
-#   }else{
-#     est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, Wts = model_weights, trace = F,size=3)
-#   }
-#   fitted_prob <- fitted(est_beta)
-#   new_model_weights <- est_beta$wts
-#   df <- length(new_model_weights)
-#   return(list(fitted_prob=fitted_prob,
-#               model_weights = new_model_weights,
-#               df = df))
-#
-# }
 
 m_step_glmnet <- function(formula, data,model_weights){
+
+  # Does not initialize model_weights
   est_beta <- glmnetUtils::cv.glmnet(formula=formula,data=data,weights=data$weights, family="multinomial", nfolds=3,maxit=1e5,nlambda=5)
 
   # Code from https://github.com/lihualei71/adaptMT/blob/master/R/safe-model.R
@@ -136,11 +116,7 @@ m_step_mgcv <- function(formula, data,model_weights){
     est_beta <- mgcv::gam(formula, family=quasibinomial, data=data,
                           outer=gam.outer(start=model_weights))
   }
-
-
-
   fitted_prob <- data.frame(fitted(est_beta))
-
   new_model_weights <-  est_beta$coefficients
   df <- sum(est_beta$edf)
   return(list(fitted_prob=fitted_prob,
@@ -149,22 +125,28 @@ m_step_mgcv <- function(formula, data,model_weights){
 }
 
 
-m_step_dirich <- function(beta_formula, x,gammas,model_weights){
+custom_example <- function(formula, data, model_params){
 
-  nclasses <- round(nrow(gammas)/nrow(x))
-  data <- data.frame(matrix(gammas$value,ncol = nclasses))
-  data$x <- x$x
-  dr_data <- DR_data(data[,1:nclasses])
-  testing_formula <- as.Formula("dr_data ~ splines::ns(x,df=3)")
-  est_beta <- DirichReg(dr_data ~ splines::ns(x,df=3),data=data,control=list(tol1=1e-3,tol2=1e-5,iterlim=100))
+  ########################################################################
+  # Edit this function to fit any desired model
+  # Formula, data, and weights for each observation in data$weights
+  # Compute:
+  # 1. The fitted probabilities for the data
+  # 2. New model parameters for initialization (or leave as null if undesired)
+  # 3. Degrees of freedom for model (for model selection)
 
-  fitted_prob <- predict(est_beta,type="response")
-  new_model_weights <- est_beta$coefficients
-  df <- est_beta$npar
-  return(list(fitted_prob=fitted_prob,
-              model_weights = new_model_weights,
-              df = df))
+  model <- fit_model(formula,data,params=model_params,weights=data$weights)
+
+  fitted_probabilities <- fitted(model)
+  new_weights <- model$weights
+  df <- model$df
+
+  ########################################################################
+  output <- list()
+  output$fitted_prob <- fitted_probabilities
+  output$model_weights <- new_weights
+  output$df <- df
+
+  return(output)
 
 }
-
-

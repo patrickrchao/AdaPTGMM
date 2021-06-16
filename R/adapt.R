@@ -3,7 +3,7 @@
 #' @description Fits a Gaussian Mixture model to the distribution of test statistics and
 #' returns rejections and fitted parameters.
 #'
-#' @param x Dataframe of covariates TODO: (specify type)
+#' @param x Data frame of covariates
 #' @param pvals Vector of p-values (supply either pvals or test statistics)
 #' @param z Vector of test statistics, required if \code{testing}='\code{interval}'.
 #' @param se Vector of standard errors, if left blank when given test statistics, the standard errors are assumed to be 1.
@@ -11,8 +11,9 @@
 #' @param rendpoint Corresponds to right endpoint of null hypothesis interval. Required if \code{testing}=\code{'interval'}.
 #' @param lendpoint Corresponds to left endpoint of null hypothesis interval. If interval testing and \code{lendpoint} is blank,
 #' \code{lendpoint} will be assumed to be \code{-rendpoint}.
-#' @param beta_formulas TODO: Fill this in
-#' @param model_type Type of model used for modeling beta, options include \code{gam} and \code{glm}. Default is \code{glm}.
+#' @param beta_formulas List of formulas for the beta model, e.g.  paste("splines::ns(x, df = ",c(2,4,6)," )")
+#' @param custom_beta_model Optional function to use custom beta model instead of one of the defaults. More details in the vignette.
+#' @param model_type Type of model used for modeling beta, options include \code{gam}, \code{glm}, \code{nnet}. Default is \code{nnet}.
 #' @param nclasses Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 #' number of classes to select in the model selection procedure. Minimum number of classes is 2.
 #' Note: recommended to use <5 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
@@ -28,7 +29,8 @@
 #' @param masking_shape Controls the shape of the masking function, either "\code{tent}" or "\code{comb}" masking functions. Default is "\code{tent}".
 #' @param alphas Vector of FDR levels of interest. Default is [0.01,0.02,...,0.89,0.9].
 #' @param target_alpha_level Desired FDR level to optimize the procedure over, i.e.
-#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICC}", \code{HIC}. Default is "\code{AIC}".
+#' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICc}", "\code{HIC}", "\code{cross_validation}".
+#'  Default is "\code{AIC}".
 #' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
 #' @param randomize_pvals Boolean for whether to randomize blue p-values, recommended if p_values violates assumptions.
 #' Replaces blue p-values with uniform draw in the blue interval. Defaults to \code{FALSE}.
@@ -53,6 +55,7 @@ adapt_gmm <- function(x = NULL,
                       rendpoint = NULL,
                       lendpoint = NULL,
                       beta_formulas = NULL,
+                      custom_beta_model = NULL,
                       model_type = "nnet",
                       nclasses = c(2,3,4),
                       niter_fit = 5,
@@ -78,9 +81,8 @@ adapt_gmm <- function(x = NULL,
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda,set_default_target(target_alpha_level,alphas))
   .input_checks(x, pvals, z, se, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms,
                 nfits, masking_params, masking_shape, alphas, cr, symmetric_modeling)
-  temp <- c(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling)
 
-  args <- construct_args(testing,model_type,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling)
+  args <- construct_args(testing,model_type,custom_beta_model,rendpoint,lendpoint,masking_params,masking_shape,niter_fit,niter_ms,nfits,n,symmetric_modeling)
 
   data <- construct_data(x,pvals,z,se,args,randomize_pvals)
 
@@ -93,7 +95,7 @@ adapt_gmm <- function(x = NULL,
   args <- model$args
 
 
-  n <- args$n
+
   n_alphas <- length(alphas)
 
   fdr_log <- data.frame(matrix(ncol = 3 , nrow = n_alphas))

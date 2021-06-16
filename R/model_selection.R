@@ -10,7 +10,7 @@
 model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=NULL){
   n <- args$n
   niter_ms <- args$niter_ms
-  cat("Model selection starting. Shrink the set of candidate models if it is too time-consuming.\n")
+  cat("Model selection starting. Shrink the set of candidate models or reduce niter_fit/niter_ms/nfits if it is too time-consuming.\n")
 
   # Construct grid of all parameter combinations
   # corresponds to indices in beta_formulas and nclasses_list
@@ -21,7 +21,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=
 
   n_permutations <- nrow(param_grid)
 
-  init_params <- lapply(nclasses_list,function(x)initialize_params(data,x,args$all_a,args$symmetric_modeling))
+  init_params <- lapply(nclasses_list,function(x)initialize_params(data, x, args$all_a, args$symmetric_modeling))
   best_value <- Inf
   best_index <- 0
 
@@ -32,8 +32,8 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=
     new_args$beta_formula <- beta_formulas[[row$formula]]
     new_args$nclasses <- nclasses_list[row$nclasses]
 
-    model <- create_model(data, new_args,init_params[[row$nclasses]])
-    model <- try(EM(model, preset_iter = niter_ms),silent=TRUE)
+    model <- create_model(data, new_args, init_params[[row$nclasses]])
+    model <- try(EM(model, preset_iter = niter_ms), silent=TRUE)
     #TODO: Add shortcircuit if only one model selected
     if (class(model)[1] == "try-error"){
       #If this is the first time this formula has been encountered
@@ -78,13 +78,13 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=
 #' For cross validation, returns model for validation set
 #' Updates class probability correctly
 #'
-#' For AIC/BIC, computes penalty
+#' For AIC/AICc/BIC, computes penalty
 #'
 #' Returns model and penalty
 #'
-#' @param selection AIC/BIC/cross_validation
+#' @param selection AIC/AICc/BIC/HIC/cross_validation
 #' @param model trained model
-#' @param valid Validation set (null for AIC/BIC)
+#' @param valid Validation set (null for AIC/AICc/BIC/HIC)
 #' @param total_n total number of hypotheses including training and validation
 #'
 #' @return list of model and penalty
@@ -109,7 +109,7 @@ model_selection <- function(data,args,beta_formulas,nclasses_list,cr,param_grid=
 info_cr <- function(log_like, cr, df, n){
   switch(cr,
          "AIC" = 2 * df - 2 * log_like,
-         "AICC" = 2 * df * n / (n - df - 1),
+         "AICc" = 2 * df * n / (n - df - 1),
          "BIC" = log(n) * df - 2 * log_like,
          "HIC" = 2 * log(log(n)) * df - 2 * log_like,
          NULL)

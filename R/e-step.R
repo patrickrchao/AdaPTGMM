@@ -15,7 +15,7 @@ e_step_gamma <- function(w_ika){
 
 
 #' Perform Expectation step for w_ika
-#'
+#' TODO: fix documentation
 #' @param model model class
 #' @param prev_w_ika Previous w_ika table, providing this speeds up w_ika computation because we only need to update
 #' the value of each w_ika
@@ -43,8 +43,6 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
   num_a <- length(all_a)
   n <- args$n
   testing <- args$testing
-
-
 
   # if previous w_ika exists, use previous w_ika
   if(is.null(prev_w_ika)){
@@ -116,7 +114,6 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
     browser()
     stop("NA value in w_ika table. Stopping.")
   }
-  #w_ika$value <- #ave(x=w_ika$value,c(w_ika$i),FUN=function(x) x/sum(x))
   return(w_ika)
 }
 
@@ -125,8 +122,7 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
 
 
 #' Computes P[a_i=a,\tilde p_i | \gamma=k]\ for each a,k without the denominator normalization
-#' TODO: Fix this documentation
-#' @w_ika partially filled out w_ika table
+#' @param w_ika partially filled out w_ika table
 #' @param args args class
 #' @param data data class
 #' @param param params class
@@ -157,7 +153,6 @@ w_ika_helper <- function(w_ika,args,data,params){
 }
 
 #' Computes P[a_i=a,\tilde p_i | \gamma=k]\ for each a,k without the denominator normalization
-#' TODO: Fix this documentation
 #' @param w_ika partially filled out w_ika table
 #' @param args args class
 #' @param data data class
@@ -178,7 +173,6 @@ w_ika_symmetric_helper <- function(w_ika,args,data,params){
   # By default we set a to 's'
   subset <- data$mask[w_ika$i] | w_ika$a == "s"
   w_ika <- w_ika[subset,]
-
 
   # zeta_jacobian is zeta for w_ika$a = b or neg_b, and 1 otherwise
   zeta_jacobian <- (w_ika$a == "b" | w_ika$a == "neg_b") * (args$zeta - 1) + 1

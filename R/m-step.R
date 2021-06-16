@@ -12,11 +12,12 @@ m_step_beta <- function(model,gammas){
   model_type <- model$args$model_type
   nclasses <- model$args$nclasses
   beta_formula <- model$args$beta_formula
+  custom_beta_model <- model$args$custom_beta_model
 
   x <- model$data$x
   rownames(x) <- NULL
 
-  out <- m_step_beta_defaults(model_type,beta_formula,x,gammas,model$params$beta)
+  out <- m_step_beta_defaults(model_type,beta_formula,x,gammas,model$params$beta,custom_beta_model)
 
   model$params$beta <- out$model_weights
   model$params$df <- out$df

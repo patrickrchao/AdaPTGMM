@@ -119,9 +119,6 @@ marginalize <- function(w_ika, margin_vars){
 #' @noRd
 log_likelihood <- function(model){
 
-
-
-
   w_ika <- e_step_w_ika(model,normalize=FALSE)
 
   #class_prob <- model$data$class_prob[matrix(c(w_ika$i,w_ika$class),ncol=2)]
