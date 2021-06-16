@@ -188,7 +188,6 @@ adapt_gmm <- function(x = NULL,
   }
 
   cat("Complete.\n")
-
   output <- list(nrejs=nrejs, rejs=rejs, params=model$params, qvals=qvals,alphas=alphas,
                  odds_per_alpha=odds_per_alpha, args = model$args)
   if(return_all_models){
