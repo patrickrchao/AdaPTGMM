@@ -1,0 +1,211 @@
+---
+title: "Introduction to `AdaPTGMM` Package"
+author: "Patrick Chao"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+#bibliography: demo.bib
+vignette: >
+  %\VignetteIndexEntry{Introduction to `AdaPTGMM` Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The `AdaPTGMM` method is a flexible multiple testing algorithm that uses covariates to estimate the local false discovery rate with finite sample FDR control.
+```{r, results = 'hide'}
+#devtools::install_github("patrickrchao/AdaPTGMM")
+library(AdaPTGMM)
+```
+
+First, we generate data.
+```{r,  echo=FALSE}
+# Generate data
+generate_data <- function(n,testing){
+
+  x <- rnorm(n)
+  expit <- function(x) 1/(1+exp(-x))
+  pi1 <- expit(2*(x-1))
+  H <- 1 * (runif(n) < pi1)
+  theta <- H * rlogis(n, location=1/2, scale=1)
+  z <- rnorm(n, mean=theta)
+  
+  x <- data.frame(x=x)
+  
+  if(testing == "one_sided"){
+    pvals <- pnorm(z, lower.tail = FALSE)
+  }else if(testing == "two_sided"){
+    pvals <- 2*pnorm(abs(z), lower.tail = FALSE)
+  }
+  return(list(x=x,z=z,pvals=pvals))
+}
+
+# Two sided testing
+data <- generate_data(3000,"two_sided")
+x <- data$x
+pvals <- data$pvals
+z <- data$z
+```
+
+We may run AdaPTGMM with a variety of models and inputs.
+
+- **Featurization**: We may specify a featurization for the mode in the *beta_formulas* input. Here we consider a spline basis with 2-4 degrees of freedom.
+- **Mixture Components**: We may specify the number of mixture components in our Gaussian mixture model in the *nclasses* input. Here we consider 3-5 components.
+- **Model Selection**:  By default, we use AIC to select a featurization and the number of classes.
+- **Intercept Model**: By default, we include a intercept-only model in the featurization for the situation where the covariates are non-informative. This can be enabled or disabled in *intercept_model=TRUE* or *FALSE*.
+- **FDR levels**: By construction, AdaPTGMM can give rejections for any FDR level $\alpha$, the user may specify a vector of alpha levels in *alphas*. Here we choose 0.01, 0.05, 0.1, 0.2
+```{r}
+library("splines")
+formulas <-  paste("splines::ns(x, df = ", c(2,3,4), ")")
+nclasses <- c(3,4)
+alphas <- c(0.01,0.05,0.1,0.2)
+
+res <- adapt_gmm(x=x,pvals=pvals, alphas=alphas,
+        beta_formulas = formulas, nclasses= nclasses)
+```
+The arguments of the model are in *res$args*.
+The model selection chose a spline with 2 degrees of freedom and 4 Gaussian components.
+
+```{r}
+# Selected beta formula from model selection
+print(paste("Selected formula:", format(res$args$beta_formula), collapse=" "))
+
+# Selected number of classes from model selection
+print(paste("Selected number of classes:", res$args$nclasses, collapse=" "))
+```
+
+Instead, we may choose to model the $z_i$'s. Since we are now inputting $z_i$'s and using a two sided test, we need to specify that the testing procedure is two sided with *testing="two_sided"*.
+```{r}
+zres <- adapt_gmm(x=x,z=z, alphas=alphas, testing="two_sided",
+        beta_formulas = formulas, nclasses= nclasses)
+```
+
+We may also look at the fitted means and variances of the Gaussian components.
+```{r}
+# Fitted Gaussian means
+print(paste(c("Means:", sapply(zres$params$mu,function(x) round(x,2))), collapse=" "))
+
+# Fitted Gaussian variances
+print(paste(c("Variances:", sapply(zres$params$var,function(x) round(x,2))), collapse=" "))
+```
+
+## Masking
+The masking function in AdaPTGMM is governed by three parameters, $\alpha_m$, $\lambda$ and $\zeta$, see our paper for more details. These three variables must satisfy
+$$0<\alpha_m\le \lambda \le \alpha\cdot\zeta + \lambda \le 1.$$
+The value of $\zeta$ controls the minimum possible number of rejections. If the analyst expects a small number of rejections, i.e. $<20$, we recommend large $\zeta$, for eaxmple5-20. 
+
+If the user does not specify any values for $\alpha_m$, $\lambda$, and $\zeta$, AdaPTGMM will choose default parameters, adapting to the total number of hypotheses. See our paper for more details.
+
+
+We may input custom masking parameters. For the sake of example, we generate one sided p-values. 
+
+```{r, fig.height=5, fig.width=7,  echo=FALSE}
+data <- generate_data(3000,"one_sided")
+x <- data$x
+pvals <- data$pvals
+z <- data$z
+
+hist(pvals,breaks=20)
+```
+
+In this dataset, we have some null p-values close to 1. Masking 0 and 1 to the same value will lead to inflated FDP estimates and worse power.
+```{r}
+
+res1 <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
+        beta_formulas = formulas, nclasses= nclasses,
+        alpha_m = 0.2, lambda = 0.4, zeta = 3)
+
+res2 <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
+        beta_formulas = formulas, nclasses= nclasses,
+        alpha_m = 0.2, lambda = 0.3, zeta = 3)
+```
+We see that using a masking function with $\nu= \alpha\cdot\zeta + \lambda=1$ results in much lower power. For this reason, we recommend $\alpha_m=\lambda$ and $\nu=0.9$.
+
+## $\beta$ Models
+
+AdaPTGMM models the mixture proportions with a blackbox classification model. We provide implementation of multinomial logistic regression, GAM, glmnet, and a neural network with a single hidden layer. The user may specify the model type with respectively *model_type="nnet"*, *"mgcv"*, *"glmnet"*, and *"neural"*.
+
+We may use a multinomial logistic regression model from *nnet::multinom*.
+```{r}
+res_multinom <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
+        beta_formulas = formulas, model_type = "nnet", nclasses= nclasses)
+```
+
+Alternatively, the user may construct use own beta model. AdaPTGMM accepts as input **custom_beta_model**, which must be a function that accepts a formula, dataset, and (optional) initialization parameters. This is a default template for writing a custom beta model. There are four key things that the function must do, 
+1. Fit the model using the formula, dataset, and weights per observation
+2. Return fitted probabilities for each row in the dataset
+3. Return the degrees of freedom of the model for model selection
+4. (Optionally) Return model weights for initialization
+```{r}
+custom_beta <- function(formula, data, initialization){
+
+  ########################################################################
+  # EDIT THIS SECTION to fit any desired model
+  # Formula, data, and weights for each observation in data$weights
+  # Compute:
+  # 1. The fitted probabilities for the data
+  # 2. New model parameters for initialization (or leave as null if undesired)
+  # 3. Degrees of freedom for model (for model selection)
+
+  model <- fit_model(formula,data,params=initialization,weights=data$weights)
+
+  fitted_probabilities <- fitted(model)
+  new_weights <- model$weights
+  df <- model$df
+
+  ########################################################################
+  output <- list()
+  output$fitted_prob <- fitted_probabilities
+  output$model_weights <- new_weights
+  output$df <- df
+
+  return(output)
+
+}
+```
+
+Here is an example of using a multinomial logistic regression model. To use a custom beta model, *model_type="custom"* and *custom_beta_model=* the custom beta function.
+
+```{r}
+custom_multinom <- function(formula, data, initialization){
+
+  ########################################################################
+  # EDIT THIS SECTION to fit any desired model
+  # Formula, data, and weights for each observation in data$weights
+  # Compute:
+  # 1. The fitted probabilities for the data
+  # 2. New model parameters for initialization (or leave as null if undesired)
+  # 3. Degrees of freedom for model (for model selection)
+
+  if(is.null( initialization)){
+    model <- nnet::multinom(formula=formula, data=data, weights = weights, trace = F)
+  }else{
+    model <- nnet::multinom(formula, data, weights = weights, trace = F,Wts= initialization)
+  }
+
+  fitted_probabilities <- fitted(model)
+  new_weights <- model$wts
+  df <- sum(model$edf)
+
+  ########################################################################
+  output <- list()
+  output$fitted_prob <- fitted_probabilities
+  output$model_weights <- new_weights
+  output$df <- df
+
+  return(output)
+
+}
+
+res_custom <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
+        beta_formulas = formulas, nclasses= nclasses,
+         model_type = "custom", custom_beta_model = custom_multinom)
+```
+
+We see that we obtain the same results as the default implementation of multinomial logistic regression.
+
