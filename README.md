@@ -51,14 +51,14 @@ res <- adapt_gmm(x=x,pvals=pvals, alphas=alphas,
         
 # Can use z-values
 zres <- adapt_gmm(x=x,z=z, alphas=alphas,
-        beta_formulas = formulas, model_type = "neural", nclasses= c(3,4))
+        beta_formulas = formulas, model_type = "neural", nclasses= c(3,4), testing="two_sided")
         
       
 # Fitted Gaussian means
-print(paste("Means:", zres$params$mu, collapse=" "))
+print(paste(c("Means:", zres$params$mu), collapse=" "))
 
 # Fitted Gaussian variances
-print(paste("Variances:", zres$params$var, collapse=" "))
+print(paste(c("Variances:", zres$params$var), collapse=" "))
 
 # Selected beta formula from model selection
 print(paste("Selected formula:", format(zres$args$beta_formula), collapse=" "))

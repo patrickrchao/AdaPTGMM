@@ -11,5 +11,11 @@ LazyData: true
 RoxygenNote: 7.1.1
 Imports: tidyr, dplyr, magrittr, data.table
 Suggests: 
-  splines, nnet, testthat (>= 3.0.0), ggplot2
+    splines,
+    nnet,
+    testthat (>= 3.0.0),
+    ggplot2,
+    knitr,
+    rmarkdown
 Config/testthat/edition: 3
+VignetteBuilder: knitr

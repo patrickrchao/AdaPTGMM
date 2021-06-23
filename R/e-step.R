@@ -111,7 +111,6 @@ e_step_w_ika <- function(model, prev_w_ika = NULL, normalize = TRUE){
     w_ika <- w_ika[, value:= value/sum(value), by=i]
   }
   if(any(is.na(w_ika))){
-    browser()
     stop("NA value in w_ika table. Stopping.")
   }
   return(w_ika)

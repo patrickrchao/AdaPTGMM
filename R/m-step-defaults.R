@@ -3,6 +3,7 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights,m_s
   colnames(data) <- c(colnames(x),"class","weights")
   data$class <- data$class - 1
   data$class <- as.factor(data$class)
+
   if(model_type == "nnet"){
     if (!requireNamespace("nnet", quietly = TRUE)){
       stop("package \'nnet\' not found. Please install.")
@@ -31,7 +32,7 @@ m_step_beta_defaults <- function(model_type,formula, x,gammas, model_weights,m_s
   }else if(model_type == "custom"){
     out <- m_step_custom(formula,data,model_weights)
   }else{
-    warning("Invalid beta fitting method found.")
+    stop("Invalid beta fitting method found.")
   }
   return(out)
 }
@@ -125,17 +126,17 @@ m_step_mgcv <- function(formula, data,model_weights){
 }
 
 
-custom_example <- function(formula, data, model_params){
+custom_beta <- function(formula, data, initialization){
 
   ########################################################################
-  # Edit this function to fit any desired model
+  # EDIT THIS SECTION to fit any desired model
   # Formula, data, and weights for each observation in data$weights
   # Compute:
   # 1. The fitted probabilities for the data
   # 2. New model parameters for initialization (or leave as null if undesired)
   # 3. Degrees of freedom for model (for model selection)
 
-  model <- fit_model(formula,data,params=model_params,weights=data$weights)
+  model <- fit_model(formula,data,params=initialization,weights=data$weights)
 
   fitted_probabilities <- fitted(model)
   new_weights <- model$weights

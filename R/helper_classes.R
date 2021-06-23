@@ -144,7 +144,6 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
 
   mask <- data$mask
   a <- data$a
-
   true_z <- data$z
   small_z <- data$small_z
   big_z <- data$big_z
@@ -189,10 +188,6 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
       }
       init_centers = c(init_centers,-init_centers)
       val <- try(kmeans(all_z_w_neg, centers = init_centers,algorithm = "Forgy",iter.max=20))
-      if (class(val)[1] == "try-error"){
-        browser()
-      }
-
       return(val)
       }))
     ind <- which.min(lapply(all_kmeans,function(x) x$tot.withinss))
@@ -203,7 +198,8 @@ initialize_params <- function(data,nclasses,all_a,symmetric_modeling){
     var <- dplyr::summarise(dplyr::group_by(pred,class),variance = var(z)-mean(se)^2)
     var <- var[order(out$centers)[(nclasses+1):(nclasses*2)],]
   }else{
-    out <- kmeans(all_z, nclasses, nstart=50)
+
+    out <- suppressWarnings(kmeans(all_z, nclasses, nstart=50))
 
     mu <- sort(as.numeric(out$centers))
     pred <- data.frame(z=all_z,class=out$cluster,se=all_se)

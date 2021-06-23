@@ -33,6 +33,9 @@
       stop("Invalid input for rendpoint. Must include right endpoint for interval null testing.")
     }
   }
+  if(!(model_type %in% c("nnet","rrvglm", "mgcv", "glmnet", "neural", "custom"))){
+    stop("Unrecognized model type. For a custom beta model, use model_type=`custom`.")
+  }
   #if(length(x) != max(length(pvals), length(z))){
   #  stop("Invalid inputs, x and pvals/test statistics have different length.")
   #}

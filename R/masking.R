@@ -76,7 +76,6 @@ masking <- function(data,args){
   alpha_m <- args$alpha_m
   lambda <- args$lambda
   zeta <- args$zeta
-
   pvals <- data$pvals
   z <- data$z
   se <- data$se
@@ -106,6 +105,7 @@ masking <- function(data,args){
   }else{
     stop("Invalid masking shape.")
   }
+  big_pvals <- pmin(big_pvals,1-1e-12)
 
   small_z <- rep(NA, length(pvals))
   big_z <- rep(NA, length(pvals))

@@ -13,10 +13,10 @@
 #' \code{lendpoint} will be assumed to be \code{-rendpoint}.
 #' @param beta_formulas List of formulas for the beta model, e.g.  paste("splines::ns(x, df = ",c(2,4,6)," )")
 #' @param custom_beta_model Optional function to use custom beta model instead of one of the defaults. More details in the vignette.
-#' @param model_type Type of model used for modeling beta, options include \code{gam}, \code{glm}, \code{nnet}. Default is \code{nnet}.
+#' @param model_type Type of model used for modeling beta, options include \code{gam}, \code{glm}, \code{nnet}, \code{rrvglm}, and \code{neural}. Default is \code{nnet}.
 #' @param nclasses Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 #' number of classes to select in the model selection procedure. Minimum number of classes is 2.
-#' Note: recommended to use <5 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
+#' Note: recommended to use <6 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
 #' longer the list of possible values, the longer the model selection procedure takes.
 #' @param niter_fit Number of iterations of EM per model update.
 #' @param niter_ms Number of iterations of EM in model selection.
@@ -31,7 +31,6 @@
 #' @param target_alpha_level Desired FDR level to optimize the procedure over, i.e.
 #' @param cr Type of selection criterion in model_selection. Options include "\code{BIC}", "\code{AIC}", "\code{AICc}", "\code{HIC}", "\code{cross_validation}".
 #'  Default is "\code{AIC}".
-#' @param tol Positive scalar for early stopping if mu and tau do not update by more than \code{tol}.
 #' @param randomize_pvals Boolean for whether to randomize blue p-values, recommended if p_values violates assumptions.
 #' Replaces blue p-values with uniform draw in the blue interval. Defaults to \code{FALSE}.
 #' @param symmetric_modeling Boolean for whether to model the distribution of test statistics with a symmetric model.
@@ -69,7 +68,6 @@ adapt_gmm <- function(x = NULL,
                       target_alpha_level = NULL,
                       cr = "AIC",
                       randomize_pvals = FALSE,
-                      tol = 1e-4,
                       symmetric_modeling = FALSE,
                       intercept_model = TRUE,
                       return_all_models = FALSE
