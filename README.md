@@ -2,12 +2,12 @@
 
 
 ## Overview
-This package implements [AdaPTGMM](https://www.stat.berkeley.edu/~wfithian/adaptgmm.pdf), a flexible multiple testing method that uses arbitrary covariates to model the local false discovery rate.
+This package implements [AdaPTGMM](https://arxiv.org/abs/2106.15812), a flexible multiple testing method that uses arbitrary covariates to model the local false discovery rate.
 
 
 The main method `adapt_gmm()` allows flexibility in covariates, testing type, input, and classification model. We include default classification model implementations using neural networks, multinomial logistic regression, glmnet, and generalized additive models.
 
-Users may use their own custom beta models, please read the vignette for more details.
+Users may use their own custom beta models, please read the [vignette](https://patrickrchao.github.io/adaptgmm.html) for more details.
 
 
 ## Installation         
@@ -17,7 +17,11 @@ Users may use their own custom beta models, please read the vignette for more de
 devtools::install_github("patrickrchao/AdaPTGMM")
 ```
 
-
+Optionally, can also build the vignette.
+```
+# install.packages("devtools")
+devtools::install_github("patrickrchao/AdaPTGMM",build_vignettes = T)
+```
 ### Simulation Example
 We create simulations similar to Section 4.2 of the paper.
 

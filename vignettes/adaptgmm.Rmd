@@ -17,13 +17,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-The `AdaPTGMM` method is a flexible multiple testing algorithm that uses covariates to estimate the local false discovery rate with finite sample FDR control.
+The [AdaPTGMM](https://arxiv.org/abs/2106.15812) method is a flexible multiple testing algorithm that uses covariates to estimate the local false discovery rate with finite sample FDR control.
 ```{r, results = 'hide'}
 #devtools::install_github("patrickrchao/AdaPTGMM")
 library(AdaPTGMM)
 ```
 
-First, we generate data.
+First, we generate some data.
 ```{r,  echo=FALSE}
 # Generate data
 generate_data <- function(n,testing){
@@ -58,7 +58,7 @@ We may run AdaPTGMM with a variety of models and inputs.
 - **Mixture Components**: We may specify the number of mixture components in our Gaussian mixture model in the *nclasses* input. Here we consider 3-5 components.
 - **Model Selection**:  By default, we use AIC to select a featurization and the number of classes.
 - **Intercept Model**: By default, we include a intercept-only model in the featurization for the situation where the covariates are non-informative. This can be enabled or disabled in *intercept_model=TRUE* or *FALSE*.
-- **FDR levels**: By construction, AdaPTGMM can give rejections for any FDR level $\alpha$, the user may specify a vector of alpha levels in *alphas*. Here we choose 0.01, 0.05, 0.1, 0.2
+- **FDR levels**: By construction, AdaPTGMM can give rejections for any FDR level $\alpha$, the user may specify a vector of alpha levels in *alphas*. Here we choose 0.01, 0.05, 0.1, 0.2.
 ```{r}
 library("splines")
 formulas <-  paste("splines::ns(x, df = ", c(2,3,4), ")")
@@ -113,9 +113,8 @@ z <- data$z
 hist(pvals,breaks=20)
 ```
 
-In this dataset, we have some null p-values close to 1. Masking 0 and 1 to the same value will lead to inflated FDP estimates and worse power.
+In this dataset, we have some null p-values close to 1. Masking 0 and 1 to the same value will lead to inflated FDP estimates and lower power.
 ```{r}
-
 res1 <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
         beta_formulas = formulas, nclasses= nclasses,
         alpha_m = 0.2, lambda = 0.4, zeta = 3)
@@ -137,6 +136,7 @@ res_multinom <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
 ```
 
 Alternatively, the user may construct use own beta model. AdaPTGMM accepts as input **custom_beta_model**, which must be a function that accepts a formula, dataset, and (optional) initialization parameters. This is a default template for writing a custom beta model. There are four key things that the function must do, 
+
 1. Fit the model using the formula, dataset, and weights per observation
 2. Return fitted probabilities for each row in the dataset
 3. Return the degrees of freedom of the model for model selection
@@ -208,4 +208,24 @@ res_custom <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
 ```
 
 We see that we obtain the same results as the default implementation of multinomial logistic regression.
+
+## Fast Version of AdaPTGMM
+If speed is a core concern, we recommend decreasing the number of iterations used in fitting the model and number of EM iterations, as well as using a simple $\beta$ model. 
+
+Overall Recommendations:
+
+- Decrease number of candidate classes and the size of classes, here we set 'nclasses=3'.
+- Decrease number of candidate featurizations, here we set 'beta_formulas' to be a spline with 3 degrees of freedom.
+- Decrease number of EM outer loops, `nfits`. By default, `nfits=20`, we set it to be 3 here.
+- Decrease number of EM inner iterations, `niter_fit`. By default, `niter_fit=5`, we set it to be 2 here.
+- Decrease number of EM model selection steps, `niter_ms`. By default, `niter_fit=10`, we set it to be 5 here.
+- Optionally remove the intercept only model if the covariates are thought to be helpful.
+
+
+Here is a one example:
+```{r}
+fast_res <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
+        beta_formulas = "splines::ns(x, df=3)", model_type = "nnet", nclasses= 4,
+        nfits = 5, niter_fit=2, niter_ms = 5,intercept_model = FALSE)
+```
 
