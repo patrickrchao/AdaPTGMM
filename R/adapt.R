@@ -13,7 +13,7 @@
 #' \code{lendpoint} will be assumed to be \code{-rendpoint}.
 #' @param beta_formulas List of formulas for the beta model, e.g.  paste("splines::ns(x, df = ",c(2,4,6)," )")
 #' @param custom_beta_model Optional function to use custom beta model instead of one of the defaults. More details in the vignette.
-#' @param model_type Type of model used for modeling beta, options include \code{gam}, \code{glm}, \code{nnet}, \code{rrvglm}, and \code{neural}. Default is \code{nnet}.
+#' @param model_type Type of model used for modeling beta, options include \code{gam}, \code{glm}, \code{nnet}, \code{rrvglm}, and \code{neural}. Default is \code{neural}.
 #' @param nclasses Vector of number of classes in Gaussian Mixture model. The vector corresponds to the possible
 #' number of classes to select in the model selection procedure. Minimum number of classes is 2.
 #' Note: recommended to use <6 classes. Default is c(2,3,4). The greater the number of degrees of freedom the longer it takes the EM procedure to fit, and the
@@ -55,7 +55,7 @@ adapt_gmm <- function(x = NULL,
                       lendpoint = NULL,
                       beta_formulas = NULL,
                       custom_beta_model = NULL,
-                      model_type = "nnet",
+                      model_type = "neural",
                       nclasses = c(2,3,4),
                       niter_fit = 5,
                       niter_ms = 10,
