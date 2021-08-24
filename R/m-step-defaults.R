@@ -58,9 +58,9 @@ m_step_nnet <- function(formula, data, model_weights){
 m_step_neural <- function(formula, data, model_weights){
 
   if(is.null(model_weights)){
-    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, size=3,trace=F,reltol=1.0e-4)
+    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, size=3,trace=F,reltol=1.0e-6)
   }else{
-    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, Wts = model_weights, size=3,trace=F,reltol=1.0e-4)
+    est_beta <- nnet::nnet(formula=formula, data=data, weights = weights, Wts = model_weights, size=3,trace=F,reltol=1.0e-6)
   }
   fitted_prob <- fitted(est_beta)
   new_model_weights <- est_beta$wts

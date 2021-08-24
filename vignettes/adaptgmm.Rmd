@@ -13,7 +13,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  warning = FALSE
 )
 ```
 
@@ -24,19 +25,16 @@ library(AdaPTGMM)
 ```
 
 First, we generate some data.
-```{r,  echo=FALSE}
+```{r}
 # Generate data
 generate_data <- function(n,testing){
-
   x <- rnorm(n)
   expit <- function(x) 1/(1+exp(-x))
   pi1 <- expit(2*(x-1))
   H <- 1 * (runif(n) < pi1)
   theta <- H * rlogis(n, location=1/2, scale=1)
   z <- rnorm(n, mean=theta)
-  
   x <- data.frame(x=x)
-  
   if(testing == "one_sided"){
     pvals <- pnorm(z, lower.tail = FALSE)
   }else if(testing == "two_sided"){
@@ -52,13 +50,13 @@ pvals <- data$pvals
 z <- data$z
 ```
 
-We may run AdaPTGMM with a variety of models and inputs.
+The AdaPTGMM package performs automatic model selection over the number of mixture components and a list of candidate models (or featurization).
 
-- **Featurization**: We may specify a featurization for the mode in the *beta_formulas* input. Here we consider a spline basis with 2-4 degrees of freedom.
-- **Mixture Components**: We may specify the number of mixture components in our Gaussian mixture model in the *nclasses* input. Here we consider 3-5 components.
-- **Model Selection**:  By default, we use AIC to select a featurization and the number of classes.
-- **Intercept Model**: By default, we include a intercept-only model in the featurization for the situation where the covariates are non-informative. This can be enabled or disabled in *intercept_model=TRUE* or *FALSE*.
-- **FDR levels**: By construction, AdaPTGMM can give rejections for any FDR level $\alpha$, the user may specify a vector of alpha levels in *alphas*. Here we choose 0.01, 0.05, 0.1, 0.2.
+- **Featurization**: We may specify a featurization for the model in the `beta_formulas` input. Here we consider a spline basis with 2-4 degrees of freedom.
+- **Mixture Components**: We may specify the number of mixture components in our Gaussian mixture model in the `nclasses` input. Here we consider 3-5 components.
+<!-- - **Model Selection**:  By default, we use AIC to select a featurization and the number of classes.-->
+<!--- - **Intercept Model**: By default, we include an intercept-only model in the featurization in case the -covariates turn out to be non-informative. This can be disabled by setting *intercept_model=FALSE*. -->
+- **FDR levels**: By default, AdaPTGMM produces a rejection set for every $\alpha$ level which can be reconstructed with the adjusted p-values (akin to `p.adjust`), the user may specify a vector of alpha levels in `alphas`. Here we choose 0.01, 0.05, 0.1, 0.2.
 ```{r}
 library("splines")
 formulas <-  paste("splines::ns(x, df = ", c(2,3,4), ")")
@@ -68,8 +66,7 @@ alphas <- c(0.01,0.05,0.1,0.2)
 res <- adapt_gmm(x=x,pvals=pvals, alphas=alphas,
         beta_formulas = formulas, nclasses= nclasses)
 ```
-The arguments of the model are in *res$args*.
-The model selection chose a spline with 2 degrees of freedom and 4 Gaussian components.
+The arguments of the model are in `res$args`. The model selection chose a spline with 2 degrees of freedom and 4 Gaussian components.
 
 ```{r}
 # Selected beta formula from model selection
@@ -79,7 +76,7 @@ print(paste("Selected formula:", format(res$args$beta_formula), collapse=" "))
 print(paste("Selected number of classes:", res$args$nclasses, collapse=" "))
 ```
 
-Instead, we may choose to model the $z_i$'s. Since we are now inputting $z_i$'s and using a two sided test, we need to specify that the testing procedure is two sided with *testing="two_sided"*.
+Instead, we may choose to model the $z_i$'s. Since we are now inputting $z_i$'s and using a two sided test, we need to specify that the testing procedure is two sided with `testing="two_sided"`.
 ```{r}
 zres <- adapt_gmm(x=x,z=z, alphas=alphas, testing="two_sided",
         beta_formulas = formulas, nclasses= nclasses)
@@ -97,10 +94,9 @@ print(paste(c("Variances:", sapply(zres$params$var,function(x) round(x,2))), col
 ## Masking
 The masking function in AdaPTGMM is governed by three parameters, $\alpha_m$, $\lambda$ and $\zeta$, see our paper for more details. These three variables must satisfy
 $$0<\alpha_m\le \lambda \le \alpha\cdot\zeta + \lambda \le 1.$$
-The value of $\zeta$ controls the minimum possible number of rejections. If the analyst expects a small number of rejections, i.e. $<20$, we recommend large $\zeta$, for eaxmple5-20. 
+The value of $\zeta$ controls the minimum possible number of rejections. If the analyst expects a small number of rejections, i.e. $<20$, we recommend large $\zeta$, for example 5-20. 
 
 If the user does not specify any values for $\alpha_m$, $\lambda$, and $\zeta$, AdaPTGMM will choose default parameters, adapting to the total number of hypotheses. See our paper for more details.
-
 
 We may input custom masking parameters. For the sake of example, we generate one sided p-values. 
 
@@ -125,7 +121,7 @@ res2 <- adapt_gmm(x=x,z=z, alphas=alphas, testing="one_sided",
 ```
 We see that using a masking function with $\nu= \alpha\cdot\zeta + \lambda=1$ results in much lower power. For this reason, we recommend $\alpha_m=\lambda$ and $\nu=0.9$.
 
-## $\beta$ Models
+##  Modeling Mixture Proportions
 
 AdaPTGMM models the mixture proportions with a blackbox classification model. We provide implementation of multinomial logistic regression, GAM, glmnet, and a neural network with a single hidden layer. The user may specify the model type with respectively *model_type="nnet"*, *"mgcv"*, *"glmnet"*, and *"neural"*.
 
@@ -169,7 +165,7 @@ custom_beta <- function(formula, data, initialization){
 }
 ```
 
-Here is an example of using a multinomial logistic regression model. To use a custom beta model, *model_type="custom"* and *custom_beta_model=* the custom beta function.
+Here is an example of using a multinomial logistic regression model. To use a custom beta model, `model_type="custom"` and `custom_beta_model=` the custom beta function.
 
 ```{r}
 custom_multinom <- function(formula, data, initialization){
@@ -214,8 +210,8 @@ If speed is a core concern, we recommend decreasing the number of iterations use
 
 Overall Recommendations:
 
-- Decrease number of candidate classes and the size of classes, here we set 'nclasses=3'.
-- Decrease number of candidate featurizations, here we set 'beta_formulas' to be a spline with 3 degrees of freedom.
+- Decrease number of candidate classes and the size of classes, here we set `nclasses=3`.
+- Decrease number of candidate featurizations, here we set `beta_formulas` to be a spline with 3 degrees of freedom.
 - Decrease number of EM outer loops, `nfits`. By default, `nfits=20`, we set it to be 3 here.
 - Decrease number of EM inner iterations, `niter_fit`. By default, `niter_fit=5`, we set it to be 2 here.
 - Decrease number of EM model selection steps, `niter_ms`. By default, `niter_fit=10`, we set it to be 5 here.
