@@ -72,10 +72,11 @@ adapt_gmm <- function(x = NULL,
                       intercept_model = TRUE,
                       return_all_models = FALSE
                       ){
-  options(error =function(){traceback(2);if(!interactive()) quit('no', status = 1, runLast = FALSE)})
+  set.seed(0)
 
   n = nrow(x)
 
+  # Initialize objects for model
   masking_params <- select_masking_params(n,alpha_m,zeta,lambda,set_default_target(target_alpha_level,alphas))
   .input_checks(x, pvals, z, se, testing, model_type,rendpoint, lendpoint, nclasses, niter_fit, niter_ms,
                 nfits, masking_params, masking_shape, alphas, cr, symmetric_modeling)
@@ -86,9 +87,9 @@ adapt_gmm <- function(x = NULL,
 
   beta_formulas <- clean_beta_formulas(beta_formulas,intercept_model)
 
+
+  # Initial model selection
   model <- model_selection(data,args,beta_formulas,nclasses,cr)
-
-
   data <- model$data
   args <- model$args
 
@@ -130,6 +131,7 @@ adapt_gmm <- function(x = NULL,
   fdphat <- ((A_t + 1)/args$zeta) / max(R_t, 1)
   min_fdp <- fdphat
 
+  # Perform AdaPT Procedure
   for (index in seq(1:n_alphas)) {
     alpha <- sorted_alphas[index]
     while (min_fdp > alpha & R_t > 0) {
